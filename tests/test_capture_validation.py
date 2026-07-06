@@ -85,19 +85,47 @@ def test_malformed_ipl_input_is_rejected():
 
 
 def test_probe_expect_raise_records_raise_and_acceptance():
-    """proves: the expect_raise probe reduces a constructor raise to
-    {raised, type, message} and records acceptance as {raised: false} — both
-    are compared observations, neither is a capture failure."""
+    """proves: the expect_raise probe reduces a constructor raise to the
+    module-qualified exception type + message, and an acceptance to the parse
+    fingerprint — two engines accepting the same text into different parses
+    cannot compare equal on a bare 'accepted'."""
 
     def rule(text, name, infer_edges):
         raise ValueError(f"bad rule: {text}")
 
-    pr = SimpleNamespace(Rule=rule, Fact=lambda *a: None)
+    def fact(text, name, start, end, static):
+        return SimpleNamespace(
+            pred=SimpleNamespace(get_value=lambda: "f"), component="a",
+            bound=[1, 1], type="node")
+
+    pr = SimpleNamespace(Rule=rule, Fact=fact)
     raised = probe_expect_raise(pr, {"construct": "rule", "args": {"text": "x"}})
-    assert raised == {"raised": True, "type": "ValueError",
+    assert raised == {"raised": True, "type": "builtins.ValueError",
                       "message": "bad rule: x"}
     accepted = probe_expect_raise(pr, {"construct": "fact", "args": {"text": "f(a)"}})
-    assert accepted == {"raised": False}
+    assert accepted == {"raised": False,
+                        "parse": {"pred": "f", "component": "a",
+                                  "bound": [1, 1], "type": "node"}}
+
+
+def test_probe_expect_raise_missing_constructor_is_a_capture_failure():
+    """proves: an engine with no Rule/Fact constructor fails the capture
+    outright instead of recording the AttributeError as engine behavior —
+    a harness/binding fault never wears the compared-observation label."""
+    import pytest
+
+    with pytest.raises(AttributeError):
+        probe_expect_raise(SimpleNamespace(),
+                           {"construct": "rule", "args": {"text": "x"}})
+
+
+def test_interp_probe_kinds_partition_the_probe_surface():
+    """proves: every probe kind is either interpretation-consuming or one of
+    the two standalone kinds — a new kind added to the dispatch without a
+    reason-block ruling reds here instead of mislabeling exits later."""
+    from harness.capture import INTERP_PROBE_KINDS
+
+    assert PROBE_KINDS == INTERP_PROBE_KINDS | {"get_time", "expect_raise"}
 
 
 def test_probe_kinds_cover_the_capture_dispatch():

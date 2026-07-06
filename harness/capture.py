@@ -103,25 +103,47 @@ def dataframe_to_plain(df):
     }
 
 
+def parse_fingerprint(construct: str, obj) -> dict:
+    """Reduce an accepted construction to the parse outcome it embodies.
+
+    A bare "accepted" would let two engines that accept the same text into
+    different parses compare equal — the acceptance branch must carry what
+    was parsed, not just that parsing succeeded.
+    """
+    if construct == "rule":
+        r = obj.rule
+        return {"name": r.get_rule_name(), "type": r.get_rule_type(),
+                "target": r.get_target().get_value(),
+                "head_variables": list(r.get_head_variables()),
+                "delta": r.get_delta(), "bnd": r.get_bnd(),
+                "clause_count": len(r.get_clauses())}
+    return {"pred": obj.pred.get_value(), "component": obj.component,
+            "bound": obj.bound, "type": obj.type}
+
+
 def probe_expect_raise(pr, probe):
     """Construct a Rule or Fact from the probe's args and record what happens.
 
-    The output is the observation either way — {"raised": false} when the
-    engine accepts the input is as much a captured behavior as the raise; the
-    compare layer holds both engines to the same outcome, exception type and
-    message included.
+    The output is the observation either way — an acceptance is recorded with
+    its parse fingerprint, a raise with the module-qualified exception type
+    and message; the compare layer holds both engines to the same outcome.
+    A missing constructor is a harness/binding fault and propagates as a
+    capture failure rather than wearing the engine-behavior label.
     """
     args = probe["args"]
+    ctor = getattr(pr, "Rule" if probe["construct"] == "rule" else "Fact")
     try:
         if probe["construct"] == "rule":
-            pr.Rule(args["text"], args.get("name"),
-                    args.get("infer_edges", False))
+            obj = ctor(args["text"], args.get("name"),
+                       args.get("infer_edges", False))
         else:
-            pr.Fact(args["text"], args.get("name"), args.get("start", 0),
-                    args.get("end", 0), args.get("static", False))
+            obj = ctor(args["text"], args.get("name"), args.get("start", 0),
+                       args.get("end", 0), args.get("static", False))
     except Exception as exc:
-        return {"raised": True, "type": type(exc).__name__, "message": str(exc)}
-    return {"raised": False}
+        exc_type = f"{type(exc).__module__}.{type(exc).__qualname__}"
+        return {"raised": True, "type": exc_type, "message": str(exc)}
+    return {"raised": False,
+            "parse": parse_fingerprint(probe["construct"], obj)}
 
 
 def run_probe(pr, interpretation, probe):
