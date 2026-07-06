@@ -1,0 +1,40 @@
+{
+  "id": "inconsistency-ipl-resolve",
+  "purpose": "The default inconsistency path (settings.inconsistency_check=True): sick/healthy declared inconsistent via add_inconsistent_predicate, then sick(Alice) and healthy(Alice) asserted together (IPL conflict) and tired(Bob) asserted with two non-overlapping bounds (same-predicate conflict) — both resolved rather than overridden, with the resolution visible in the rule trace's Consistent / Inconsistency Message columns.",
+  "runtime_class": "smoke",
+  "provenance": "oracle-example: examples/inconsistency_example.py, slimmed to the node-level conflicts",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:add_inconsistent_predicate",
+    "fn:reason", "fn:filter_and_sort_nodes", "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:inconsistency_check", "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true, "inconsistency_check": true},
+    "graph": {
+      "nodes": ["Alice", "Bob", "Carol"],
+      "edges": [
+        ["Alice", "Bob", {"contact": 1}],
+        ["Bob", "Carol", {"contact": 1}]
+      ]
+    },
+    "ipl": [["sick", "healthy"]],
+    "rules": [
+      {"text": "sick(y):[0.5,0.7] <- sick(x):[0.5,1.0], contact(x,y)", "name": "spread_rule"}
+    ],
+    "facts": [
+      {"text": "sick(Alice):[0.8,1.0]", "name": "alice_sick_fact", "start": 0, "end": 0},
+      {"text": "healthy(Alice):[0.9,1.0]", "name": "alice_healthy_fact", "start": 0, "end": 0},
+      {"text": "tired(Bob):[0.8,1.0]", "name": "bob_tired_fact_1", "start": 0, "end": 0},
+      {"text": "tired(Bob):[0.0,0.1]", "name": "bob_tired_fact_2", "start": 0, "end": 0}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "nodes-sick-healthy-tired", "kind": "filter_sort_nodes", "labels": ["sick", "healthy", "tired"]},
+    {"id": "trace-node", "kind": "rule_trace_node"},
+    {"id": "trace-edge", "kind": "rule_trace_edge"},
+    {"id": "time", "kind": "get_time"}
+  ],
+  "comparison": {"probes": {}}
+}
