@@ -1,0 +1,5 @@
+e1a94af33e1f9d925c9df8284113dd0e14fe8a73
+# The oracle pin: oracle/pyreason must sit detached at exactly this commit
+# (upstream lab-v2/pyreason main). The first non-comment line is the pinned SHA;
+# tools/hive_preflight.py verifies HEAD against it. Moving the pin is an
+# operator-adjudicated decision recorded in the campaign ledger.

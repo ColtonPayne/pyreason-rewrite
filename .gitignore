@@ -1,0 +1,8 @@
+# Nested git repo — the pinned upstream oracle keeps its own history, never tracked here
+oracle/pyreason/
+
+# Caches / rebuildable local state
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.venv/

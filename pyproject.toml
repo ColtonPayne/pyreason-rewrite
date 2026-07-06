@@ -1,0 +1,16 @@
+[project]
+name = "pyreason-rewrite"
+version = "0.0.1"
+description = "Ground-up pyreason reimagining — Fable-window campaign repo, federated hivemind consumer"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tools"]
+markers = [
+    "e2e: needs the live federated hivemind substrate on this machine; the pre-commit gate deselects it",
+]

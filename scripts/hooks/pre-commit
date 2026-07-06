@@ -1,0 +1,29 @@
+#!/bin/sh
+# pyreason-rewrite pre-commit gate. Two parallel guards, each keyed on what's staged:
+# the corpus-wide cross-repo link check on any .md, and the fast test tier on code.
+# This repo is a SIBLING of the umbrella (a federated consumer, not a child), so the
+# umbrella resolves via HIVEMIND_ROOT with the mirrored ~/Projects layout as default —
+# the walk-up pattern the in-tree repos use cannot find it from here.
+# Activate once per clone: git config core.hooksPath scripts/hooks
+set -eu
+cd "$(git rev-parse --show-toplevel)"
+staged=$(git diff --cached --name-only)
+[ -n "$staged" ] || exit 0
+
+umbrella="${HIVEMIND_ROOT:-$HOME/Projects/ai-hivemind}"
+
+# Cross-repo link registry gate — runs PARALLEL to the test guard below, never nested,
+# so a commit mixing docs with code can't skip it. Soft-skips on a machine without uv
+# or the umbrella (a lone clone still commits).
+if printf '%s\n' "$staged" | grep -qE '\.md$'; then
+    if command -v uv >/dev/null 2>&1 && [ -f "$umbrella/repos.toml" ]; then
+        uv run --directory "$umbrella/hive-state" hstate links check --manifest "$umbrella/repos.toml"
+    else
+        echo "pre-commit: uv or umbrella manifest missing — links check SKIPPED" >&2
+    fi
+fi
+
+# Fast test tier on code commits (e2e stays deselected — it needs the live substrate).
+if printf '%s\n' "$staged" | grep -qE '\.(py|toml)$'; then
+    uv run pytest -m "not e2e"
+fi
