@@ -1,0 +1,47 @@
+{
+  "engine_a": "oracle-env/bin/python",
+  "engine_b": "oracle-env/bin/python",
+  "hashseed": "0",
+  "verdicts": [
+    {
+      "status": "pass",
+      "case_id": "conv-delta-bound"
+    },
+    {
+      "status": "pass",
+      "case_id": "conv-delta-interp"
+    },
+    {
+      "status": "pass",
+      "case_id": "conv-perfect"
+    },
+    {
+      "status": "pass",
+      "case_id": "fact-text-malformed"
+    },
+    {
+      "status": "pass",
+      "case_id": "hello-world"
+    },
+    {
+      "status": "pass",
+      "case_id": "inconsistency-ipl-override"
+    },
+    {
+      "status": "pass",
+      "case_id": "inconsistency-ipl-resolve"
+    },
+    {
+      "status": "pass",
+      "case_id": "persistent-off"
+    },
+    {
+      "status": "pass",
+      "case_id": "persistent-on"
+    },
+    {
+      "status": "pass",
+      "case_id": "rule-text-malformed"
+    }
+  ]
+}
