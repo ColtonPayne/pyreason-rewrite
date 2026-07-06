@@ -77,7 +77,7 @@ def build_checks(root: Path, umbrella: Path, run_cmd) -> list[tuple[str, object,
         entry = repos.get(REPO_NAME)
         if entry is None:
             return False, f"no `{REPO_NAME}` entry in {manifest}"
-        entry_root = Path(entry)
+        entry_root = Path(entry).expanduser()
         if not entry_root.is_absolute():
             entry_root = umbrella / entry_root
         ok = entry_root.resolve() == root.resolve()
@@ -156,7 +156,9 @@ def build_checks(root: Path, umbrella: Path, run_cmd) -> list[tuple[str, object,
         ("links-gate", links_gate,
          "corpus link graph is red — repair via the /hive-state-links skill before campaign work"),
         ("lrag-probe", lrag_probe,
-         f"lrag collection `{LRAG_COLLECTION}` absent or empty; register + sync it from the machine that owns the registry (single writer)"),
+         f"lrag registry is machine-local: bootstrap it once on this machine — "
+         f"`lrag collection new {LRAG_COLLECTION} --path ~/Projects/dyuman-pryeason` "
+         f"then `lrag sync -c {LRAG_COLLECTION}` (both via uv run --directory <umbrella>/local-rag)"),
         ("oracle-pin", oracle_pin,
          "re-clone or `git -C oracle/pyreason checkout <PIN>`; never build on a drifted oracle"),
         ("ledger-writable", ledger_writable,

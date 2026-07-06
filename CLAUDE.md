@@ -45,9 +45,11 @@ The umbrella root resolves as `$HIVEMIND_ROOT`, defaulting to `~/Projects/ai-hiv
   with ~191 catalogued bugs, a theory glossary, layer/interpretation analyses) is federated
   as the lrag collection `pyreason-analysis`:
   `uv run --directory $HIVEMIND_ROOT/local-rag lrag retrieve "<query>" -c pyreason-analysis --no-sync`.
-  Keyword (BM25) retrieval is the default and needs no model daemon. **Always pass
-  `--no-sync` from this repo** — the registry is single-writer and its writer is not you.
-  Bug reports there are *seeds* for understanding, not acceptance criteria.
+  Keyword (BM25) retrieval is the default and needs no model daemon. The registry is
+  **machine-local and single-writer**: on a fresh machine, ledger session 0 registers +
+  syncs the collection once (see [docs/ledger/README.md][pyreason-rewrite-docs-ledger-README]);
+  every retrieval after that passes `--no-sync`. Bug reports there are *seeds* for
+  understanding, not acceptance criteria.
 - **Docs** — this repo's markdown participates in the hivemind cross-repo link graph
   (doc-code markers + reference-style links; convention in
   [cross-repo-links][ai-hivemind-docs-cross-repo-links]). The pre-commit hook runs the

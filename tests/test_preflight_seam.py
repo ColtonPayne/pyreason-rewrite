@@ -89,6 +89,23 @@ def test_oracle_pin_drift_fails(tmp_path, capsys):
     assert pin["ok"] is False
 
 
+def test_tilde_manifest_entry_resolves(tmp_path, capsys, monkeypatch):
+    """proves: a `~`-rooted manifest entry (the committed cross-machine form) resolves
+    against the running user's home, mirroring hive-state's load_manifest expansion."""
+    root, umbrella = make_roots(tmp_path)
+    fake_home = tmp_path / "mac-home"
+    (fake_home / "Projects").mkdir(parents=True)
+    (fake_home / "Projects" / "pyreason-rewrite").symlink_to(root)
+    monkeypatch.setenv("HOME", str(fake_home))
+    (umbrella / "repos.toml").write_text(
+        'ai-hivemind = "."\npyreason-rewrite = "~/Projects/pyreason-rewrite"\n'
+    )
+    assert run_doctor(root, umbrella, green_run_cmd) == 0
+    report = json.loads(capsys.readouterr().out)
+    entry = next(r for r in report["results"] if r["name"] == "manifest-entry")
+    assert entry["ok"] is True
+
+
 def test_missing_manifest_entry_fails_with_hint(tmp_path, capsys):
     """proves: an umbrella manifest without this repo's entry fails manifest-entry and
     the hint names the exact repos.toml edit."""
