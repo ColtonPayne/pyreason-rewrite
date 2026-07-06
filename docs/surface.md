@@ -46,8 +46,8 @@ classes likewise.
 
 ## fn:load_graph
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:589
-- status: uncovered
-- cases: none
+- status: cased
+- cases: hello-world
 - input classes:
   - happy-digraph
   - happy-no-attr-parse
@@ -107,8 +107,8 @@ classes likewise.
 
 ## fn:add_fact
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1133
-- status: uncovered
-- cases: none
+- status: cased
+- cases: hello-world
 - input classes:
   - happy-node
   - happy-edge
@@ -162,8 +162,8 @@ classes likewise.
 
 ## fn:add_rule
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:632
-- status: uncovered
-- cases: none
+- status: cased
+- cases: hello-world
 - input classes:
   - happy-basic
   - happy-named
@@ -330,8 +330,8 @@ classes likewise.
 
 ## fn:get_time
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:549
-- status: uncovered
-- cases: none
+- status: cased
+- cases: hello-world
 - input classes:
   - happy
   - no-interpretation
@@ -341,8 +341,8 @@ classes likewise.
 
 ## fn:reason
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1497
-- status: uncovered
-- cases: none
+- status: cased
+- cases: hello-world
 - input classes:
   - happy-fresh
   - again-resume
@@ -380,8 +380,8 @@ classes likewise.
 
 ## fn:get_rule_trace
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1658
-- status: uncovered
-- cases: none
+- status: cased
+- cases: hello-world
 - input classes:
   - happy
   - store-off-assert
@@ -392,8 +392,8 @@ classes likewise.
 
 ## fn:filter_and_sort_nodes
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1672
-- status: uncovered
-- cases: none
+- status: cased
+- cases: hello-world
 - input classes:
   - happy
   - store-off-assert
@@ -427,8 +427,8 @@ classes likewise.
 
 ## type:Rule
 - oracle anchor: oracle/pyreason/pyreason/scripts/rules/rule.py:4
-- status: uncovered
-- cases: none
+- status: cased
+- cases: hello-world
 - input classes:
   - happy-text-only
   - happy-full-args
@@ -441,8 +441,8 @@ classes likewise.
 
 ## type:Fact
 - oracle anchor: oracle/pyreason/pyreason/scripts/facts/fact.py:5
-- status: uncovered
-- cases: none
+- status: cased
+- cases: hello-world
 - input classes:
   - happy-node
   - happy-edge
@@ -532,8 +532,8 @@ classes likewise.
 
 ## dsl:rule-text
 - oracle anchor: oracle/pyreason/pyreason/scripts/utils/rule_parser.py:17
-- status: uncovered
-- cases: none
+- status: cased
+- cases: hello-world
 - input classes:
   - happy-node-rule
   - happy-edge-rule
@@ -602,8 +602,8 @@ classes likewise.
 
 ## dsl:fact-text
 - oracle anchor: oracle/pyreason/pyreason/scripts/utils/fact_parser.py:28
-- status: uncovered
-- cases: none
+- status: cased
+- cases: hello-world
 - input classes:
   - happy-node-default-true
   - happy-edge
@@ -639,8 +639,8 @@ classes likewise.
 
 ## setting:verbose
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:86
-- status: uncovered
-- cases: none
+- status: cased
+- cases: hello-world
 - input classes:
   - default-true-prints
   - nondefault-false-silent
@@ -723,8 +723,8 @@ classes likewise.
 
 ## setting:atom_trace
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:143
-- status: uncovered
-- cases: none
+- status: cased
+- cases: hello-world
 - input classes:
   - default-false-notrace
   - nondefault-true-trace
