@@ -1,0 +1,41 @@
+{
+  "id": "hello-world",
+  "purpose": "The spine smoke case: popularity diffusion over the friends graph — one rule, one fact, two timesteps, node/edge traces probed at the public API boundary.",
+  "runtime_class": "smoke",
+  "provenance": "oracle-example: docs/hello-world.py graph + tests/functional/test_basic_reasoning.py fact form",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason",
+    "fn:filter_and_sort_nodes", "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 2}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "nodes-popular", "kind": "filter_sort_nodes", "labels": ["popular"]},
+    {"id": "trace-node", "kind": "rule_trace_node"},
+    {"id": "trace-edge", "kind": "rule_trace_edge"},
+    {"id": "time", "kind": "get_time"}
+  ],
+  "comparison": {"default": "exact"}
+}

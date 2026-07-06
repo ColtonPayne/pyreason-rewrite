@@ -1,0 +1,11 @@
+{
+  "engine_a": "oracle-env/bin/python",
+  "engine_b": "oracle-env/bin/python",
+  "hashseed": "0",
+  "verdicts": [
+    {
+      "status": "pass",
+      "case_id": "hello-world"
+    }
+  ]
+}

@@ -4,6 +4,9 @@ oracle/pyreason/
 # Dedicated oracle environment — rebuildable from oracle/PIN + tools/oracle_smoke.py docstring
 oracle-env/
 
+# Harness run artifacts — rebuildable; verdicts of record bank in the ledger
+results/
+
 # Caches / rebuildable local state
 __pycache__/
 .pytest_cache/

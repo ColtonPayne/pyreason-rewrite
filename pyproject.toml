@@ -10,7 +10,7 @@ dev = ["pytest>=8"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["tools"]
+pythonpath = ["tools", "."]
 markers = [
     "e2e: needs the live federated hivemind substrate on this machine; the pre-commit gate deselects it",
 ]
