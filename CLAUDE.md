@@ -10,6 +10,10 @@ this file must carry the vital rules itself. The full constitution is the
 [security model][ai-hivemind-docs-security-model] family. Read the playbook before non-trivial
 work.
 
+**Governing charter: `$HIVEMIND_ROOT/idea-synthesis/plans/hivemind-portability.md` — read it
+before campaign work.** It carries the acceptance criteria, the permission charter, and the
+session protocol this repo's work runs under; a fresh session reads it right after this file.
+
 ## Step 0 — preflight, always
 
 Before any campaign work on any machine, run the preflight doctor:
