@@ -1,0 +1,68 @@
+{
+  "repo": "pyreason-rewrite",
+  "root": "/Users/coltonpayne/Projects/pyreason-rewrite",
+  "umbrella": "/Users/coltonpayne/Projects/ai-hivemind",
+  "ok": true,
+  "results": [
+    {
+      "name": "python-version",
+      "ok": true,
+      "detail": "python 3.13.11",
+      "hint": null
+    },
+    {
+      "name": "uv-present",
+      "ok": true,
+      "detail": "/opt/homebrew/bin/uv",
+      "hint": null
+    },
+    {
+      "name": "umbrella-manifest",
+      "ok": true,
+      "detail": "/Users/coltonpayne/Projects/ai-hivemind/repos.toml",
+      "hint": null
+    },
+    {
+      "name": "manifest-entry",
+      "ok": true,
+      "detail": "pyreason-rewrite = '~/Projects/pyreason-rewrite' -> /Users/coltonpayne/Projects/pyreason-rewrite",
+      "hint": null
+    },
+    {
+      "name": "hstate-invokable",
+      "ok": true,
+      "detail": "rc=0",
+      "hint": null
+    },
+    {
+      "name": "links-gate",
+      "ok": true,
+      "detail": "corpus link graph green",
+      "hint": null
+    },
+    {
+      "name": "lrag-probe",
+      "ok": true,
+      "detail": "probe returned hits",
+      "hint": null
+    },
+    {
+      "name": "oracle-pin",
+      "ok": true,
+      "detail": "pinned at e1a94af33e1f, clean",
+      "hint": null
+    },
+    {
+      "name": "ledger-writable",
+      "ok": true,
+      "detail": "/Users/coltonpayne/Projects/pyreason-rewrite/docs/ledger",
+      "hint": null
+    },
+    {
+      "name": "git-wiring",
+      "ok": true,
+      "detail": "identity=ok, hooksPath=scripts/hooks",
+      "hint": null
+    }
+  ]
+}
