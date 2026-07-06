@@ -37,5 +37,5 @@
     {"id": "trace-edge", "kind": "rule_trace_edge"},
     {"id": "time", "kind": "get_time"}
   ],
-  "comparison": {"default": "exact"}
+  "comparison": {"probes": {}}
 }

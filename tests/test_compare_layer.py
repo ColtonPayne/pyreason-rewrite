@@ -4,6 +4,8 @@ These prove the canonical form, digest stability, ordering-as-contract, and the
 per-probe tolerance policy without importing any engine.
 """
 
+import pytest
+
 from harness.compare import (approx_equal, canonical, canonical_json,
                              compare_probes, digest)
 
@@ -20,7 +22,7 @@ def test_canonical_reduces_interval_likes_and_tuples():
     """proves: objects with numeric lower/upper reduce to [l,u] pairs and tuples
     to lists, so artifacts from any engine share one canonical vocabulary."""
     value = {"bound": FakeInterval(0.25, 1.0), "component": ("a", "b")}
-    assert canonical(value) == {"bound": [0.25, 1.0], "component": ["a", "b"]}
+    assert canonical(value) == {"bound": [0.25, 1], "component": ["a", "b"]}
 
 
 def test_digest_ignores_dict_order_but_not_list_order():
@@ -30,9 +32,40 @@ def test_digest_ignores_dict_order_but_not_list_order():
     assert digest([1, 2]) != digest([2, 1])
 
 
-def test_canonical_json_is_deterministic():
-    """proves: the canonical JSON of a nested value is byte-stable across calls,
-    the property digest tripwires rely on."""
+def test_numeric_type_is_not_part_of_the_contract():
+    """proves: integral floats and ints share one canonical form and digest, so
+    an engine emitting [0, 1] and one emitting [0.0, 1.0] agree."""
+    assert canonical(1.0) == 1 and canonical(0.5) == 0.5
+    assert digest([0, 1]) == digest([0.0, 1.0])
+    assert digest(0.5) != digest(1)
+
+
+def test_nonfinite_floats_reduce_to_sentinels_on_both_paths():
+    """proves: NaN and ±inf become sentinel strings, valid strict JSON, judged
+    identically by the exact and tolerance comparison paths."""
+    assert canonical(float("nan")) == "NaN"
+    assert canonical(float("inf")) == "Infinity"
+    assert canonical(float("-inf")) == "-Infinity"
+    a, b = {"p": float("nan")}, {"p": float("nan")}
+    assert compare_probes(a, b) == []
+    assert compare_probes(a, b, {"p": {"tolerance": 1e-9}}) == []
+
+
+def test_unreducible_values_raise_instead_of_digesting():
+    """proves: dict-key collisions, sets, and unknown object types raise at
+    canonicalization — an unreducible probe output is a loud schema gap, never
+    a silent digest (or a process-id leak) that could fake a verdict."""
+    with pytest.raises(ValueError):
+        canonical({1: "a", "1": "b"})
+    with pytest.raises(TypeError):
+        canonical({"x": {"a", "b"}})
+    with pytest.raises(TypeError):
+        canonical(object())
+
+
+def test_canonical_json_is_idempotent_in_process():
+    """proves: canonical JSON of a nested value is byte-identical across calls
+    within a process (cross-process stability rides the e2e repeat pairing)."""
     value = {"rows": [[0.1, "n1", FakeInterval(0, 1)]], "t": 2}
     assert canonical_json(value) == canonical_json(value)
 
