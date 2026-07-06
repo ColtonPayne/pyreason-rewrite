@@ -23,7 +23,15 @@ from pathlib import Path
 from harness.compare import canonical, digest
 
 PROBE_KINDS = {"filter_sort_nodes", "filter_sort_edges", "rule_trace_node",
-               "rule_trace_edge", "get_time", "interpretation_dict"}
+               "rule_trace_edge", "get_time", "interpretation_dict",
+               "expect_raise"}
+# Probe kinds that consume the interpretation reason() returns — a case using
+# any of them must carry an inputs.reason block. get_time reads module state
+# and expect_raise constructs in isolation; both run without one.
+INTERP_PROBE_KINDS = {"filter_sort_nodes", "filter_sort_edges",
+                      "rule_trace_node", "rule_trace_edge",
+                      "interpretation_dict"}
+EXPECT_RAISE_CONSTRUCTS = {"rule", "fact"}
 # output_to_file rebinds the engine process's stdout and writes a
 # timestamp-named file the harness never compares — rejected until file output
 # becomes a first-class probe.
@@ -47,8 +55,25 @@ def validate_case(case: dict) -> str | None:
     unknown = {p.get("kind") for p in probes} - PROBE_KINDS
     if unknown:
         return f"unknown probe kind(s): {sorted(unknown)}"
+    for p in probes:
+        if p.get("kind") != "expect_raise":
+            continue
+        if p.get("construct") not in EXPECT_RAISE_CONSTRUCTS:
+            return (f"expect_raise probe {p['id']!r} needs 'construct' in "
+                    f"{sorted(EXPECT_RAISE_CONSTRUCTS)}")
+        if not isinstance(p.get("args"), dict) or "text" not in p["args"]:
+            return f"expect_raise probe {p['id']!r} needs an 'args' dict with 'text'"
     if not isinstance(case.get("inputs"), dict):
         return "case has no 'inputs' object"
+    interp_probes = [p["id"] for p in probes if p.get("kind") in INTERP_PROBE_KINDS]
+    if interp_probes and "reason" not in case["inputs"]:
+        return (f"probe(s) {interp_probes} consume the interpretation but the "
+                f"case has no inputs.reason block")
+    ipl = case["inputs"].get("ipl", [])
+    if not (isinstance(ipl, list) and all(
+            isinstance(pair, list) and len(pair) == 2
+            and all(isinstance(name, str) for name in pair) for pair in ipl)):
+        return "inputs.ipl must be a list of [pred, pred] string pairs"
     forbidden = FORBIDDEN_SETTINGS & set(case["inputs"].get("settings", {}))
     if forbidden:
         return f"forbidden settings knob(s) in a case: {sorted(forbidden)}"
@@ -78,8 +103,31 @@ def dataframe_to_plain(df):
     }
 
 
+def probe_expect_raise(pr, probe):
+    """Construct a Rule or Fact from the probe's args and record what happens.
+
+    The output is the observation either way — {"raised": false} when the
+    engine accepts the input is as much a captured behavior as the raise; the
+    compare layer holds both engines to the same outcome, exception type and
+    message included.
+    """
+    args = probe["args"]
+    try:
+        if probe["construct"] == "rule":
+            pr.Rule(args["text"], args.get("name"),
+                    args.get("infer_edges", False))
+        else:
+            pr.Fact(args["text"], args.get("name"), args.get("start", 0),
+                    args.get("end", 0), args.get("static", False))
+    except Exception as exc:
+        return {"raised": True, "type": type(exc).__name__, "message": str(exc)}
+    return {"raised": False}
+
+
 def run_probe(pr, interpretation, probe):
     kind = probe["kind"]
+    if kind == "expect_raise":
+        return probe_expect_raise(pr, probe)
     if kind == "filter_sort_nodes":
         frames = pr.filter_and_sort_nodes(interpretation, probe["labels"])
         return [dataframe_to_plain(df) for df in frames]
@@ -128,10 +176,15 @@ def run_case(case: dict) -> dict:
         pr.add_fact(pr.Fact(fact["text"], fact.get("name"),
                             fact.get("start", 0), fact.get("end", 0),
                             fact.get("static", False)))
+    for pred_a, pred_b in inputs.get("ipl", []):
+        pr.add_inconsistent_predicate(pred_a, pred_b)
 
-    t1 = time.perf_counter()
-    interpretation = pr.reason(**inputs.get("reason", {}))
-    reason_s = time.perf_counter() - t1
+    interpretation = None
+    reason_s = None
+    if "reason" in inputs:
+        t1 = time.perf_counter()
+        interpretation = pr.reason(**inputs["reason"])
+        reason_s = time.perf_counter() - t1
 
     probes = {}
     for probe in case["probes"]:
@@ -149,7 +202,8 @@ def run_case(case: dict) -> dict:
         "env": {"PYTHONHASHSEED": os.environ.get("PYTHONHASHSEED")},
         "probes": probes,
         "digests": {pid: digest(value) for pid, value in probes.items()},
-        "timing": {"import_s": round(import_s, 3), "reason_s": round(reason_s, 3)},
+        "timing": {"import_s": round(import_s, 3),
+                   "reason_s": None if reason_s is None else round(reason_s, 3)},
     }
 
 

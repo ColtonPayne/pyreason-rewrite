@@ -4,7 +4,9 @@ validate_case runs before the engine import, so these need no engine env; they
 prove authoring faults exit as usage, never wearing the engine-failure label.
 """
 
-from harness.capture import PROBE_KINDS, validate_case
+from types import SimpleNamespace
+
+from harness.capture import PROBE_KINDS, probe_expect_raise, validate_case
 
 VALID = {"id": "c", "inputs": {"settings": {}},
          "probes": [{"id": "p", "kind": "get_time"}]}
@@ -41,6 +43,61 @@ def test_output_to_file_setting_is_forbidden():
     timestamp-named file is refused until file output is a first-class probe."""
     bad = {**VALID, "inputs": {"settings": {"output_to_file": True}}}
     assert "output_to_file" in validate_case(bad)
+
+
+def test_expect_raise_probe_requires_construct_and_args():
+    """proves: an expect_raise probe missing a known construct or a text-bearing
+    args dict is an authoring fault caught before the engine runs."""
+    no_construct = {**VALID, "probes": [
+        {"id": "p", "kind": "expect_raise", "args": {"text": ""}}]}
+    assert "construct" in validate_case(no_construct)
+    no_text = {**VALID, "probes": [
+        {"id": "p", "kind": "expect_raise", "construct": "rule", "args": {}}]}
+    assert "text" in validate_case(no_text)
+
+
+def test_expect_raise_only_case_needs_no_reason_block():
+    """proves: a case holding only expect_raise probes validates without an
+    inputs.reason block — malformed-DSL cases never run the reasoner."""
+    case = {"id": "c", "inputs": {},
+            "probes": [{"id": "p", "kind": "expect_raise", "construct": "fact",
+                        "args": {"text": ""}}]}
+    assert validate_case(case) is None
+
+
+def test_interpretation_probe_without_reason_block_is_rejected():
+    """proves: a probe that consumes reason()'s interpretation cannot ride a
+    case that never reasons — the fault names the probe."""
+    case = {"id": "c", "inputs": {},
+            "probes": [{"id": "p", "kind": "rule_trace_node"}]}
+    assert "reason" in validate_case(case)
+
+
+def test_malformed_ipl_input_is_rejected():
+    """proves: inputs.ipl must be [pred, pred] string pairs — a lone predicate
+    or non-string entry is an authoring fault, not an engine failure."""
+    assert "ipl" in validate_case(
+        {**VALID, "inputs": {"ipl": [["sick"]]}})
+    assert "ipl" in validate_case(
+        {**VALID, "inputs": {"ipl": [["sick", 3]]}})
+    assert validate_case(
+        {**VALID, "inputs": {"ipl": [["sick", "healthy"]]}}) is None
+
+
+def test_probe_expect_raise_records_raise_and_acceptance():
+    """proves: the expect_raise probe reduces a constructor raise to
+    {raised, type, message} and records acceptance as {raised: false} — both
+    are compared observations, neither is a capture failure."""
+
+    def rule(text, name, infer_edges):
+        raise ValueError(f"bad rule: {text}")
+
+    pr = SimpleNamespace(Rule=rule, Fact=lambda *a: None)
+    raised = probe_expect_raise(pr, {"construct": "rule", "args": {"text": "x"}})
+    assert raised == {"raised": True, "type": "ValueError",
+                      "message": "bad rule: x"}
+    accepted = probe_expect_raise(pr, {"construct": "fact", "args": {"text": "f(a)"}})
+    assert accepted == {"raised": False}
 
 
 def test_probe_kinds_cover_the_capture_dispatch():
