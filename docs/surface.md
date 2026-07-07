@@ -241,8 +241,8 @@ classes likewise.
 
 ## fn:add_annotation_function
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1415
-- status: uncovered
-- cases: none
+- status: cased
+- cases: annotation-fn-two-arg, annotation-fn-six-arg, annotation-fn-unregistered-name, annotation-fn-reset-clears
 - input classes:
   - happy-2arg
   - happy-6arg
@@ -251,19 +251,19 @@ classes likewise.
   - bound-defaulted-or-varargs
   - interacts-reset
   - interacts-reorder_clauses
-- notes: arity gate (2 or 6) only; njit decoration not enforced; 6-arg contract follows post-reorder clause order
+- notes: cased through the named-function registry (harness/reference_fns.py — committed reference functions selected by name, njit applied at resolve time). Registration gate pinned: 3 positional args and a *args function (co_argcount 0) both TypeError with the pinned message naming the function and count; bound-njit-wrapped pinned on the dispatcher side (every registrand is an njit dispatcher, so the py_func unwrap runs in every banked registration). SEMANTICS pinned through reason() output, not registration state: the 2-arg form's derived bound (weight-scaled mean — and the weights parameter's consumption pinned differentially: default-weights combo [0.5,1] vs weights [0.5,1.5] combo2 [0.625,1] in one case) and the 6-arg extended form's qualified-grounding metadata (crowd(A)=[0.25,1] from 2 clause-0 groundings/8, with atom_trace OFF so the metadata flows through the extended-flag gate alone). interacts-reset pinned: reset_rules clears the registration and the re-added rule then raises the same NameError(\"name 'annotation' is not defined\") the never-registered arm banks (annotate's objmode output is only assigned inside the name-match loop, interpretation.py:1918-1930). Named unobserved: a PLAIN (non-njit) callable is accepted by the registration gate but reason() then fails numba argument typing (screened 2026-07-07: TypingError 'Cannot determine Numba type of <class tuple>' embedding engine-env paths — unbanked because the message is engine-environment text, guaranteed to differ across environments); interacts-reorder_clauses (the 6-arg case's graph has edges ≤ nodes, so the reorder pass never runs — the extended args' post-reorder clause-order contract is unexercised); annotation functions returning an Interval instead of a 2-tuple (the objmode return contract, interpretation.py:1918)
 - analysis: docs/analysis/surface/rules.md
 
 ## fn:add_head_function
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1484
-- status: uncovered
-- cases: none
+- status: cased
+- cases: head-fn-grounding, head-fn-unregistered-name, head-fn-reset-clears
 - input classes:
   - happy-basic
   - bound-no-validation
   - interacts-reset
   - interacts-head-fn-in-dsl
-- notes: no validation at all — asymmetric with add_annotation_function
+- notes: cased through the named-function registry. The no-validation asymmetry pinned live: the SAME star_args_stub that TypeErrors at add_annotation_function registers here silently ({'raised': false}) and, unreferenced by any rule head, is inert — while the referenced head function grounds the head variable through the DSL's f(X) form and Processed(A):[1,1] derives (both halves of interacts-head-fn-in-dsl in one case). The unregistered-name arm is SILENT at the pin — _call_head_function's objmode loop finds no __name__ match and returns the pre-seeded empty grounding (interpretation.py:2330-2338), so the rule fires for no one and reason() completes with zero rule rows — the sharp asymmetry with the annotation side's NameError. interacts-reset pinned by the same silent-empty shape after reset_rules clears the registration (rule re-added via the add_rule step; head-fn-grounding is the derivation twin). Named unobserved: a non-njit registration, though silently accepted, poisons reason() with a numba argument TypingError even when UNREFERENCED (the pyobject in the head_functions tuple fails kernel typing — screened 2026-07-07, unbanked: engine-environment message text); edge-rule head-function forms (f(X) in one or both edge-head positions — only the node-rule form is cased); a head function returning something other than a numba typed list of strings (the objmode unbox contract, interpretation.py:2332)
 - analysis: docs/analysis/surface/rules.md
 
 ## fn:reset
@@ -279,11 +279,11 @@ classes likewise.
 ## fn:reset_rules
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:517
 - status: cased
-- cases: reset-rules-no-program, reset-rules-with-program
+- cases: reset-rules-no-program, reset-rules-with-program, annotation-fn-reset-clears, head-fn-reset-clears
 - input classes:
   - no-program
   - with-program
-- notes: clears rules + annotation/head functions; facts/graph/settings untouched
+- notes: clears rules + annotation/head functions; facts/graph/settings untouched. The function-registry half is now pinned behaviorally (was assertion-only): after reset_rules a re-added rule naming the previously-registered annotation function raises the unregistered-name NameError, and the head-function twin grounds to nothing (the two reset-clears cases)
 - analysis: docs/analysis/surface/reason-and-state.md
 
 ## fn:reset_settings
@@ -298,12 +298,12 @@ classes likewise.
 ## fn:get_rules
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:510
 - status: cased
-- cases: accessors-fresh-state, accessors-lifecycle, save-rule-trace-clause-reorder
+- cases: accessors-fresh-state, accessors-lifecycle, save-rule-trace-clause-reorder, reason-queries-filter, reason-queries-no-match
 - input classes:
   - loaded
   - none
   - post-reason-filtered
-- notes: returns the live global — reason(queries=...) permanently narrows what this returns; the reorder pass also *replaces* __rules with a clause-reordered copy whenever edges outnumber nodes (pyreason.py:1598-1606), pinned by save-rule-trace-clause-reorder's post-reason fingerprint (popular(y) moved ahead of Friends(x,y)); fresh-import and post-reset returns are None, never an empty list. Uncovered classes: post-reason-filtered (needs reason(queries=...); the capture's REASON_ARGS excludes queries until the harness can construct Query objects — type:Query is its own uncovered row). Named unobserved facet: the accessor fingerprint renders the ordered clause list but not thresholds, which the reorder pass permutes in step with the clauses (reorder_clauses.py:22-25) — the threshold surface stays with type:Rule's row
+- notes: returns the live global — reason(queries=...) permanently narrows what this returns, pinned by reason-queries-filter (post-reason fingerprint holds only the survivor rule) now that the capture constructs Query objects; the zero-survivor arm leaves __rules a plain empty list (fingerprint [], reason-queries-no-match — the one state where the accessor returns an empty list rather than None); the reorder pass also *replaces* __rules with a clause-reordered copy whenever edges outnumber nodes (pyreason.py:1598-1606), pinned by save-rule-trace-clause-reorder's post-reason fingerprint (popular(y) moved ahead of Friends(x,y)); fresh-import and post-reset returns are None. Named unobserved facet: the accessor fingerprint renders the ordered clause list but not thresholds, which the reorder pass permutes in step with the clauses (reorder_clauses.py:22-25) — the threshold surface's consumption is pinned behaviorally by the type:Threshold gate cases, but the permuted-thresholds facet of THIS accessor stays unrendered
 - analysis: docs/analysis/surface/reason-and-state.md
 
 ## fn:get_logic_program
@@ -362,7 +362,7 @@ classes likewise.
   - trace-suppression-interaction
   - clause-reorder
   - output-to-file
-- notes: the spine item; clears fact globals on exit (so a bare again-resume raises TypeError — pinned), permanently filters __rules under queries, mutates atom_trace when store is off. restart=True resets interp.time while the rule trace keeps prior-run events, so trace-reconstructing accessors (filter_and_sort_*, get_dict) raise KeyError after it — pinned behavior, oracle-bug-candidate once a rewrite exists
+- notes: the spine item; clears fact globals on exit (so a bare again-resume raises TypeError — pinned), permanently filters __rules under queries (queries-filter now pinned by reason-queries-filter/-no-match: predicate-only match, one-survivor narrowing, and the zero-survivor numba ValueError 'cannot compute fingerprint of empty list'; the self-recursive-rule query crash and multi-survivor ordering hazards are recorded on type:Query's row), mutates atom_trace when store is off. restart=True resets interp.time while the rule trace keeps prior-run events, so trace-reconstructing accessors (filter_and_sort_*, get_dict) raise KeyError after it — pinned behavior, oracle-bug-candidate once a rewrite exists
 - analysis: docs/analysis/surface/reason-and-state.md
 
 ## fn:save_rule_trace
@@ -469,8 +469,8 @@ classes likewise.
 
 ## type:Query
 - oracle anchor: oracle/pyreason/pyreason/scripts/query/query.py:4
-- status: uncovered
-- cases: none
+- status: cased
+- cases: query-construct, reason-queries-filter, reason-queries-no-match
 - input classes:
   - node-default-bound
   - negated
@@ -480,13 +480,13 @@ classes likewise.
   - malformed-no-paren
   - malformed-negated-with-bounds
   - malformed-bad-float
-- notes: missing-paren input silently misparses; negation and explicit bounds are unreconciled branches
+- notes: all eight construction classes pinned by query-construct's parse fingerprints — the two silent misparses banked as data (no-paren truncates BOTH pred and component to pred_comp[:-1]/[0:-1]: 'popularMary' → pred 'popularMar'; '~pred(x):[l,u]' takes the ':' branch and keeps '~' in the predicate name, bounds [l,u] — the unreconciled-branches corner), bad-float the one raise (ValueError from float()). Consumption pinned by the reason(queries=...) pair: filtering matches by predicate ONLY (bounds/component ignored, filter_ruleset.py:17) and permanently narrows __rules (post-reason get_rules holds only the survivor); ZERO survivors leave __rules a plain empty list and reason() raises numba's ValueError 'cannot compute fingerprint of empty list' at kernel dispatch — the pinned engine cannot reason over a query-emptied ruleset. Unobserved facets, each screened 2026-07-07: a query matching a SELF-RECURSIVE rule's head crashes the process outright (unbounded recursion in filter_ruleset through the clause targets; SIGSEGV before Python's RecursionError — no artifact, so un-caseable; a rewrite divergence here is adjudication material); multi-survivor filter ORDER rides list(set(...)) (filter_ruleset.py:34) — screened stable across 4 fresh runs but address-derived by construction, so committed cases keep survivor sets ≤ 1; interpretation.query() (the Query-consuming method on the interpretation object) is not a module-level row and stays unobserved
 - analysis: docs/analysis/surface/reason-and-state.md
 
 ## type:Threshold
 - oracle anchor: oracle/pyreason/pyreason/scripts/threshold/threshold.py:1
-- status: uncovered
-- cases: none
+- status: cased
+- cases: threshold-construct, threshold-number-gate-default, threshold-number-gate-two, threshold-dict-gate, threshold-percent-total
 - input classes:
   - happy-number-total
   - happy-percent-available
@@ -497,13 +497,13 @@ classes likewise.
   - bound-thresh-unvalidated
   - interacts-to_tuple
   - interacts-forall
-- notes: thresh stored unvalidated (negative/overlarge/non-numeric all pass) — corpus hypothesis attached
+- notes: construction pinned by threshold-construct (all five quantifiers accepted; ValueError 'Invalid quantifier'/'Invalid quantifier type' on unknown members; a bare-string quantifier_type fails the same membership check on its characters; a length-1 quantifier_type raises IndexError 'tuple index out of range'; thresh stored unvalidated — negative and string values banked verbatim through to_tuple). Accepted-threshold SEMANTICS pinned by the gate cases (the gap the rule-from-json rejections left): a number threshold gates at the CLAUSE level — the qualifying-grounding count across the whole clause, not per head grounding (check_node_grounding_threshold_satisfaction interpretation.py:1364-1377; greater_equal 2 with one whole-graph qualifier kills the rule everywhere while the default twin derives) — the dict form's parser-defaulted clause 0 reaches the same consumed thresholds (rule_parser.py:169-173), and percent/total is the qualified/grounding ratio against thresh*0.01 (both percent arms in threshold-percent-total: 2/2 fires, 1/2 does not). Uncovered/unobserved: interacts-forall (the parser-synthesized percent-100 threshold for forall clauses, rule_parser.py:79-81 — not cased here, the forall DSL surface sits with dsl:rule-text); the 'available' quantifier-type at CONSUMPTION (construction banked only; the available branch recomputes the base count from [0,1]-bounded labels, interpretation.py:1371-1372); less/less_equal/greater/equal at consumption (accepted at construction; only greater_equal consumed by a committed case); the parser's float64 coercion of thresh (rule_parser.py:160) is invisible in the banked fingerprints — behavioral only
 - analysis: docs/analysis/surface/rules.md
 
 ## type:Interval
 - oracle anchor: oracle/pyreason/pyreason/scripts/numba_wrapper/numba_types/interval_type.py:13
-- status: uncovered
-- cases: none
+- status: cased
+- cases: interval-ops
 - input classes:
   - closed-happy
   - closed-static
@@ -514,20 +514,20 @@ classes likewise.
   - contains
   - equality
   - prev-seed-mismatch
-- notes: two parallel implementations (jitted + pure-python proxy) whose intersection() prev-bound seeding diverges — differential-worthy
+- notes: the Python-proxy arm pinned by interval-ops' four fixed pipelines through the aliased public constructor (pyreason.interval.closed): construction seeds prev=current and casts to float64 (integral floats reduce in canonical form; the pinned repr '[l,u]' banked verbatim); equality and hash ignore static and prev (the static-flag-only pair compares equal); containment is bound-inclusion both ways; inverted bounds (l>u) construct unvalidated and intersection clamps any empty result to [0,1] (inverted and disjoint pairs both banked); reset() copies current into prev then sets [0,1] — and reset() itself IGNORES the static flag (the is_static guard lives at the engine call site, interpretation.py:265-273, not in the type); has_changed flips exactly at the reset transition. prev-seed-mismatch: the PROXY arm is pinned — the post-reset intersection's result carries prev = self's CURRENT bounds ([0,1] after reset; interval.py:69) — while the JITTED overload_method arm (seeds from self's prev, interval_type.py:63) is named unobserved: it is only reachable by compiling new jitted code, which is not part of the public surface; its engine-internal effect is embedded in every reasoning case's bounds but never isolated. A rewrite must decide which seeding is contractual — the divergence stands recorded for adjudication when one exists
 - analysis: docs/analysis/surface/reason-and-state.md
 
 ## type:Label
 - oracle anchor: oracle/pyreason/pyreason/scripts/numba_wrapper/numba_types/label_type.py:16
-- status: uncovered
-- cases: none
+- status: cased
+- cases: label-ops
 - input classes:
   - construct
   - equality
   - hash
   - get-value
   - boxing-roundtrip
-- notes: equality/hash by string value only — the mechanism behind predicate-map and world lookups
+- notes: the Python-side value class pinned by label-ops through the aliased public class (pyreason.label.Label): get_value/str/repr echo the string; equality and hash are by string value alone (same-text distinct objects equal and hash-equal, different texts neither) — banked as RELATIONS, never raw hash numbers; the empty-string label constructs and behaves identically; and equality against a non-Label raises AttributeError(\"'str' object has no attribute 'get_value'\") because the pinned __eq__ calls get_value() on its argument BEFORE its isinstance guard (label.py:9-10). Named unobserved: the construct class's non-string REJECTION is jit-context-only (the numba typer, label_type.py:30-35 — Python-side Label(5) stores the 5 silently, out of this row's public reach and not banked); boxing-roundtrip is engine-internal (its effect is implicit in every reasoning case's trace labels but never isolated at this boundary)
 - analysis: docs/analysis/surface/reason-and-state.md
 
 ## dsl:rule-text
