@@ -47,7 +47,7 @@ classes likewise.
 ## fn:load_graph
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:589
 - status: cased
-- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override
+- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore
 - input classes:
   - happy-digraph
   - happy-no-attr-parse
@@ -108,7 +108,7 @@ classes likewise.
 ## fn:add_fact
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1133
 - status: cased
-- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override
+- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore
 - input classes:
   - happy-node
   - happy-edge
@@ -163,7 +163,7 @@ classes likewise.
 ## fn:add_rule
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:632
 - status: cased
-- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override
+- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore
 - input classes:
   - happy-basic
   - happy-named
@@ -268,8 +268,8 @@ classes likewise.
 
 ## fn:reset
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:487
-- status: uncovered
-- cases: none
+- status: cased
+- cases: reset-no-program, reset-with-program
 - input classes:
   - no-program
   - with-program
@@ -278,8 +278,8 @@ classes likewise.
 
 ## fn:reset_rules
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:517
-- status: uncovered
-- cases: none
+- status: cased
+- cases: reset-rules-no-program, reset-rules-with-program
 - input classes:
   - no-program
   - with-program
@@ -288,8 +288,8 @@ classes likewise.
 
 ## fn:reset_settings
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:561
-- status: uncovered
-- cases: none
+- status: cased
+- cases: reset-settings-restore
 - input classes:
   - always
 - notes: restores all 18 knobs to constructor defaults
@@ -331,18 +331,18 @@ classes likewise.
 ## fn:get_time
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:549
 - status: cased
-- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override
+- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore
 - input classes:
   - happy
   - no-interpretation
   - null-interp-attribute
-- notes: returns interp.time + 1; the post-reset null-interp path errors instead of returning 0 (hypothesis)
+- notes: returns interp.time + 1; the post-reset null-interp path raises AttributeError instead of returning 0 (confirmed at the pin; pinned by reset-with-program's allow_raise probe)
 - analysis: docs/analysis/surface/reason-and-state.md
 
 ## fn:reason
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1497
 - status: cased
-- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override
+- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore
 - input classes:
   - happy-fresh
   - again-resume
@@ -362,7 +362,7 @@ classes likewise.
   - trace-suppression-interaction
   - clause-reorder
   - output-to-file
-- notes: the spine item; clears fact globals on exit, permanently filters __rules under queries, mutates atom_trace when store is off
+- notes: the spine item; clears fact globals on exit (so a bare again-resume raises TypeError — pinned), permanently filters __rules under queries, mutates atom_trace when store is off. restart=True resets interp.time while the rule trace keeps prior-run events, so trace-reconstructing accessors (filter_and_sort_*, get_dict) raise KeyError after it — pinned behavior, oracle-bug-candidate once a rewrite exists
 - analysis: docs/analysis/surface/reason-and-state.md
 
 ## fn:save_rule_trace
@@ -381,19 +381,19 @@ classes likewise.
 ## fn:get_rule_trace
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1658
 - status: cased
-- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override
+- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reset-with-program, reset-rules-with-program, reset-settings-restore
 - input classes:
   - happy
   - store-off-assert
   - atom-trace-columns
   - empty-trace
-- notes: fixed 10-column header plus optional Clause-i columns; event order is contract
+- notes: fixed 10-column header plus optional Clause-i columns; event order is contract; the empty-trace shape (header, zero rows) is pinned by reset-settings-restore's post-restore run
 - analysis: docs/analysis/surface/reason-and-state.md
 
 ## fn:filter_and_sort_nodes
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1672
 - status: cased
-- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override
+- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, reason-again-restart-true, reason-again-restart-false, reason-again-no-program
 - input classes:
   - happy
   - store-off-assert
@@ -428,7 +428,7 @@ classes likewise.
 ## type:Rule
 - oracle anchor: oracle/pyreason/pyreason/scripts/rules/rule.py:4
 - status: cased
-- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, rule-text-malformed
+- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, rule-text-malformed, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore
 - input classes:
   - happy-text-only
   - happy-full-args
@@ -442,7 +442,7 @@ classes likewise.
 ## type:Fact
 - oracle anchor: oracle/pyreason/pyreason/scripts/facts/fact.py:5
 - status: cased
-- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, fact-text-malformed
+- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, fact-text-malformed, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore
 - input classes:
   - happy-node
   - happy-edge
@@ -533,7 +533,7 @@ classes likewise.
 ## dsl:rule-text
 - oracle anchor: oracle/pyreason/pyreason/scripts/utils/rule_parser.py:17
 - status: cased
-- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, rule-text-malformed
+- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, rule-text-malformed, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore
 - input classes:
   - happy-node-rule
   - happy-edge-rule
@@ -603,7 +603,7 @@ classes likewise.
 ## dsl:fact-text
 - oracle anchor: oracle/pyreason/pyreason/scripts/utils/fact_parser.py:28
 - status: cased
-- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, fact-text-malformed
+- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, fact-text-malformed, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore
 - input classes:
   - happy-node-default-true
   - happy-edge
@@ -640,7 +640,7 @@ classes likewise.
 ## setting:verbose
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:86
 - status: cased
-- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override
+- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore
 - input classes:
   - default-true-prints
   - nondefault-false-silent
@@ -724,7 +724,7 @@ classes likewise.
 ## setting:atom_trace
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:143
 - status: cased
-- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override
+- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore
 - input classes:
   - default-false-notrace
   - nondefault-true-trace
