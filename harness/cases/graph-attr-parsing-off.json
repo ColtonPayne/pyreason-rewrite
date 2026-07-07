@@ -1,0 +1,36 @@
+{
+  "id": "graph-attr-parsing-off",
+  "purpose": "settings.graph_attribute_parsing=false: load_graph skips attribute-to-fact conversion at load time (the else branch at pyreason.py:604-608 leaves the graph-fact lists and specific-label dicts empty), so with no user facts nothing ever changes — the rule never grounds, derived(B) never appears, trace-node is empty, and the perfect-convergence exit fires at t=0 (interpretation.py:674-680 with max_facts_time=0 and max_rules_time=0), so get_time reads 1 and every filter probe carries a single empty frame against the twin graph-attr-parsing-on's three frames and get_time=3 (verified at authoring — the harness judges each case within one knob position) — the nondefault-false-skip and read-at-load-time classes.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md setting:graph_attribute_parsing nondefault-false-skip + read-at-load-time",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:reason",
+    "fn:filter_and_sort_nodes", "fn:filter_and_sort_edges",
+    "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "dsl:rule-text",
+    "setting:graph_attribute_parsing", "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true, "graph_attribute_parsing": false},
+    "graph": {
+      "nodes": [["A", {"special": 1}], "B"],
+      "edges": [
+        ["A", "B", {"rel": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "derived(y) <-1 special(x), rel(x,y)", "name": "derived_rule"}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "nodes-derived", "kind": "filter_sort_nodes", "labels": ["derived"]},
+    {"id": "nodes-special", "kind": "filter_sort_nodes", "labels": ["special"]},
+    {"id": "edges-rel", "kind": "filter_sort_edges", "labels": ["rel"]},
+    {"id": "trace-node", "kind": "rule_trace_node"},
+    {"id": "trace-edge", "kind": "rule_trace_edge"},
+    {"id": "time", "kind": "get_time"},
+    {"id": "parsing-knob", "kind": "get_setting", "knob": "graph_attribute_parsing"}
+  ],
+  "comparison": {"probes": {}}
+}

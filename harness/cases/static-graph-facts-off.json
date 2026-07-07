@@ -1,0 +1,37 @@
+{
+  "id": "static-graph-facts-off",
+  "purpose": "settings.static_graph_facts=false: the generated graph-attribute facts are stamped non-static (graphml_parser.py:60/90 via pyreason.py:603, consumed at load time), so with persistent=false the special/rel bounds are reset to [0,1] at the start of every t>0 (interpretation.py:260-273) — the rule grounds only at t=0, derived(B) appears at t=1 only, and the perfect-convergence exit fires at t=1 (interpretation.py:674-680), so get_time reads 2 with two frames per filter probe, where the twin static-graph-facts-on re-derives derived(B) at t=2 and reads get_time 3 (verified at authoring — the harness judges each case within one knob position) — the nondefault-false-fluent, read-at-load-time and interaction-persistent classes.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md setting:static_graph_facts nondefault-false-fluent + read-at-load-time + interaction-persistent",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:reason",
+    "fn:filter_and_sort_nodes", "fn:filter_and_sort_edges",
+    "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "dsl:rule-text",
+    "setting:static_graph_facts", "setting:persistent",
+    "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true, "persistent": false, "static_graph_facts": false},
+    "graph": {
+      "nodes": [["A", {"special": 1}], "B"],
+      "edges": [
+        ["A", "B", {"rel": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "derived(y) <-1 special(x), rel(x,y)", "name": "derived_rule"}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "nodes-derived", "kind": "filter_sort_nodes", "labels": ["derived"]},
+    {"id": "nodes-special", "kind": "filter_sort_nodes", "labels": ["special"]},
+    {"id": "edges-rel", "kind": "filter_sort_edges", "labels": ["rel"]},
+    {"id": "trace-node", "kind": "rule_trace_node"},
+    {"id": "trace-edge", "kind": "rule_trace_edge"},
+    {"id": "time", "kind": "get_time"},
+    {"id": "static-knob", "kind": "get_setting", "knob": "static_graph_facts"}
+  ],
+  "comparison": {"probes": {}}
+}

@@ -1,0 +1,36 @@
+{
+  "id": "save-graph-attrs-to-trace-on",
+  "purpose": "settings.save_graph_attributes_to_trace=true: 'graph-attribute-fact' rows enter the rule trace — the t=0 application through _update_node's gate (interpretation.py:1538) plus one row per later timestep from the static-fact reapplication branch (interpretation.py:297/:373; default-static graph facts re-append themselves at interpretation.py:340) — so trace-node gains special(A) Fact rows, trace-edge gains rel(A,B) rows, and the trace-derived special/rel frames populate, while nodes-derived digest-equals the twin save-graph-attrs-to-trace-off (verified at authoring; the harness judges each case within one knob position): trace contents only, never derived bounds — the nondefault-true-include class.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md setting:save_graph_attributes_to_trace nondefault-true-include",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:reason",
+    "fn:filter_and_sort_nodes", "fn:filter_and_sort_edges",
+    "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "dsl:rule-text",
+    "setting:save_graph_attributes_to_trace", "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true, "save_graph_attributes_to_trace": true},
+    "graph": {
+      "nodes": [["A", {"special": 1}], "B"],
+      "edges": [
+        ["A", "B", {"rel": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "derived(y) <-1 special(x), rel(x,y)", "name": "derived_rule"}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "nodes-derived", "kind": "filter_sort_nodes", "labels": ["derived"]},
+    {"id": "nodes-special", "kind": "filter_sort_nodes", "labels": ["special"]},
+    {"id": "edges-rel", "kind": "filter_sort_edges", "labels": ["rel"]},
+    {"id": "trace-node", "kind": "rule_trace_node"},
+    {"id": "trace-edge", "kind": "rule_trace_edge"},
+    {"id": "time", "kind": "get_time"},
+    {"id": "trace-knob", "kind": "get_setting", "knob": "save_graph_attributes_to_trace"}
+  ],
+  "comparison": {"probes": {}}
+}
