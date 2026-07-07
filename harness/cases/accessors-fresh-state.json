@@ -1,0 +1,17 @@
+{
+  "id": "accessors-fresh-state",
+  "purpose": "The get-family accessors on a pristine module: get_rules and get_logic_program return None (not an empty collection), get_interpretation raises the no-program Exception, and get_time swallows that raise into 0 — the before-any-load equivalence class a rewrite initializing these globals differently would miss.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md fn:get_rules none + fn:get_logic_program before-reason + fn:get_interpretation no-program; screened at the pin 2026-07-07",
+  "surface_items": [
+    "fn:get_rules", "fn:get_logic_program", "fn:get_interpretation", "fn:get_time"
+  ],
+  "inputs": {},
+  "probes": [
+    {"id": "rules-fresh", "kind": "accessor_fingerprint", "accessor": "rules"},
+    {"id": "program-fresh", "kind": "accessor_fingerprint", "accessor": "logic_program"},
+    {"id": "interp-fresh", "kind": "accessor_fingerprint", "accessor": "interpretation", "allow_raise": true},
+    {"id": "time-fresh", "kind": "get_time"}
+  ],
+  "comparison": {"probes": {}}
+}

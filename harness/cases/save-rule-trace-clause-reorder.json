@@ -1,0 +1,39 @@
+{
+  "id": "save-rule-trace-clause-reorder",
+  "purpose": "The clause-map plumbing pinned from both sides on an edge-clause-first rule (friends graph has more edges than nodes, so reason()'s reorder pass runs with a non-identity map): get_rules afterwards shows the reordered live rule (popular(y) moved ahead of Friends(x,y)), while the saved CSV's Clause-1..4 columns are mapped back to the author's original clause order — Clause-1 carries the Friends edge groundings.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md fn:save_rule_trace clause-map-reorder + fn:get_rules loaded (post-reason live mutation); reorder_clauses.py:6-30 and output.py:92-97,114-123 at the pin; screened 2026-07-07",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason",
+    "fn:save_rule_trace", "fn:get_rules",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 Friends(x,y), popular(y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 2}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "rules-post-reason", "kind": "accessor_fingerprint", "accessor": "rules"},
+    {"id": "srt-default", "kind": "save_rule_trace"}
+  ],
+  "comparison": {"probes": {}}
+}

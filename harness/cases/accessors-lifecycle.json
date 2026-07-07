@@ -1,0 +1,53 @@
+{
+  "id": "accessors-lifecycle",
+  "purpose": "The get-family accessors across the lifecycle over the hello-world program: loaded-but-unreasoned (rules fingerprint in author clause order, program still None, get_interpretation still raising), post-reason (rules replaced by the reorder pass with identical content for this node-clause-first rule, program present holding the exact interpretation reason returned, get_interpretation returning that same live object), and post-reset (rules None again, the same program object with its interpretation nulled, get_interpretation returning None without raising — the program-with-null-interp class, distinct from the no-program raise).",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md fn:get_rules loaded+none, fn:get_logic_program all three classes, fn:get_interpretation all three classes; hello-world program; screened at the pin 2026-07-07",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason", "fn:reset",
+    "fn:get_rules", "fn:get_logic_program", "fn:get_interpretation", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ]
+  },
+  "steps": [
+    {"id": "add-fact", "op": "add_fact",
+     "args": {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 2},
+     "probes": [
+       {"id": "rules-loaded", "kind": "accessor_fingerprint", "accessor": "rules"},
+       {"id": "program-pre", "kind": "accessor_fingerprint", "accessor": "logic_program"},
+       {"id": "interp-pre", "kind": "accessor_fingerprint", "accessor": "interpretation", "allow_raise": true}
+     ]},
+    {"id": "reason", "op": "reason", "args": {"timesteps": 2},
+     "probes": [
+       {"id": "rules-post", "kind": "accessor_fingerprint", "accessor": "rules"},
+       {"id": "program-post", "kind": "accessor_fingerprint", "accessor": "logic_program"},
+       {"id": "interp-post", "kind": "accessor_fingerprint", "accessor": "interpretation"},
+       {"id": "time-post", "kind": "get_time"}
+     ]},
+    {"id": "reset", "op": "reset",
+     "probes": [
+       {"id": "rules-after-reset", "kind": "accessor_fingerprint", "accessor": "rules"},
+       {"id": "program-after-reset", "kind": "accessor_fingerprint", "accessor": "logic_program"},
+       {"id": "interp-after-reset", "kind": "accessor_fingerprint", "accessor": "interpretation", "allow_raise": true}
+     ]}
+  ],
+  "comparison": {"probes": {}}
+}

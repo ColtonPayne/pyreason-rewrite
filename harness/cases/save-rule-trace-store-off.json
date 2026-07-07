@@ -1,0 +1,38 @@
+{
+  "id": "save-rule-trace-store-off",
+  "purpose": "save_rule_trace under store_interpretation_changes off: the call fails its assert before any I/O ('store interpretation changes setting is off, turn on to save rule trace' — the message shared with get_rule_trace's assert site, which precedes the Output construction) — the store-off-assert class, banked as the raise record.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md fn:save_rule_trace store-off-assert; pyreason.py:1652 at the pin; sibling of store-off-accessors",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason",
+    "fn:save_rule_trace", "setting:store_interpretation_changes",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "store_interpretation_changes": false},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 2}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "srt-assert", "kind": "save_rule_trace", "allow_raise": true}
+  ],
+  "comparison": {"probes": {}}
+}

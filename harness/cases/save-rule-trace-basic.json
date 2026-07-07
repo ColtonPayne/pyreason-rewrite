@@ -1,0 +1,40 @@
+{
+  "id": "save-rule-trace-basic",
+  "purpose": "save_rule_trace's happy path over hello-world with atom_trace on: both CSVs written (node trace with Clause-1..4 columns and atom-trace groundings, edge trace header-only), the default './' folder and a named subfolder receiving byte-identical files, and the CSV contents cross-viewable against get_rule_trace's node DataFrame — the happy, folder-variants, and atom-trace-columns-on classes.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md fn:save_rule_trace happy + folder-variants + atom-trace-columns; hello-world program; screened at the pin 2026-07-07",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason",
+    "fn:save_rule_trace", "fn:get_rule_trace",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 2}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "srt-default", "kind": "save_rule_trace"},
+    {"id": "srt-subfolder", "kind": "save_rule_trace", "folder": "traces"},
+    {"id": "trace-node", "kind": "rule_trace_node"}
+  ],
+  "comparison": {"probes": {}}
+}
