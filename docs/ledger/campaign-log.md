@@ -374,3 +374,36 @@ either pays off cleanly or meets the oracle's global-state quirks head-on:
 fourteen lifecycle cases will say.
 
 **Resume prompt.** `/campaign`
+
+## Session 18 — 2026-07-07
+
+**What we knew going in.** The rewrite could reason equivalently on the
+default path, but only within a single run: the reset family, the resume
+(`again`/`restart`) arms, and the persistence knobs — the oracle's
+characterized state-contamination territory — were wired but unproven.
+
+**What we learned this session.** The lifecycle is equivalent, quirks and
+all. The reset family, the resume arms, and the persistent/canonical knobs
+landed inside the existing explicit-state design with no architectural
+change, and passed all fourteen lifecycle cases against the oracle. The
+striking part is what "equivalent" required: the rewrite now deliberately
+reproduces five characterized oracle defects at the public boundary — a
+half-cleared program that AttributeErrors on get_time, the restart-true
+clock-reset KeyError, a bare-again TypeError whose message is numba
+implementation text, the silent no-op when again=True finds no program,
+and grounding tables that outlive reset() — each named in the report as an
+oracle-bug-candidate for eventual adjudication rather than silently
+blessed. The review found nothing to fix at any severity: eight probe
+families it invented (31 observations, including resume re-consuming the
+same fact list twice) came back byte-identical across engines. Board:
+8/52 equivalent.
+
+**What we expect to learn next session.** Whether the remaining
+settings-knob arms — inconsistency handling, update modes,
+storage-off, the variant-selecting fp/parallel knobs that must all run the
+same single reference core, static graph facts — hold to the same
+standard over seventeen cases, which would leave only the I/O-and-graph
+surface, the registrand family, and the pyyaml-gated IPL files between the
+board and full-corpus territory.
+
+**Resume prompt.** `/campaign`
