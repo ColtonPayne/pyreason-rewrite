@@ -418,6 +418,34 @@ def test_harness_resolved_registrands_drive_this_engine(pr, monkeypatch):
     assert [r[0] for r in processed[0].itertuples(index=False, name=None)] == ['A']
 
 
+def test_head_fn_ungrounded_var_raises_the_pinned_bare_keyerror(pr, monkeypatch):
+    """proves: a head function grounding a node rule's head to a name that is
+    no graph node (an UNGROUNDED head-fn argument variable rides as itself,
+    interpretation.py:2300-2305, so first_clause_first_grounding returns the
+    literal variable name) raises the pinned raise shape at the
+    rule-application seam: builtins.KeyError with an EMPTY message — the
+    pinned typed-dict getitem erases the key (screened live 2026-07-07 on
+    both engines), where a plain dict would embed it."""
+    import importlib.util
+
+    from harness import reference_fns
+
+    assert importlib.util.find_spec("numba") is None
+    monkeypatch.setattr(reference_fns, "numba", None)  # restore after
+
+    g = nx.DiGraph()
+    g.add_node("A", starter=1)
+    g.add_node("B", starter=1)
+    pr.load_graph(g)
+    pr.add_head_function(reference_fns.resolve("first_clause_first_grounding"))
+    pr.add_rule(Rule(
+        "Processed(first_clause_first_grounding(Z)) <- starter(X)",
+        "ungrounded_rule"))
+    with pytest.raises(KeyError) as exc_info:
+        pr.reason(timesteps=1)
+    assert exc_info.value.args == ()  # bare — str() is '', matching the pin
+
+
 # --- closed-world predicates ---
 
 def test_closed_world_predicate_reads_absence_as_false(pr):

@@ -80,6 +80,25 @@ from ._world import World
 from .label import Label
 
 
+class TypedComponentDict(dict):
+    """Component -> World map with the pinned container's raise shape: the
+    pinned interpretations_node/_edge are numba typed.Dicts, whose
+    missing-key getitem raises the BARE ``KeyError`` (nopython erases the key
+    from the message), where a plain dict raises ``KeyError(key)``. The
+    difference is observable through a caseable input: a head function that
+    grounds a node rule's head to a name that is no graph node reaches the
+    unguarded lookup at the rule-application seam (the pin's
+    interpretation.py:583, this module's default-schedule twin), and the two
+    engines' raise records must compare byte-equal (screened live 2026-07-07:
+    the pin raises ``builtins.KeyError`` with an empty message). Only the
+    default schedule's component maps carry this type — the fp schedule's
+    lookups are membership-guarded at the pin and here, so no bare-getitem
+    miss is reachable there."""
+
+    def __missing__(self, key):
+        raise KeyError
+
+
 class Interpretation:
     """One reasoning run's complete explicit state."""
 
@@ -153,7 +172,7 @@ class Interpretation:
             self.predicate_map_edge = {l: list(es)
                                        for l, es in specific_edge_labels.items()}
         else:
-            self.interpretations_node = {}
+            self.interpretations_node = TypedComponentDict()
             self.predicate_map_node = {}
             for n in self.nodes:
                 self.interpretations_node[n] = World([])
@@ -163,7 +182,7 @@ class Interpretation:
                     self.interpretations_node[n].world[l] = interval.closed(0.0, 1.0)
                     self.num_ga[0] += 1
 
-            self.interpretations_edge = {}
+            self.interpretations_edge = TypedComponentDict()
             self.predicate_map_edge = {}
             for e in self.edges:
                 self.interpretations_edge[e] = World([])
