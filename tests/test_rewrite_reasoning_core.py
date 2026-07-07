@@ -383,6 +383,41 @@ def test_head_function_registered_and_unregistered(pr):
     assert pr.get_time() == 1  # perfect convergence at t=0, nothing pending
 
 
+def test_harness_resolved_registrands_drive_this_engine(pr, monkeypatch):
+    """proves: the harness's plain-arm resolve() output — the exact object a
+    rewrite-env registrand capture hands to the registrars — registers and
+    reasons through this engine: clause_lower_mean derives the banked
+    two-arg bound ([0.5,1] on the annotation-fn-two-arg program's facts) and
+    first_clause_first_grounding grounds the head through the builtin-list
+    stand-in (Processed(A) derives), with no numba anywhere in the process."""
+    import importlib.util
+
+    from harness import reference_fns
+
+    assert importlib.util.find_spec("numba") is None
+    monkeypatch.setattr(reference_fns, "numba", None)  # restore after
+
+    g = nx.DiGraph()
+    g.add_nodes_from(["A", "B"])
+    pr.load_graph(g)
+    pr.add_annotation_function(reference_fns.resolve("clause_lower_mean"))
+    pr.add_head_function(reference_fns.resolve("first_clause_first_grounding"))
+    pr.add_rule(Rule(
+        "combo(x) : clause_lower_mean <- p(x) : [0.125, 1], q(x) : [0.125, 1]",
+        "combo_rule"))
+    pr.add_rule(Rule(
+        "Processed(first_clause_first_grounding(X)) <- p(X) : [0.125, 1]",
+        "head_rule"))
+    pr.add_fact(Fact("p(A) : [0.25, 1]", "f_p", 0, 0))
+    pr.add_fact(Fact("q(A) : [0.75, 1]", "f_q", 0, 0))
+    interp = pr.reason(timesteps=1)
+    combo = pr.filter_and_sort_nodes(interp, ['combo'])
+    assert [list(r) for r in combo[0].itertuples(index=False, name=None)] == [
+        ['A', [0.5, 1]]]
+    processed = pr.filter_and_sort_nodes(interp, ['Processed'])
+    assert [r[0] for r in processed[0].itertuples(index=False, name=None)] == ['A']
+
+
 # --- closed-world predicates ---
 
 def test_closed_world_predicate_reads_absence_as_false(pr):
