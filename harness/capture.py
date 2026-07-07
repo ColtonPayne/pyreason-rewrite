@@ -39,12 +39,20 @@ objects reduce to presence + identity-with-the-last-reason-return flags. A
 working directory (or a named subdirectory of it) and reads back the CSV
 files it wrote, timestamp-canonicalized like the output_file probe's .txt.
 An `apply_input` probe applies one loader-family input (a file-taking loader,
-or add_closed_world_predicate) and records the outcome either way — a raise
+add_closed_world_predicate, or one of the callable-registering functions —
+whose callable is a committed reference function selected by name from
+harness/reference_fns.py) and records the outcome either way — a raise
 as the module-qualified exception type + message, an acceptance as
 `{"raised": false}` with the loaded state observed by whatever probes follow —
 so a case can declare that applying a given input is expected to raise and
 compare the exception itself. The same ops join the multi-step form's step
 ops, for arms whose loaded state only shows through a later reason step.
+An `interval_probe` or `label_probe` constructs the aliased public value
+types (`pyreason.interval.closed` / `pyreason.label.Label`) directly and
+records a fixed pipeline of observations — construction state, the
+equality/hash/containment relations, intersection results, and (intervals)
+the reset transition — the direct-construction reach for types the public
+API otherwise only consumes internally.
 
 The artifact is self-describing: the case id, engine identity + environment
 fingerprint, each probe's canonical output, and a digest per probe. Exit codes:
@@ -62,6 +70,7 @@ import sys
 import time
 from pathlib import Path
 
+from harness import reference_fns
 from harness.compare import canonical, digest
 
 REPO = Path(__file__).resolve().parent.parent
@@ -69,7 +78,8 @@ REPO = Path(__file__).resolve().parent.parent
 PROBE_KINDS = {"filter_sort_nodes", "filter_sort_edges", "rule_trace_node",
                "rule_trace_edge", "get_time", "get_setting",
                "interpretation_dict", "expect_raise", "output_file",
-               "accessor_fingerprint", "save_rule_trace", "apply_input"}
+               "accessor_fingerprint", "save_rule_trace", "apply_input",
+               "interval_probe", "label_probe"}
 # Probe kinds that consume the interpretation reason() returns — a case using
 # any of them must carry an inputs.reason block (or a preceding reason step).
 # get_time and get_setting read module state, output_file reads the confined
@@ -81,7 +91,17 @@ PROBE_KINDS = {"filter_sort_nodes", "filter_sort_edges", "rule_trace_node",
 INTERP_PROBE_KINDS = {"filter_sort_nodes", "filter_sort_edges",
                       "rule_trace_node", "rule_trace_edge",
                       "interpretation_dict", "save_rule_trace"}
-EXPECT_RAISE_CONSTRUCTS = {"rule", "fact"}
+# expect_raise constructs map to the pinned public constructors; query and
+# threshold join rule/fact because Query/Threshold are their own surface rows
+# whose acceptance branch must carry the parsed/stored state (see
+# parse_fingerprint), not just that construction succeeded.
+EXPECT_RAISE_CONSTRUCTS = {"rule", "fact", "query", "threshold"}
+EXPECT_RAISE_CTORS = {"rule": "Rule", "fact": "Fact", "query": "Query",
+                      "threshold": "Threshold"}
+# A threshold construction arm carries exactly the pinned constructor's three
+# parameters; quantifier_type rides JSON as a list (converted to the tuple the
+# pinned docstring names) or any other JSON value for the shape-fault arms.
+THRESHOLD_ARG_KEYS = {"quantifier", "quantifier_type", "thresh"}
 # The get-family accessors an accessor_fingerprint probe can render. Each
 # fingerprint is the accessor's return reduced to canonical data (see
 # probe_accessor_fingerprint); an unknown name is an authoring fault (exit 2).
@@ -102,23 +122,38 @@ APPLY_FILE_OPS = {"add_rules_from_file": {"infer_edges", "raise_errors"},
                   "add_fact_from_json": {"raise_errors"},
                   "add_fact_from_csv": {"raise_errors"},
                   "load_inconsistent_predicate_list": set()}
-APPLY_OPS = set(APPLY_FILE_OPS) | {"add_closed_world_predicate"}
-# The multi-step ops: reason/add_fact consume an args dict; the reset family
-# takes none. add_fact exists because _reason clears the fact globals on exit,
-# so a resumed reason() with no fact added since raises — a resume case that
-# actually reasons must be able to add one between steps. The apply_input ops
+# The callable-registering functions join the apply surface with a `name`
+# selecting a committed reference function (harness/reference_fns.py) — the
+# only way a Python callable can ride the JSON case format. The name is
+# validated against the registry here (an unknown name is an authoring fault,
+# exit 2); the njit-wrapped callable is resolved inside the engine env, and
+# outside the recording try, so a resolution fault fails the capture instead
+# of banking as engine behavior.
+REGISTRY_OPS = {"add_annotation_function", "add_head_function"}
+APPLY_OPS = set(APPLY_FILE_OPS) | {"add_closed_world_predicate"} | REGISTRY_OPS
+# The multi-step ops: reason/add_fact/add_rule consume an args dict; the
+# reset family takes none. add_fact exists because _reason clears the fact
+# globals on exit, so a resumed reason() with no fact added since raises — a
+# resume case that actually reasons must be able to add one between steps.
+# add_rule exists because reset_rules clears rules AND the registered
+# annotation/head functions together, so pinning that a registration was
+# cleared needs a rule re-added after the reset (same builder as inputs.rules
+# — custom_thresholds and weights ride along). The apply_input ops
 # double as step ops so a loader can run before a reason step (a fact loader's
 # only observable is the reasoning that consumes it); a step op that raises
 # already banks its outcome record, so the expecting-raise semantics are
 # identical in both surfaces.
-STEP_OPS = {"reason", "add_fact", "reset", "reset_rules",
+STEP_OPS = {"reason", "add_fact", "add_rule", "reset", "reset_rules",
             "reset_settings"} | APPLY_OPS
-ARG_STEP_OPS = {"reason", "add_fact"} | APPLY_OPS
+ARG_STEP_OPS = {"reason", "add_fact", "add_rule"} | APPLY_OPS
 # reason()'s keyword surface at the pin — an unknown key is an authoring typo
 # that would otherwise bank a TypeError as engine behavior and pass self-proof.
-# `queries` joins when the harness can construct Query objects from case JSON.
+# `queries` rides as a list of query-text strings the capture turns into
+# pinned Query objects at the call site (built outside the recording try in
+# the steps form: a Query construction raise there would wear the reason-step
+# label, so malformed query text belongs to expect_raise construct="query").
 REASON_ARGS = {"timesteps", "convergence_threshold",
-               "convergence_bound_threshold", "again", "restart"}
+               "convergence_bound_threshold", "again", "restart", "queries"}
 # The settings-knob surface at the pin — the 18 public properties on _Settings.
 # Checked statically in validation like REASON_ARGS: a typo'd knob would
 # otherwise silently set or read an attribute the engine never consults,
@@ -188,6 +223,16 @@ def _apply_fault(owner: str, op, args) -> str | None:
                     f"and its reason-time raise carries a run-varying message, "
                     f"so it cannot bank under exact compare")
         return None
+    if op in REGISTRY_OPS:
+        if set(args) != {"name"} or not isinstance(args["name"], str):
+            return (f"{owner}: {op} takes exactly a string 'name' selecting "
+                    f"a committed reference function")
+        if args["name"] not in reference_fns.REGISTRY:
+            return (f"{owner}: unknown reference function {args['name']!r} "
+                    f"(registry: {sorted(reference_fns.REGISTRY)}) — a typo'd "
+                    f"name must never bank a resolution fault as engine "
+                    f"behavior")
+        return None
     path_keys = {"path", "missing_path"} & set(args)
     if len(path_keys) != 1:
         return (f"{owner}: a file-taking apply op needs exactly one of "
@@ -218,6 +263,95 @@ def _apply_fault(owner: str, op, args) -> str | None:
         return (f"{owner}: 'missing_path' names an existing file: {rel!r} — "
                 f"the case would claim a missing-file observation while "
                 f"banking a load")
+    return None
+
+
+def _reason_args_fault(args, owner: str) -> str | None:
+    """Shared checks for one reason-arg dict — inputs.reason and every reason
+    step validate identically."""
+    if not set(args) <= REASON_ARGS:
+        return (f"{owner}: unknown reason arg(s) "
+                f"{sorted(set(args) - REASON_ARGS)} (known: {sorted(REASON_ARGS)})")
+    if "queries" in args:
+        queries = args["queries"]
+        if not isinstance(queries, list) or not all(
+                isinstance(q, str) and q for q in queries):
+            return (f"{owner}: 'queries' must be a list of non-empty "
+                    f"query-text strings — the capture constructs the pinned "
+                    f"Query objects from them")
+    return None
+
+
+def _threshold_spec_fault(spec, owner: str) -> str | None:
+    """Shape checks for one threshold spec in a rule's custom_thresholds.
+
+    Structural only — quantifier/quantifier_type membership is the engine's
+    own validation, pinned by expect_raise construct="threshold" arms; but a
+    spec here rides input application, where a raise fails the capture, so
+    the shape that reaches the pinned constructor must be author-controlled.
+    """
+    if not isinstance(spec, dict) or set(spec) != THRESHOLD_ARG_KEYS:
+        return (f"{owner}: a threshold spec is an object with exactly "
+                f"{sorted(THRESHOLD_ARG_KEYS)}")
+    if not isinstance(spec["quantifier"], str):
+        return f"{owner}: 'quantifier' must be a string"
+    qt = spec["quantifier_type"]
+    if not (isinstance(qt, str) or (isinstance(qt, list)
+                                    and all(isinstance(x, str) for x in qt))):
+        return (f"{owner}: 'quantifier_type' must be a list of strings "
+                f"(converted to the pinned tuple) or a string")
+    return None
+
+
+def _rule_spec_fault(spec, owner: str) -> str | None:
+    """Shared checks for one rule spec — inputs.rules entries and add_rule
+    step args validate identically."""
+    if not isinstance(spec, dict) or "text" not in spec:
+        return f"{owner}: a rule spec needs an object with 'text'"
+    if "custom_thresholds" in spec:
+        ct = spec["custom_thresholds"]
+        if isinstance(ct, list):
+            entries = [(f"{owner}: custom_thresholds[{i}]", s)
+                       for i, s in enumerate(ct)]
+        elif isinstance(ct, dict):
+            for key in ct:
+                try:
+                    int(key)
+                except ValueError:
+                    return (f"{owner}: custom_thresholds dict keys must be "
+                            f"integer clause indices (JSON strings), got "
+                            f"{key!r} — the capture converts them the way the "
+                            f"pinned JSON rule loader does")
+            entries = [(f"{owner}: custom_thresholds[{k!r}]", s)
+                       for k, s in ct.items()]
+        else:
+            return (f"{owner}: custom_thresholds must be a list (one per "
+                    f"clause) or an object keyed by clause index — the two "
+                    f"pinned accepted forms")
+        for entry_owner, entry_spec in entries:
+            fault = _threshold_spec_fault(entry_spec, entry_owner)
+            if fault:
+                return fault
+    if "weights" in spec:
+        weights = spec["weights"]
+        if not isinstance(weights, list) or not all(
+                isinstance(w, (int, float)) and not isinstance(w, bool)
+                for w in weights):
+            return f"{owner}: 'weights' must be a list of numbers"
+    return None
+
+
+def _bound_spec_fault(spec, owner: str) -> str | None:
+    """Checks for one interval_probe construction spec."""
+    if not isinstance(spec, dict) \
+            or not {"lower", "upper"} <= set(spec) <= {"lower", "upper", "static"}:
+        return (f"{owner}: an interval spec is an object with 'lower' and "
+                f"'upper' (and optional 'static')")
+    for key in ("lower", "upper"):
+        if isinstance(spec[key], bool) or not isinstance(spec[key], (int, float)):
+            return f"{owner}: {key!r} must be a number"
+    if not isinstance(spec.get("static", False), bool):
+        return f"{owner}: 'static' must be a boolean"
     return None
 
 
@@ -264,6 +398,32 @@ def _probe_list_fault(probes: list, owner: str) -> str | None:
             return (f"accessor_fingerprint probe {p['id']!r}: 'accessor' must "
                     f"name one of {sorted(FINGERPRINT_ACCESSORS)}, got "
                     f"{p.get('accessor')!r}")
+        if p.get("kind") == "interval_probe":
+            if p.get("allow_raise"):
+                return (f"interval_probe probe {p['id']!r} cannot carry "
+                        f"allow_raise — its pipeline is fixed harness code "
+                        f"over author-validated numeric specs, so a raise "
+                        f"there is a missing-type binding fault, never a "
+                        f"comparable observation")
+            for field in ("make", "other"):
+                fault = _bound_spec_fault(p.get(field),
+                                          f"interval_probe probe {p['id']!r} "
+                                          f"field {field!r}")
+                if fault:
+                    return fault
+        if p.get("kind") == "label_probe":
+            if p.get("allow_raise"):
+                return (f"label_probe probe {p['id']!r} cannot carry "
+                        f"allow_raise — it records the one raising relation "
+                        f"itself, and a blanket catch would bank a "
+                        f"missing-type binding fault as engine behavior")
+            for field in ("value", "other"):
+                if not isinstance(p.get(field), str):
+                    return (f"label_probe probe {p['id']!r}: {field!r} must "
+                            f"be a string (the pinned value class is "
+                            f"string-valued; the non-string arm is a "
+                            f"jit-context rejection out of this probe's "
+                            f"reach)")
         if p.get("kind") == "save_rule_trace" and "folder" in p:
             folder = p["folder"]
             if not isinstance(folder, str) or not TRACE_FOLDER_RE.match(folder):
@@ -280,7 +440,15 @@ def _probe_list_fault(probes: list, owner: str) -> str | None:
         if p.get("construct") not in EXPECT_RAISE_CONSTRUCTS:
             return (f"expect_raise probe {p['id']!r} needs 'construct' in "
                     f"{sorted(EXPECT_RAISE_CONSTRUCTS)}")
-        if not isinstance(p.get("args"), dict) or "text" not in p["args"]:
+        if not isinstance(p.get("args"), dict):
+            return f"expect_raise probe {p['id']!r} needs an 'args' dict"
+        if p["construct"] == "threshold":
+            if set(p["args"]) != THRESHOLD_ARG_KEYS:
+                return (f"expect_raise probe {p['id']!r}: a threshold "
+                        f"construction takes exactly "
+                        f"{sorted(THRESHOLD_ARG_KEYS)} — the pinned "
+                        f"constructor's three parameters")
+        elif "text" not in p["args"]:
             return f"expect_raise probe {p['id']!r} needs an 'args' dict with 'text'"
     return None
 
@@ -308,9 +476,14 @@ def _steps_fault(case: dict, steps) -> str | None:
             return f"step {step['id']!r}: 'args' must be an object"
         if op == "add_fact" and "text" not in args:
             return f"step {step['id']!r}: add_fact needs an 'args' dict with 'text'"
-        if op == "reason" and not set(args) <= REASON_ARGS:
-            return (f"step {step['id']!r}: unknown reason arg(s) "
-                    f"{sorted(set(args) - REASON_ARGS)} (known: {sorted(REASON_ARGS)})")
+        if op == "add_rule":
+            fault = _rule_spec_fault(args, f"step {step['id']!r}")
+            if fault:
+                return fault
+        if op == "reason":
+            fault = _reason_args_fault(args, f"step {step['id']!r}")
+            if fault:
+                return fault
         if op in APPLY_OPS:
             fault = _apply_fault(f"step {step['id']!r}", op, args)
             if fault:
@@ -403,14 +576,21 @@ def validate_case(case: dict) -> str | None:
             return (f"probe(s) {interp_probes} consume the interpretation but the "
                     f"case has no inputs.reason block")
         reason_args = case["inputs"].get("reason", {})
-        if isinstance(reason_args, dict) and not set(reason_args) <= REASON_ARGS:
-            return (f"unknown reason arg(s) "
-                    f"{sorted(set(reason_args) - REASON_ARGS)} in inputs.reason "
-                    f"(known: {sorted(REASON_ARGS)})")
+        if isinstance(reason_args, dict):
+            fault = _reason_args_fault(reason_args, "inputs.reason")
+            if fault:
+                return fault
     unknown_knobs = set(case["inputs"].get("settings", {})) - SETTINGS_KNOBS
     if unknown_knobs:
         return (f"unknown settings knob(s) in a case: {sorted(unknown_knobs)} "
                 f"(the pinned surface has 18)")
+    rules = case["inputs"].get("rules", [])
+    if not isinstance(rules, list):
+        return "inputs.rules must be a list of rule specs"
+    for i, spec in enumerate(rules):
+        fault = _rule_spec_fault(spec, f"inputs.rules[{i}]")
+        if fault:
+            return fault
     ipl = case["inputs"].get("ipl", [])
     if not (isinstance(ipl, list) and all(
             isinstance(pair, list) and len(pair) == 2
@@ -467,7 +647,11 @@ def parse_fingerprint(construct: str, obj) -> dict:
 
     A bare "accepted" would let two engines that accept the same text into
     different parses compare equal — the acceptance branch must carry what
-    was parsed, not just that parsing succeeded.
+    was parsed, not just that parsing succeeded. The query branch renders all
+    four parsed fields plus the echoed text (str/repr echo query_text at the
+    pin) — the silent-misparse arms bank the misparse itself. The threshold
+    branch renders the three stored attributes plus to_tuple(), pinning that
+    storage is verbatim (thresh is unvalidated at the pin).
     """
     if construct == "rule":
         r = obj.rule
@@ -476,6 +660,15 @@ def parse_fingerprint(construct: str, obj) -> dict:
                 "head_variables": list(r.get_head_variables()),
                 "delta": r.get_delta(), "bnd": r.get_bnd(),
                 "clause_count": len(r.get_clauses())}
+    if construct == "query":
+        return {"pred": obj.get_predicate().get_value(),
+                "component": obj.get_component(),
+                "component_type": obj.get_component_type(),
+                "bounds": obj.get_bounds(), "text": str(obj)}
+    if construct == "threshold":
+        return {"quantifier": obj.quantifier,
+                "quantifier_type": obj.quantifier_type,
+                "thresh": obj.thresh, "to_tuple": obj.to_tuple()}
     return {"pred": obj.pred.get_value(), "component": obj.component,
             "bound": obj.bound, "type": obj.type}
 
@@ -557,11 +750,27 @@ def probe_save_rule_trace(pr, interpretation, probe):
             for path in sorted(target.glob("*.csv"))]
 
 
-def call_apply_input(fn, op: str, args: dict) -> None:
+def resolve_registrand(op: str, args: dict):
+    """Resolve a registry op's named reference function, or None for every
+    other apply op. Called OUTSIDE the recording try at both apply sites —
+    resolution (registry lookup + njit decoration) is harness work, so its
+    failure must fail the capture, never bank as engine behavior."""
+    if op in REGISTRY_OPS:
+        return reference_fns.resolve(args["name"])
+    return None
+
+
+def call_apply_input(fn, op: str, args: dict, registrand=None) -> None:
     """Apply one loader-family input through an already-resolved engine
     callable. Both path spellings resolve against the repo root (validation
     vouched for confinement and the declared existence state); raises
-    propagate to the caller, which records them as the compared outcome."""
+    propagate to the caller, which records them as the compared outcome. A
+    registry op hands the pre-resolved reference callable to the engine —
+    the registration itself (arity gate or silent append) is the recorded
+    outcome."""
+    if op in REGISTRY_OPS:
+        fn(registrand)
+        return
     if op == "add_closed_world_predicate":
         fn(args["name"])
         return
@@ -577,12 +786,14 @@ def probe_apply_input(pr, probe):
     probe form. A raise is the observation (module-qualified type + message,
     exact-compared unless the case records a canonicalization rationale); an
     acceptance is `{"raised": false}`, with the loaded state observed by the
-    probes that follow. The getattr stays outside the try: an engine missing
-    the loader is a binding fault that must fail the capture, never a banked
-    engine observation — the expect_raise convention."""
+    probes that follow. The getattr and registrand resolution stay outside
+    the try: an engine missing the loader is a binding fault that must fail
+    the capture, never a banked engine observation — the expect_raise
+    convention."""
     fn = getattr(pr, probe["op"])
+    registrand = resolve_registrand(probe["op"], probe["args"])
     try:
-        call_apply_input(fn, probe["op"], probe["args"])
+        call_apply_input(fn, probe["op"], probe["args"], registrand)
     except Exception as exc:
         return raise_record(exc)
     return {"raised": False}
@@ -596,7 +807,8 @@ def raise_record(exc: Exception) -> dict:
 
 
 def probe_expect_raise(pr, probe):
-    """Construct a Rule or Fact from the probe's args and record what happens.
+    """Construct a Rule, Fact, Query, or Threshold from the probe's args and
+    record what happens.
 
     The output is the observation either way — an acceptance is recorded with
     its parse fingerprint, a raise with the module-qualified exception type
@@ -605,24 +817,112 @@ def probe_expect_raise(pr, probe):
     capture failure rather than wearing the engine-behavior label.
     """
     args = probe["args"]
-    ctor = getattr(pr, "Rule" if probe["construct"] == "rule" else "Fact")
+    construct = probe["construct"]
+    ctor = getattr(pr, EXPECT_RAISE_CTORS[construct])
     try:
-        if probe["construct"] == "rule":
+        if construct == "rule":
             obj = ctor(args["text"], args.get("name"),
                        args.get("infer_edges", False))
-        else:
+        elif construct == "fact":
             obj = ctor(args["text"], args.get("name"), args.get("start", 0),
                        args.get("end", 0), args.get("static", False))
+        elif construct == "query":
+            obj = ctor(args["text"])
+        else:
+            qt = args["quantifier_type"]
+            # JSON has no tuple; the documented parameter type is a 2-tuple,
+            # so a list spec is handed over as one. A string rides verbatim —
+            # the pinned constructor's indexing faults are the observation.
+            obj = ctor(args["quantifier"],
+                       tuple(qt) if isinstance(qt, list) else qt,
+                       args["thresh"])
     except Exception as exc:
         return raise_record(exc)
     return {"raised": False,
-            "parse": parse_fingerprint(probe["construct"], obj)}
+            "parse": parse_fingerprint(construct, obj)}
+
+
+def interval_fingerprint(iv) -> dict:
+    """One interval's full observable state, including the previous-bound
+    fields (they drive has_changed and the reset transition) and the pinned
+    repr text (to_str/__repr__, interval.py:71-81)."""
+    return {"lower": float(iv.lower), "upper": float(iv.upper),
+            "static": bool(iv.is_static()),
+            "prev_lower": float(iv.prev_lower),
+            "prev_upper": float(iv.prev_upper),
+            "repr": iv.to_str()}
+
+
+def probe_interval(pr, probe):
+    """Construct two intervals through the aliased public constructor
+    (pyreason.interval.closed) and run the fixed observation pipeline.
+
+    The pipeline order is part of the contract: relations and intersection
+    on the freshly-constructed pair first, then the reset transition, then
+    intersection again — the post-reset intersection is what pins the
+    Python-proxy prev-bound seeding (interval.py:69 seeds the result's prev
+    from self's CURRENT bounds; the jitted overload_method seeds from self's
+    prev, interval_type.py:63 — the two-implementation divergence the board
+    carries; only the proxy arm is reachable without compiling new jitted
+    code, so only it is banked).
+    """
+    closed = pr.interval.closed
+    make, other_spec = probe["make"], probe["other"]
+    iv = closed(make["lower"], make["upper"], make.get("static", False))
+    other = closed(other_spec["lower"], other_spec["upper"],
+                   other_spec.get("static", False))
+    record = {
+        "constructed": interval_fingerprint(iv),
+        "other": interval_fingerprint(other),
+        "eq": bool(iv == other),
+        "hash_eq": hash(iv) == hash(other),
+        "other_in_self": bool(other in iv),
+        "self_in_other": bool(iv in other),
+        "intersection": interval_fingerprint(iv.intersection(other)),
+        "has_changed_fresh": bool(iv.has_changed()),
+    }
+    iv.reset()
+    record["post_reset"] = interval_fingerprint(iv)
+    record["has_changed_post_reset"] = bool(iv.has_changed())
+    record["post_reset_intersection"] = interval_fingerprint(
+        iv.intersection(other))
+    return record
+
+
+def probe_label(pr, probe):
+    """Construct labels through the aliased public value class
+    (pyreason.label.Label) and record the value/equality/hash relations.
+
+    Relations, not raw hash values, are the compared observations — the
+    pinned contract is equality-and-hash-by-string-value (label.py:9-17),
+    not any particular hash number. The one raising relation (== against a
+    plain string: the pinned __eq__ calls get_value() on its argument before
+    the isinstance guard) is recorded as data, keeping the probe total.
+    """
+    label_cls = pr.label.Label
+    lab = label_cls(probe["value"])
+    same = label_cls(probe["value"])
+    other = label_cls(probe["other"])
+    try:
+        eq_plain = bool(lab == probe["value"])
+    except Exception as exc:
+        eq_plain = raise_record(exc)
+    return {"value": lab.get_value(), "str": str(lab), "repr": repr(lab),
+            "eq_same_text": bool(lab == same),
+            "eq_other_text": bool(lab == other),
+            "hash_eq_same_text": hash(lab) == hash(same),
+            "hash_eq_other_text": hash(lab) == hash(other),
+            "eq_plain_str": eq_plain}
 
 
 def run_probe(pr, interpretation, probe):
     kind = probe["kind"]
     if kind == "expect_raise":
         return probe_expect_raise(pr, probe)
+    if kind == "interval_probe":
+        return probe_interval(pr, probe)
+    if kind == "label_probe":
+        return probe_label(pr, probe)
     if kind == "apply_input":
         return probe_apply_input(pr, probe)
     if kind == "accessor_fingerprint":
@@ -691,6 +991,51 @@ def add_fact_from_args(pr, args: dict):
                         args.get("end", 0), args.get("static", False)))
 
 
+def build_threshold(pr, spec: dict):
+    """One validated threshold spec into the pinned Threshold object. A list
+    quantifier_type becomes the documented 2-tuple; only shape was validated,
+    so the pinned constructor's own membership checks still run — but on the
+    input-application path a reject fails the capture, so rules[] specs stay
+    valid and the reject arms live in expect_raise construct="threshold"."""
+    qt = spec["quantifier_type"]
+    return pr.Threshold(spec["quantifier"],
+                        tuple(qt) if isinstance(qt, list) else qt,
+                        spec["thresh"])
+
+
+def build_rule(pr, spec: dict):
+    """One validated rule spec into a pinned Rule — shared by inputs.rules
+    and the add_rule step op. custom_thresholds passes both pinned accepted
+    forms through (the list form and the clause-index dict form, keys
+    int-converted the way the pinned JSON rule loader converts them); weights
+    rides as the JSON list (the pinned parser converts to ndarray)."""
+    kwargs = {}
+    if "custom_thresholds" in spec:
+        ct = spec["custom_thresholds"]
+        if isinstance(ct, list):
+            kwargs["custom_thresholds"] = [build_threshold(pr, s) for s in ct]
+        else:
+            kwargs["custom_thresholds"] = {
+                int(k): build_threshold(pr, s) for k, s in ct.items()}
+    if "weights" in spec:
+        kwargs["weights"] = spec["weights"]
+    return pr.Rule(spec["text"], spec.get("name"),
+                   spec.get("infer_edges", False), **kwargs)
+
+
+def build_reason_args(pr, args: dict) -> dict:
+    """reason-step/inputs.reason args with query texts turned into pinned
+    Query objects. Called outside the recording try (and before the engine's
+    reason), so a Query construction raise is a capture failure — malformed
+    query text belongs to expect_raise construct="query", where the raise is
+    the recorded observation."""
+    if "queries" not in args:
+        return args
+    args = dict(args)
+    args["queries"] = [pr.Query(text) for text in args["queries"]]
+    return args
+
+
 def run_step(pr, step: dict, interpretation):
     """Execute one step op; the outcome record is data either way.
 
@@ -700,16 +1045,22 @@ def run_step(pr, step: dict, interpretation):
     """
     args = step.get("args", {})
     op = step["op"]
-    # Resolved outside the try — an engine missing the loader binding is a
+    # Resolved/built outside the try — an engine missing the loader binding,
+    # a registry resolution fault, or a Query construction raise is a
     # capture failure, never a banked outcome (probe_apply_input parity).
     apply_fn = getattr(pr, op) if op in APPLY_OPS else None
+    registrand = resolve_registrand(op, args)
+    if op == "reason":
+        args = build_reason_args(pr, args)
     try:
         if op in APPLY_OPS:
-            call_apply_input(apply_fn, op, args)
+            call_apply_input(apply_fn, op, args, registrand)
         elif op == "reason":
             interpretation = pr.reason(**args)
         elif op == "add_fact":
             add_fact_from_args(pr, args)
+        elif op == "add_rule":
+            pr.add_rule(build_rule(pr, args))
         elif op == "reset":
             pr.reset()
         elif op == "reset_rules":
@@ -765,8 +1116,7 @@ def run_case(case: dict) -> dict:
             pr.load_graph(build_graph(graph_spec))
 
     for rule in inputs.get("rules", []):
-        pr.add_rule(pr.Rule(rule["text"], rule.get("name"),
-                            rule.get("infer_edges", False)))
+        pr.add_rule(build_rule(pr, rule))
     for fact in inputs.get("facts", []):
         add_fact_from_args(pr, fact)
     for pred_a, pred_b in inputs.get("ipl", []):
@@ -790,7 +1140,7 @@ def run_case(case: dict) -> dict:
     else:
         if "reason" in inputs:
             t1 = time.perf_counter()
-            interpretation = pr.reason(**inputs["reason"])
+            interpretation = pr.reason(**build_reason_args(pr, inputs["reason"]))
             reason_s = time.perf_counter() - t1
         for probe in case["probes"]:
             probes[probe["id"]] = canonical(

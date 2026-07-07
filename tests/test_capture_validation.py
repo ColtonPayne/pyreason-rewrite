@@ -205,14 +205,16 @@ def test_probe_expect_raise_missing_constructor_is_a_capture_failure():
 
 def test_interp_probe_kinds_partition_the_probe_surface():
     """proves: every probe kind is either interpretation-consuming or one of
-    the six standalone kinds — a new kind added to the dispatch without a
+    the eight standalone kinds — a new kind added to the dispatch without a
     reason-block ruling reds here instead of mislabeling exits later."""
     from harness.capture import INTERP_PROBE_KINDS
 
     assert PROBE_KINDS == INTERP_PROBE_KINDS | {"get_time", "get_setting",
                                                 "expect_raise", "output_file",
                                                 "accessor_fingerprint",
-                                                "apply_input"}
+                                                "apply_input",
+                                                "interval_probe",
+                                                "label_probe"}
 
 
 def test_get_setting_probe_requires_a_pinned_knob_name():
@@ -851,3 +853,406 @@ def test_output_file_probe_canonicalizes_only_the_peak_mb_line(tmp_path, monkeyp
                                     "Program used memory\n")}]
     plain = run_probe(None, None, {"id": "p", "kind": "output_file"})
     assert plain[0]["content"] == content
+
+
+def test_reason_queries_must_be_query_text_strings():
+    """proves: a reason 'queries' arg that is not a list of non-empty strings
+    is an authoring fault in both case forms — the capture constructs the
+    pinned Query objects from the texts, so a malformed spec must never reach
+    the engine wearing a behavior label — while a well-formed list validates."""
+    for queries in ("cool(Mary)", ["cool(Mary)", 3], [""], [None]):
+        bad_steps = {**VALID_STEPS, "steps": [
+            {"id": "s", "op": "reason", "args": {"queries": queries},
+             "probes": [{"id": "p", "kind": "get_time"}]}]}
+        assert "queries" in validate_case(bad_steps), queries
+        bad_flat = {**VALID, "inputs": {"reason": {"queries": queries}}}
+        assert "queries" in validate_case(bad_flat), queries
+    ok = {**VALID, "inputs": {"reason": {"queries": ["cool(Mary)"], "timesteps": 2}}}
+    assert validate_case(ok) is None
+
+
+def test_build_reason_args_constructs_query_objects():
+    """proves: the capture turns query-text strings into engine Query objects
+    in declared order and leaves query-less args untouched (same dict object,
+    so existing cases' call shape is byte-identical)."""
+    from harness.capture import build_reason_args
+
+    pr = SimpleNamespace(Query=lambda text: ("Q", text))
+    args = {"timesteps": 2, "queries": ["cool(Mary)", "busy(John)"]}
+    built = build_reason_args(pr, args)
+    assert built == {"timesteps": 2,
+                     "queries": [("Q", "cool(Mary)"), ("Q", "busy(John)")]}
+    assert args["queries"] == ["cool(Mary)", "busy(John)"]  # input not mutated
+    plain = {"timesteps": 2}
+    assert build_reason_args(pr, plain) is plain
+
+
+def test_expect_raise_query_construct_fingerprints_the_parse():
+    """proves: construct='query' renders the four parsed fields plus the
+    echoed text on acceptance — a silent misparse banks the misparse itself —
+    and validates like the other text constructs."""
+    no_text = {**VALID, "probes": [
+        {"id": "p", "kind": "expect_raise", "construct": "query", "args": {}}]}
+    assert "text" in validate_case(no_text)
+    ok = {**VALID, "probes": [
+        {"id": "p", "kind": "expect_raise", "construct": "query",
+         "args": {"text": "popular(Mary)"}}]}
+    assert validate_case(ok) is None
+
+    class Query:
+        def __init__(self, text):
+            self.text = text
+
+        def get_predicate(self):
+            return SimpleNamespace(get_value=lambda: "popular")
+
+        def get_component(self):
+            return "Mary"
+
+        def get_component_type(self):
+            return "node"
+
+        def get_bounds(self):
+            return [1, 1]
+
+        def __str__(self):
+            return self.text
+
+    accepted = probe_expect_raise(
+        SimpleNamespace(Query=Query),
+        {"construct": "query", "args": {"text": "popular(Mary)"}})
+    assert accepted == {"raised": False, "parse": {
+        "pred": "popular", "component": "Mary", "component_type": "node",
+        "bounds": [1, 1], "text": "popular(Mary)"}}
+
+
+def test_expect_raise_threshold_construct_takes_the_pinned_triple():
+    """proves: construct='threshold' takes exactly the pinned constructor's
+    three parameters (a text-shaped or partial args dict is an authoring
+    fault), hands a list quantifier_type over as the documented tuple, and
+    fingerprints the stored triple on acceptance."""
+    partial = {**VALID, "probes": [
+        {"id": "p", "kind": "expect_raise", "construct": "threshold",
+         "args": {"quantifier": "greater_equal"}}]}
+    assert "threshold" in validate_case(partial)
+    ok = {**VALID, "probes": [
+        {"id": "p", "kind": "expect_raise", "construct": "threshold",
+         "args": {"quantifier": "greater_equal",
+                  "quantifier_type": ["number", "total"], "thresh": 1}}]}
+    assert validate_case(ok) is None
+
+    seen = []
+
+    class Threshold:
+        def __init__(self, quantifier, quantifier_type, thresh):
+            seen.append((quantifier, quantifier_type, thresh))
+            self.quantifier = quantifier
+            self.quantifier_type = quantifier_type
+            self.thresh = thresh
+
+        def to_tuple(self):
+            return self.quantifier, self.quantifier_type, self.thresh
+
+    accepted = probe_expect_raise(
+        SimpleNamespace(Threshold=Threshold),
+        {"construct": "threshold",
+         "args": {"quantifier": "greater_equal",
+                  "quantifier_type": ["number", "total"], "thresh": 1}})
+    assert seen == [("greater_equal", ("number", "total"), 1)]
+    assert accepted == {"raised": False, "parse": {
+        "quantifier": "greater_equal", "quantifier_type": ("number", "total"),
+        "thresh": 1, "to_tuple": ("greater_equal", ("number", "total"), 1)}}
+
+
+def test_interval_probe_validates_its_two_numeric_specs():
+    """proves: an interval_probe missing make/other, carrying a non-numeric
+    or boolean bound, an unknown spec key, or a non-boolean static is an
+    authoring fault caught before the engine runs; allow_raise is refused
+    (a raise in the fixed pipeline is a binding fault, not an observation)."""
+    base = {"id": "p", "kind": "interval_probe",
+            "make": {"lower": 0.25, "upper": 0.75},
+            "other": {"lower": 0.5, "upper": 1, "static": True}}
+    assert validate_case({**VALID, "probes": [base]}) is None
+    for mutation in (
+            {"make": None},
+            {"make": {"lower": 0.25}},
+            {"make": {"lower": "0.25", "upper": 1}},
+            {"make": {"lower": True, "upper": 1}},
+            {"make": {"lower": 0.25, "upper": 1, "extra": 1}},
+            {"other": {"lower": 0.25, "upper": 1, "static": "yes"}},
+            {"allow_raise": True},
+    ):
+        bad = {**base, **mutation}
+        assert validate_case({**VALID, "probes": [bad]}) is not None, mutation
+
+
+def test_label_probe_validates_its_string_values():
+    """proves: a label_probe needs string 'value' and 'other' (the pinned
+    value class is string-valued; non-string rejection is jit-context-only)
+    and refuses allow_raise — it records its one raising relation itself."""
+    base = {"id": "p", "kind": "label_probe", "value": "popular",
+            "other": "unpopular"}
+    assert validate_case({**VALID, "probes": [base]}) is None
+    for mutation in ({"value": 3}, {"other": None}, {"allow_raise": True}):
+        bad = {**base, **mutation}
+        assert validate_case({**VALID, "probes": [bad]}) is not None, mutation
+
+
+def test_probe_interval_runs_the_fixed_pipeline_in_order():
+    """proves: the interval probe constructs through the engine's aliased
+    closed(), records relations and intersection on the fresh pair, then the
+    reset transition, then the post-reset intersection — the arm that pins
+    the proxy's prev-bound seeding — reducing every field to plain data."""
+    from harness.capture import probe_interval
+
+    class FakeInterval:
+        def __init__(self, lower, upper, static):
+            self.lower, self.upper = lower, upper
+            self._static = static
+            self.prev_lower, self.prev_upper = lower, upper
+
+        def is_static(self):
+            return self._static
+
+        def to_str(self):
+            return f"[{self.lower},{self.upper}]"
+
+        def __eq__(self, other):
+            return self.lower == other.lower and self.upper == other.upper
+
+        def __hash__(self):
+            return hash((self.lower, self.upper))
+
+        def __contains__(self, item):
+            return self.lower <= item.lower and self.upper >= item.upper
+
+        def intersection(self, other):
+            lower = max(self.lower, other.lower)
+            upper = min(self.upper, other.upper)
+            if lower > upper:
+                lower, upper = 0.0, 1.0
+            out = FakeInterval(lower, upper, False)
+            # proxy seeding: prev from self's CURRENT bounds
+            out.prev_lower, out.prev_upper = self.lower, self.upper
+            return out
+
+        def has_changed(self):
+            return (self.lower, self.upper) != (self.prev_lower, self.prev_upper)
+
+        def reset(self):
+            self.prev_lower, self.prev_upper = self.lower, self.upper
+            self.lower, self.upper = 0.0, 1.0
+
+    pr = SimpleNamespace(interval=SimpleNamespace(closed=FakeInterval))
+    record = probe_interval(pr, {
+        "id": "p", "kind": "interval_probe",
+        "make": {"lower": 0.25, "upper": 0.75},
+        "other": {"lower": 0.5, "upper": 1.0}})
+    assert record["constructed"] == {
+        "lower": 0.25, "upper": 0.75, "static": False,
+        "prev_lower": 0.25, "prev_upper": 0.75, "repr": "[0.25,0.75]"}
+    assert record["eq"] is False and record["hash_eq"] is False
+    assert record["other_in_self"] is False and record["self_in_other"] is False
+    assert record["intersection"]["lower"] == 0.5
+    assert record["intersection"]["prev_lower"] == 0.25  # pre-reset seeding
+    assert record["has_changed_fresh"] is False
+    assert record["post_reset"] == {
+        "lower": 0.0, "upper": 1.0, "static": False,
+        "prev_lower": 0.25, "prev_upper": 0.75, "repr": "[0.0,1.0]"}
+    assert record["has_changed_post_reset"] is True
+    # post-reset intersection: prev seeded from the reset CURRENT bounds
+    assert record["post_reset_intersection"]["prev_lower"] == 0.0
+    assert record["post_reset_intersection"]["prev_upper"] == 1.0
+
+
+def test_probe_label_records_relations_and_the_raising_arm():
+    """proves: the label probe banks value/str/repr and the equality/hash
+    relations (never raw hash numbers), and reduces the plain-string equality
+    raise to a raise record instead of failing the capture."""
+    from harness.capture import probe_label
+
+    class FakeLabel:
+        def __init__(self, value):
+            self._value = value
+
+        def get_value(self):
+            return self._value
+
+        def __eq__(self, label):
+            return self._value == label.get_value()
+
+        def __hash__(self):
+            return hash(self._value)
+
+        def __str__(self):
+            return self._value
+
+        def __repr__(self):
+            return self._value
+
+    pr = SimpleNamespace(label=SimpleNamespace(Label=FakeLabel))
+    record = probe_label(pr, {"id": "p", "kind": "label_probe",
+                              "value": "popular", "other": "unpopular"})
+    assert record == {
+        "value": "popular", "str": "popular", "repr": "popular",
+        "eq_same_text": True, "eq_other_text": False,
+        "hash_eq_same_text": True, "hash_eq_other_text": False,
+        "eq_plain_str": {"raised": True, "type": "builtins.AttributeError",
+                         "message": "'str' object has no attribute 'get_value'"}}
+
+
+def test_registry_ops_validate_names_against_the_committed_registry():
+    """proves: a callable-registering apply op takes exactly a string 'name'
+    that must be in harness/reference_fns.py's registry — a typo'd name is an
+    authoring fault, never a banked resolution failure — in the probe form
+    and the step form alike."""
+    base = {"id": "p", "kind": "apply_input", "op": "add_annotation_function"}
+    assert "string 'name'" in validate_case({**VALID, "probes": [
+        {**base, "args": {"name": 3}}]})
+    assert "string 'name'" in validate_case({**VALID, "probes": [
+        {**base, "args": {"path": FIXTURE}}]})
+    assert "unknown reference function" in validate_case({**VALID, "probes": [
+        {**base, "args": {"name": "clause_lower_maen"}}]})
+    ok = {**base, "args": {"name": "clause_lower_mean"}}
+    assert validate_case({**VALID, "probes": [ok]}) is None
+    bad_step = {**VALID_STEPS, "steps": [
+        {"id": "s", "op": "add_head_function",
+         "args": {"name": "no_such_fn"}}]}
+    assert "unknown reference function" in validate_case(bad_step)
+    ok_step = {**VALID_STEPS, "steps": [
+        {"id": "s", "op": "add_head_function",
+         "args": {"name": "first_clause_first_grounding"}}]}
+    assert validate_case(ok_step) is None
+
+
+def test_registry_module_is_stdlib_only_and_names_match():
+    """proves: harness/reference_fns.py imports without an engine environment
+    (this fast tier has neither numba nor networkx) and every registry key is
+    its function's __name__ — the engine matches registrands by __name__, so
+    a key/name drift would make a case register one function while the rule
+    DSL names another."""
+    from harness import reference_fns
+
+    assert reference_fns.numba is None  # unbound outside resolve()
+    for name, fn in reference_fns.REGISTRY.items():
+        assert name == fn.__name__
+    # the arity stubs the reject arms lean on measure as the pinned gate sees
+    # them: co_argcount 3 and 0
+    assert reference_fns.three_positional_stub.__code__.co_argcount == 3
+    assert reference_fns.star_args_stub.__code__.co_argcount == 0
+
+
+def test_registry_step_op_hands_the_resolved_callable_to_the_engine(monkeypatch):
+    """proves: a registry step op resolves the named reference function
+    outside the outcome-recording try (a resolution fault fails the capture)
+    and hands exactly the resolved callable to the engine registrar, whose
+    raise-or-accept is the banked outcome."""
+    import pytest
+
+    from harness import capture
+
+    sentinel = object()
+    monkeypatch.setattr(capture.reference_fns, "resolve",
+                        lambda name: sentinel if name == "clause_lower_mean"
+                        else (_ for _ in ()).throw(ImportError("no numba here")))
+    seen = []
+    pr = SimpleNamespace(add_annotation_function=seen.append)
+    outcome, interp = run_step(pr, {
+        "id": "s", "op": "add_annotation_function",
+        "args": {"name": "clause_lower_mean"}}, "old")
+    assert outcome == {"raised": False} and interp == "old"
+    assert seen == [sentinel]
+
+    def rejecting(fn):
+        raise TypeError("Annotation function 'x' must accept exactly 2 ...")
+
+    outcome, _ = run_step(SimpleNamespace(add_annotation_function=rejecting), {
+        "id": "s", "op": "add_annotation_function",
+        "args": {"name": "clause_lower_mean"}}, None)
+    assert outcome["raised"] is True and outcome["type"] == "builtins.TypeError"
+    pr_head = SimpleNamespace(add_head_function=seen.append)
+    with pytest.raises(ImportError):
+        run_step(pr_head, {"id": "s", "op": "add_head_function",
+                           "args": {"name": "star_args_stub"}}, None)
+
+
+def test_add_rule_step_op_builds_thresholds_and_weights():
+    """proves: an add_rule step drives the shared rule builder — text/name/
+    infer_edges positionally, list- and dict-form custom_thresholds built into
+    engine Threshold objects (dict keys int-converted), and weights passed as
+    the JSON list — while a threshold-less spec passes no extra kwargs, so
+    existing rule inputs keep their exact call shape."""
+    rules, thresholds = [], []
+
+    class Threshold:
+        def __init__(self, quantifier, quantifier_type, thresh):
+            thresholds.append((quantifier, quantifier_type, thresh))
+            self.triple = (quantifier, quantifier_type, thresh)
+
+    def rule(text, name, infer_edges, **kwargs):
+        rules.append((text, name, infer_edges, kwargs))
+        return "rule-obj"
+
+    pr = SimpleNamespace(Rule=rule, Threshold=Threshold,
+                         add_rule=lambda r: None)
+    outcome, _ = run_step(pr, {
+        "id": "s", "op": "add_rule",
+        "args": {"text": "t(x) <-1 f(x)", "name": "r1",
+                 "custom_thresholds": [
+                     {"quantifier": "greater_equal",
+                      "quantifier_type": ["number", "total"], "thresh": 1}],
+                 "weights": [1, 2]}}, None)
+    assert outcome == {"raised": False}
+    assert thresholds == [("greater_equal", ("number", "total"), 1)]
+    text, name, infer_edges, kwargs = rules[0]
+    assert (text, name, infer_edges) == ("t(x) <-1 f(x)", "r1", False)
+    assert kwargs["weights"] == [1, 2]
+    assert [t.triple for t in kwargs["custom_thresholds"]] \
+        == [("greater_equal", ("number", "total"), 1)]
+
+    outcome, _ = run_step(pr, {
+        "id": "s", "op": "add_rule",
+        "args": {"text": "t(x) <-1 f(x)",
+                 "custom_thresholds": {
+                     "1": {"quantifier": "greater_equal",
+                           "quantifier_type": ["number", "total"],
+                           "thresh": 2}}}}, None)
+    assert outcome == {"raised": False}
+    dict_kwargs = rules[1][3]
+    assert list(dict_kwargs["custom_thresholds"]) == [1]  # int-converted key
+
+    outcome, _ = run_step(pr, {
+        "id": "s", "op": "add_rule", "args": {"text": "t(x) <-1 f(x)"}}, None)
+    assert rules[2][3] == {}  # no smuggled kwargs on the plain shape
+
+
+def test_rule_specs_validate_in_inputs_and_step_form():
+    """proves: a rule spec without text, a malformed threshold spec, a
+    non-integer dict key, a bad custom_thresholds container, and non-numeric
+    weights are each authoring faults in inputs.rules and the add_rule step
+    alike — a spec fault must never reach the engine as a behavior claim."""
+    good_t = {"quantifier": "greater_equal",
+              "quantifier_type": ["number", "total"], "thresh": 1}
+    faults = [
+        ({"name": "r"}, "text"),
+        ({"text": "t", "custom_thresholds": "x"}, "custom_thresholds"),
+        ({"text": "t", "custom_thresholds": [{"quantifier": "ge"}]}, "threshold"),
+        ({"text": "t", "custom_thresholds": {"one": good_t}}, "integer"),
+        ({"text": "t",
+          "custom_thresholds": [{**good_t, "quantifier": 3}]}, "quantifier"),
+        ({"text": "t",
+          "custom_thresholds": [{**good_t, "quantifier_type": [1]}]},
+         "quantifier_type"),
+        ({"text": "t", "weights": [1, "x"]}, "weights"),
+        ({"text": "t", "weights": [True]}, "weights"),
+    ]
+    for spec, expected in faults:
+        fault = validate_case({**VALID, "inputs": {"rules": [spec]}})
+        assert fault and expected in fault, (spec, fault)
+        step_fault = validate_case({**VALID_STEPS, "steps": [
+            {"id": "s", "op": "add_rule", "args": spec}]})
+        assert step_fault and expected in step_fault, (spec, step_fault)
+    ok = {**VALID, "inputs": {"rules": [
+        {"text": "t(x) <-1 f(x)", "custom_thresholds": [good_t],
+         "weights": [1.5]}]}}
+    assert validate_case(ok) is None
