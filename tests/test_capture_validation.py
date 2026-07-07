@@ -703,7 +703,7 @@ def test_apply_input_closed_world_takes_exactly_a_string_name():
         {**base, "args": {"name": 3}}]})
     assert "string 'name'" in validate_case({**VALID, "probes": [
         {**base, "args": {"path": FIXTURE}}]})
-    ok = {**base, "args": {"name": "suspicious"}}
+    ok = {**base, "args": {"name": "busy"}}
     assert validate_case({**VALID, "probes": [ok]}) is None
 
 
@@ -770,8 +770,8 @@ def test_probe_apply_input_records_raise_and_acceptance():
     pr_cwa = SimpleNamespace(add_closed_world_predicate=cwa_calls.append)
     assert probe_apply_input(pr_cwa, {
         "op": "add_closed_world_predicate",
-        "args": {"name": "suspicious"}}) == {"raised": False}
-    assert cwa_calls == ["suspicious"]
+        "args": {"name": "busy"}}) == {"raised": False}
+    assert cwa_calls == ["busy"]
 
 
 def test_probe_apply_input_missing_loader_is_a_capture_failure():

@@ -189,11 +189,11 @@ attempt taught the grounding subtlety: when the clause predicate is in the
 predicate map, `get_rule_node_clause_grounding` (`interpretation.py:1396-
 1402`) draws candidates from the map (only nodes that *have* the
 predicate), so a single-clause rule never shows the CWA. The cased program
-grounds `x` by a `Friends(x,y)` clause first; the `suspicious(x):[0,0]`
+grounds `x` by a `Friends(x,y)` clause first; the `busy(x):[0,0]`
 clause then filters those groundings through the CWA branch.
 Cases: `closed-world-on` / `closed-world-off` — the on twin derives
-`safe(John)`/`safe(Justin)` (never-stated nodes) while `suspicious(Mary)`
-= `[1,1]` still fails the `[0,0]` clause; the off twin derives no safe row.
+`available(John)`/`available(Justin)` (never-stated nodes) while `busy(Mary)`
+= `[1,1]` still fails the `[0,0]` clause; the off twin derives no available row.
 Duplicate add pinned as a set no-op (the on twin applies it twice).
 **Un-bankable arm, screened and named instead of cased:** the non-string
 add is silent (a bare `set.add`), and the raise surfaces only at `reason()`
