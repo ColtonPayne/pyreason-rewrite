@@ -47,11 +47,86 @@ def test_duplicate_probe_ids_are_rejected():
     assert "unique" in validate_case(bad)
 
 
-def test_output_to_file_setting_is_forbidden():
-    """proves: a case asking the engine to rebind stdout to an uncompared,
-    timestamp-named file is refused until file output is a first-class probe."""
+def test_output_to_file_requires_an_output_file_probe():
+    """proves: settings.output_to_file=true is refused unless the case carries
+    an output_file probe — the redirect file is a compared observation, never
+    an unread side effect — and clears validation once one is present, in the
+    one-step and steps forms alike."""
     bad = {**VALID, "inputs": {"settings": {"output_to_file": True}}}
-    assert "output_to_file" in validate_case(bad)
+    assert "output_file" in validate_case(bad)
+    ok = {**bad, "probes": [{"id": "p", "kind": "output_file"}]}
+    assert validate_case(ok) is None
+    steps_bad = {"id": "c", "inputs": {"settings": {"output_to_file": True}},
+                 "steps": [{"id": "s", "op": "reason", "outcome_only": True}]}
+    assert "output_file" in validate_case(steps_bad)
+    steps_ok = {**steps_bad, "steps": [
+        {"id": "s", "op": "reason",
+         "probes": [{"id": "p", "kind": "output_file"}]}]}
+    assert validate_case(steps_ok) is None
+
+
+def test_output_to_file_false_needs_no_probe():
+    """proves: only the true position demands the probe — an explicit false
+    (the readback-twin shape) validates bare, since no file can be written."""
+    case = {**VALID, "inputs": {"settings": {"output_to_file": False}}}
+    assert validate_case(case) is None
+
+
+def test_output_file_probe_refuses_allow_raise():
+    """proves: allow_raise on an output_file probe is rejected — it reads the
+    capture's own confined directory, so a read fault there is a harness
+    failure that must fail the capture, never a banked engine observation."""
+    bad = {**VALID, "probes": [
+        {"id": "p", "kind": "output_file", "allow_raise": True}]}
+    assert "allow_raise" in validate_case(bad)
+
+
+def test_output_file_probe_reads_and_canonicalizes(tmp_path, monkeypatch):
+    """proves: the output_file probe returns every .txt in the working
+    directory sorted by name, with the engine's wall-clock stamp reduced to
+    '<timestamp>' and contents verbatim — and an empty directory reads as [],
+    the default-stdout twin's no-file observation."""
+    from harness.capture import run_probe
+
+    monkeypatch.chdir(tmp_path)
+    probe = {"id": "p", "kind": "output_file"}
+    assert run_probe(None, None, probe) == []
+    (tmp_path / "pyreason_output_20260707-003744.txt").write_text("Timestep: 0\n")
+    (tmp_path / "custom.txt").write_text("x")
+    (tmp_path / "not-observed.log").write_text("ignored")
+    assert run_probe(None, None, probe) == [
+        {"name": "custom.txt", "content": "x"},
+        {"name": "pyreason_output_<timestamp>.txt", "content": "Timestep: 0\n"},
+    ]
+
+
+def test_fresh_output_dir_clears_stale_files(tmp_path):
+    """proves: the per-capture output directory is emptied on every capture —
+    a redirect file left by a prior run cannot bank as this run's observation."""
+    from harness.capture import fresh_output_dir
+
+    out = tmp_path / "a1.json"
+    outdir = fresh_output_dir(out)
+    assert outdir == tmp_path / "a1.outdir"
+    (outdir / "pyreason_output_20260707-000000.txt").write_text("stale")
+    assert list(fresh_output_dir(out).iterdir()) == []
+
+
+def test_case_wants_output_dir_covers_knob_and_probe():
+    """proves: the capture confines its working directory exactly when the
+    case turns the redirect on or observes the redirect surface — in either
+    case form — and never otherwise, so existing cases keep their cwd."""
+    from harness.capture import case_wants_output_dir
+
+    assert not case_wants_output_dir(VALID)
+    assert not case_wants_output_dir(VALID_STEPS)
+    assert case_wants_output_dir(
+        {**VALID, "inputs": {"settings": {"output_to_file": True}}})
+    assert case_wants_output_dir(
+        {**VALID, "probes": [{"id": "p", "kind": "output_file"}]})
+    assert case_wants_output_dir({**VALID_STEPS, "steps": [
+        {"id": "s", "op": "reason",
+         "probes": [{"id": "p", "kind": "output_file"}]}]})
 
 
 def test_expect_raise_probe_requires_construct_and_args():
@@ -130,12 +205,12 @@ def test_probe_expect_raise_missing_constructor_is_a_capture_failure():
 
 def test_interp_probe_kinds_partition_the_probe_surface():
     """proves: every probe kind is either interpretation-consuming or one of
-    the three standalone kinds — a new kind added to the dispatch without a
+    the four standalone kinds — a new kind added to the dispatch without a
     reason-block ruling reds here instead of mislabeling exits later."""
     from harness.capture import INTERP_PROBE_KINDS
 
     assert PROBE_KINDS == INTERP_PROBE_KINDS | {"get_time", "get_setting",
-                                                "expect_raise"}
+                                                "expect_raise", "output_file"}
 
 
 def test_get_setting_probe_requires_a_pinned_knob_name():

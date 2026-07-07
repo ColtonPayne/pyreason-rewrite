@@ -24,7 +24,11 @@ observation like any other. A probe carrying
 capture; a probe *without* it that raises fails the capture, which the runner
 judges `error` — so an author declares allow_raise on every probe a candidate
 engine could plausibly make raise, or that engine's raise wears the
-harness-failure label instead of comparing as a divergence.
+harness-failure label instead of comparing as a divergence. An `output_file`
+probe reads back every .txt file the engine wrote into the capture's confined
+working directory (the surface `settings.output_to_file` redirects stdout
+into), timestamp-canonicalized — which is why that knob is only allowed in a
+case that carries this probe.
 
 The artifact is self-describing: the case id, engine identity + environment
 fingerprint, each probe's canonical output, and a digest per probe. Exit codes:
@@ -36,6 +40,8 @@ error text says which).
 import argparse
 import json
 import os
+import re
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -46,10 +52,11 @@ REPO = Path(__file__).resolve().parent.parent
 
 PROBE_KINDS = {"filter_sort_nodes", "filter_sort_edges", "rule_trace_node",
                "rule_trace_edge", "get_time", "get_setting",
-               "interpretation_dict", "expect_raise"}
+               "interpretation_dict", "expect_raise", "output_file"}
 # Probe kinds that consume the interpretation reason() returns — a case using
 # any of them must carry an inputs.reason block. get_time and get_setting read
-# module state and expect_raise constructs in isolation; all run without one.
+# module state, output_file reads the confined working directory, and
+# expect_raise constructs in isolation; all run without one.
 INTERP_PROBE_KINDS = {"filter_sort_nodes", "filter_sort_edges",
                       "rule_trace_node", "rule_trace_edge",
                       "interpretation_dict"}
@@ -80,10 +87,17 @@ SETTINGS_KNOBS = {"verbose", "output_to_file", "output_file_name",
                   "inconsistency_check", "static_graph_facts",
                   "store_interpretation_changes", "parallel_computing",
                   "update_mode", "allow_ground_rules", "fp_version"}
-# output_to_file rebinds the engine process's stdout and writes a
-# timestamp-named file the harness never compares — rejected until file output
-# becomes a first-class probe.
-FORBIDDEN_SETTINGS = {"output_to_file"}
+# output_to_file rebinds the engine process's stdout to a timestamp-named
+# file in the working directory (pyreason.py:1513-1514/:1541-1542 at the pin)
+# and never restores it. It is allowed only when the case carries an
+# `output_file` probe, so the redirect file is always a compared observation,
+# never an unread side effect; the capture confines the file by chdir'ing
+# into a fresh per-capture directory before inputs apply (see main()).
+# The engine embeds a wall-clock stamp in the file name (pyreason.py:1511) —
+# that stamp is run schedule, not engine behavior, so the probe canonicalizes
+# it; file presence, count, the interpolated output_file_name basename, and
+# the full contents all compare exactly.
+OUTPUT_TS_RE = re.compile(r"_\d{8}-\d{6}\.txt$")
 
 
 def _probe_list_fault(probes: list, owner: str) -> str | None:
@@ -105,6 +119,11 @@ def _probe_list_fault(probes: list, owner: str) -> str | None:
             if p.get("knob") not in SETTINGS_KNOBS:
                 return (f"get_setting probe {p['id']!r}: 'knob' must name one of "
                         f"the pinned settings knobs, got {p.get('knob')!r}")
+        if p.get("kind") == "output_file" and p.get("allow_raise"):
+            return (f"output_file probe {p['id']!r} cannot carry allow_raise — "
+                    f"it reads the capture's own confined output directory, so "
+                    f"a read fault there is a harness failure, never a "
+                    f"comparable engine observation")
         if p.get("kind") != "expect_raise":
             continue
         if p.get("allow_raise"):
@@ -246,12 +265,21 @@ def validate_case(case: dict) -> str | None:
             isinstance(pair, list) and len(pair) == 2
             and all(isinstance(name, str) for name in pair) for pair in ipl)):
         return "inputs.ipl must be a list of [pred, pred] string pairs"
-    forbidden = FORBIDDEN_SETTINGS & set(case["inputs"].get("settings", {}))
-    if forbidden:
-        return f"forbidden settings knob(s) in a case: {sorted(forbidden)}"
+    if case["inputs"].get("settings", {}).get("output_to_file") is True \
+            and not any(p.get("kind") == "output_file" for p in _all_probes(case)):
+        return ("settings.output_to_file=true requires an output_file probe — "
+                "the redirect file the engine writes must be a compared "
+                "observation, never an unread side effect")
     if "graph" in case["inputs"]:
         return _graph_fault(case["inputs"]["graph"])
     return None
+
+
+def _all_probes(case: dict):
+    """Every probe in either case form — the top-level list or each step's."""
+    if "steps" in case:
+        return [p for step in case["steps"] for p in step.get("probes", [])]
+    return case.get("probes", [])
 
 
 def build_graph(spec):
@@ -348,6 +376,21 @@ def run_probe(pr, interpretation, probe):
         return pr.get_time()
     if kind == "interpretation_dict":
         return interpretation.get_dict()
+    if kind == "output_file":
+        # Under output_to_file the pinned engine rebinds this process's
+        # sys.stdout to the redirect file and never flushes or restores it
+        # (pyreason.py:1513-1514/:1541-1542) — flush first so buffered prints
+        # are part of the observation, then read every .txt in the capture's
+        # working directory (main() confined it to a fresh per-capture dir).
+        # The wall-clock stamp in the name is canonicalized (OUTPUT_TS_RE);
+        # an empty list is the compared observation that no redirect file
+        # was written. Probe order matters: sys.stdout stays redirected, so
+        # authors place this probe after every probe whose output it should
+        # observe.
+        sys.stdout.flush()
+        return [{"name": OUTPUT_TS_RE.sub("_<timestamp>.txt", path.name),
+                 "content": path.read_text()}
+                for path in sorted(Path.cwd().glob("*.txt"))]
     raise ValueError(f"unknown probe kind: {kind}")
 
 
@@ -400,6 +443,25 @@ def run_step(pr, step: dict, interpretation):
 def apply_settings(pr, settings: dict):
     for knob, value in settings.items():
         setattr(pr.settings, knob, value)
+
+
+def case_wants_output_dir(case: dict) -> bool:
+    """Whether main() must confine the capture's working directory: the case
+    either turns the redirect on or observes the (absent) redirect file."""
+    return (case["inputs"].get("settings", {}).get("output_to_file") is True
+            or any(p.get("kind") == "output_file" for p in _all_probes(case)))
+
+
+def fresh_output_dir(out: Path) -> Path:
+    """A per-capture directory beside the artifact for engine-written files.
+
+    Cleared on every capture — a stale redirect file from a prior run would
+    otherwise bank as this run's observation."""
+    outdir = out.with_suffix(".outdir")
+    if outdir.exists():
+        shutil.rmtree(outdir)
+    outdir.mkdir(parents=True)
+    return outdir
 
 
 def run_case(case: dict) -> dict:
@@ -478,6 +540,9 @@ def main(argv=None) -> int:
     parser.add_argument("case", type=Path)
     parser.add_argument("out", type=Path)
     args = parser.parse_args(argv)
+    # Absolute before any chdir — the artifact must land where the runner
+    # asked regardless of where the engine's file output is confined.
+    args.out = args.out.resolve()
 
     try:
         case = json.loads(args.case.read_text())
@@ -492,6 +557,13 @@ def main(argv=None) -> int:
                                   "error": f"invalid case: {fault}"})
         print(f"invalid case: {fault}", file=sys.stderr)
         return 2
+
+    if case_wants_output_dir(case):
+        # The pinned redirect path is cwd-relative ("./..." at
+        # pyreason.py:1514) — chdir into a fresh per-capture directory so an
+        # engine-written file can only ever land beside this capture's
+        # artifact, never in the repo root or outside it.
+        os.chdir(fresh_output_dir(args.out))
 
     try:
         artifact = run_case(case)
