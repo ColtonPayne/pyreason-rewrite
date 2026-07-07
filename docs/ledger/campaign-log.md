@@ -275,3 +275,35 @@ banks, Phase 3 (the pure-Python reference core) opens, starting with the
 campaign's first rewrite dependency ask: networkx.
 
 **Resume prompt.** `/campaign`
+
+## Session 15 — 2026-07-07
+
+**What we knew going in.** The breadth grind had just closed — all 52
+public-surface rows cased by a 94-case corpus — but every session since the
+last sweep had run only its own packet's targeted cases, per the wall-clock
+rule. The phase boundary had arrived, and the rule's bill came due: one
+dedicated session running everything, before Phase 3 opens.
+
+**What we learned this session.** The harness phase closes clean. All 94
+cases passed oracle-vs-oracle in one 46-minute sweep — zero divergences,
+zero irreproducibility, and the spot-fix loop came up empty: not one line
+of code needed touching. The independent audit earned its keep by trusting
+nothing: it recomputed all 94 verdicts from the preserved artifacts through
+the real compare layer, cross-checked the full board against the corpus
+(every cased row cites exactly the cases that exist, no orphans either
+way), and re-verified the oracle-env kernel cache carries no residue from
+the registrand mechanism. Two low findings (a timestamp precision fix and a
+noted last-writer-wins quirk in the summary artifact). The sweep also
+confirmed session 14's cost prediction: the three callable-registering
+cases dominate wall-clock because their dispatcher-bearing signatures can
+never warm numba's cache.
+
+**What we expect to learn next session.** Phase 3 — the pure-Python
+reference core — opens, and its first action is a decision only the
+operator can make: approving networkx as the rewrite's first runtime
+dependency (the public boundary accepts NetworkX graphs, so graph loading
+— the natural first spine slice — needs it). Once adjudicated, the next
+sessions start proving rewrite-vs-oracle equivalence case by case, and the
+board's `equivalent` column finally starts moving off 0/52.
+
+**Resume prompt.** `/campaign`
