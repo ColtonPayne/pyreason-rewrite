@@ -1,6 +1,6 @@
 {
   "id": "reason-queries-no-match",
-  "purpose": "A query matching no rule's target filters the ruleset to empty, and reason() then raises numba's ValueError('cannot compute fingerprint of empty list') at kernel dispatch \u2014 the pinned engine cannot reason over a query-emptied ruleset. The filtering itself still happened and is permanent: post-raise get_rules returns the empty (plain, no longer numba-typed) list the filter assigned (pyreason.py:1595).",
+  "purpose": "A query matching no rule's target filters the ruleset to empty, and on this node-heavy graph (2 edges < 3 nodes, so the clause-reorder rebuild never runs) the plain empty list reaches kernel dispatch: reason() raises numba's ValueError('cannot compute fingerprint of empty list') \u2014 the raise is the PLAIN-empty-list arm only; an edge-heavy graph reorders the emptied ruleset into a typed list and completes (reason-queries-no-match-edge-heavy). The filtering itself still happened and is permanent: post-raise get_rules returns the empty (plain, no longer numba-typed) list the filter assigned (pyreason.py:1595).",
   "runtime_class": "smoke",
   "provenance": "docs/surface.md type:Query + fn:reason queries-filter (empty-survivor arm); pyreason.py:1594-1595, filter_ruleset.py:29-34 at the pin; screened live 2026-07-07 (screen_queries.py mode=none)",
   "surface_items": [

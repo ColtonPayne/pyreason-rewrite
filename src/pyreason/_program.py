@@ -13,6 +13,19 @@ applies them (pyreason.py:1594-1606).
 from ._interpretation import Interpretation
 
 
+class TypedRuleList(list):
+    """A rule list that rides a numba typed list at the pin. add_rule and
+    the clause-reorder arm both build `numba.typed.List`s (pyreason.py:639,
+    :1603); only filter_ruleset hands back a PLAIN Python list
+    (`list(set(...))`, filter_ruleset.py:34). The kind distinction is
+    load-bearing at exactly one seam: numba can fingerprint an EMPTY typed
+    list at kernel dispatch but not an empty plain list, so a query-emptied
+    ruleset raises the pinned ValueError ONLY when the reorder arm did not
+    rebuild it — probed live on the pin (review slice 6, 2026-07-07): the
+    edge-heavy (edges > nodes) no-match arm reorders the empty list into a
+    typed list and reasons to completion with zero rules."""
+
+
 class Program:
 
     def __init__(self, graph, facts_node, facts_edge, rules, ipl,
@@ -61,7 +74,8 @@ class Program:
         # list IS stamped onto all variants (program.py:37-39).
         specific_node_labels = {} if fp_mode else self.specific_node_labels
         specific_edge_labels = {} if fp_mode else self.specific_edge_labels
-        rules_empty = self._rules is not None and len(self._rules) == 0
+        rules_empty = (self._rules is not None and len(self._rules) == 0
+                       and not isinstance(self._rules, TypedRuleList))
         self.interp = Interpretation(
             self._graph, self._ipl, self._annotation_functions,
             self._head_functions, self._reverse_graph, self._atom_trace,
@@ -70,14 +84,18 @@ class Program:
             self._update_mode, self._allow_ground_rules,
             specific_node_labels, specific_edge_labels,
             self.closed_world_predicates, fp_mode=fp_mode)
-        # The pinned engine cannot reason over an EMPTY ruleset: the plain
-        # empty list only filter_ruleset produces (loaded rulesets ride numba
-        # typed lists at the pin, and both engines' loaders leave a zero-rule
-        # load as None → the no-rules Exception upstream) fails numba's
-        # kernel-argument fingerprinting at dispatch. Reproduced verbatim at
-        # the same seam — after the Interpretation is constructed and
-        # assigned, so the post-raise program holds a live interp exactly as
-        # the pin's does (reason-queries-no-match banks the raise record).
+        # The pinned engine cannot dispatch an empty PLAIN rule list: only
+        # filter_ruleset produces one (loaded rulesets ride numba typed lists
+        # at the pin, and both engines' loaders leave a zero-rule load as
+        # None → the no-rules Exception upstream), and it fails numba's
+        # kernel-argument fingerprinting — unless the clause-reorder arm
+        # rebuilt it as a (fingerprintable-even-when-empty) typed list first,
+        # in which case the pin reasons to completion with zero rules (see
+        # TypedRuleList; reason-queries-no-match-edge-heavy banks that arm).
+        # Reproduced verbatim at the same seam — after the Interpretation is
+        # constructed and assigned, so the post-raise program holds a live
+        # interp exactly as the pin's does (reason-queries-no-match banks the
+        # raise record).
         if rules_empty:
             raise ValueError('cannot compute fingerprint of empty list')
         self.interp.start_fp(self._tmax, self._facts_node, self._facts_edge,

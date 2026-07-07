@@ -11,6 +11,7 @@ equality with the pinned frames is what the banked artifacts compare.
 
 import csv
 import os
+import pathlib
 
 from . import interval
 
@@ -115,9 +116,12 @@ def get_rule_trace(interpretation, clause_map):
 def save_rule_trace(interpretation, clause_map, timestamp, folder='./'):
     """Write the trace frames as the pinned CSV pair (output.py:99-105):
     `rule_trace_{nodes,edges}_{timestamp}.csv` under `folder` (joined the
-    same way — os.path.join on the caller's string, no validation, so a
-    nonexistent folder raises the open()'s own error like the pin's pandas
-    write does).
+    same way — os.path.join on the caller's string, no validation). A
+    nonexistent folder raises the pinned pandas parent-directory refusal —
+    `OSError: Cannot save file into a non-existent directory: '<parent>'`
+    (pandas io/common.py check_parent_directory, hit by `to_csv` before any
+    write; screened live on the pin 2026-07-07, review slice 6) — never the
+    bare open() errno message.
 
     The byte target is the pinned `DataFrame.to_csv(path, index=False)`
     output: comma-delimited, QUOTE_MINIMAL double-quote quoting, os.linesep
@@ -129,6 +133,12 @@ def save_rule_trace(interpretation, clause_map, timestamp, folder='./'):
     node_frame, edge_frame = get_rule_trace(interpretation, clause_map)
     for kind, frame in (('nodes', node_frame), ('edges', edge_frame)):
         path = os.path.join(folder, f'rule_trace_{kind}_{timestamp}.csv')
+        # The pinned to_csv checks the parent before opening (pandas
+        # io/common.py check_parent_directory) and raises this exact shape
+        parent = pathlib.Path(path).parent
+        if not parent.is_dir():
+            raise OSError(
+                rf"Cannot save file into a non-existent directory: '{parent}'")
         with open(path, 'w', newline='') as f:
             writer = csv.writer(f, lineterminator=os.linesep)
             writer.writerow(frame.columns)

@@ -76,7 +76,9 @@ def add_rule(state: EngineState, pr_rule) -> None:
     name warns (never raises) and still adds.
     """
     if state.rules is None:
-        state.rules = []
+        # The pin's list is a numba typed list (pyreason.py:639) — the
+        # kind matters at the dispatch seam (_program.TypedRuleList)
+        state.rules = _program.TypedRuleList()
 
     if pr_rule.rule.get_rule_name() is None:
         pr_rule.rule.set_rule_name(f'rule_{len(state.rules)}')
@@ -316,7 +318,11 @@ def _reason(state: EngineState, timesteps, convergence_threshold,
         if settings.verbose:
             print('Optimizing rules by moving node clauses ahead of edge clauses')
         rules_copy = list(state.rules)
-        state.rules = []
+        # The pinned reorder arm rebuilds __rules as a FRESH numba typed
+        # list (pyreason.py:1603) even when the query filter left it
+        # empty — and an empty typed list still dispatches, so this rebuild
+        # decides whether a query-emptied ruleset raises (TypedRuleList)
+        state.rules = _program.TypedRuleList()
         for r in rules_copy:
             r, state.clause_maps[r.get_rule_name()] = _program.reorder_clauses(r)
             state.rules.append(r)

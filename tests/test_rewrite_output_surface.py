@@ -326,6 +326,36 @@ def test_reason_queries_keep_transitive_body_support(pr):
                                                            "popular_rule"}
 
 
+def test_reason_queries_no_match_edge_heavy_completes(pr):
+    """proves: on an edge-heavy graph (edges > nodes) a no-match query does
+    NOT raise — the pinned reorder arm rebuilds even a query-emptied ruleset
+    as a fresh numba typed list (pyreason.py:1603), which still fingerprints
+    at kernel dispatch, so the pin reasons to completion with zero rules
+    (probed live on the pin, review slice 6, 2026-07-07); the fingerprint
+    ValueError fires only when the plain filtered list reaches dispatch
+    un-rebuilt (edges <= nodes — the reason-queries-no-match arm)."""
+    _load_popular(pr)  # 7 edges > 5 nodes: the reorder arm runs
+    pr.reason(timesteps=2, queries=[Query("famous(Mary)")])
+    assert pr.get_time() == 3
+    assert list(pr.get_rules()) == []
+
+
+def test_save_rule_trace_missing_folder_raises_pinned_oserror(pr):
+    """proves: save_rule_trace into a nonexistent folder raises the pinned
+    pandas parent-directory refusal — exactly OSError (never the open()
+    errno FileNotFoundError subclass) with the pinned message naming the
+    parent (pandas io/common.py check_parent_directory via to_csv; screened
+    live on the pin 2026-07-07) — before any file is written."""
+    _load_popular(pr)
+    interp = pr.reason(timesteps=2)
+    with pytest.raises(OSError,
+                       match=r"Cannot save file into a non-existent "
+                             r"directory: 'missing_dir'") as excinfo:
+        pr.save_rule_trace(interp, "missing_dir")
+    assert type(excinfo.value) is OSError
+    assert _csv_files() == []
+
+
 def test_filter_ruleset_terminates_on_self_recursive_rule(pr):
     """proves: the rewrite's filter_ruleset expands each predicate at most
     once, so a query matching a self-recursive rule's head terminates and

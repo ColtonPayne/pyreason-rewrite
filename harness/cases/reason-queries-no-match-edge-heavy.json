@@ -1,0 +1,139 @@
+{
+  "id": "reason-queries-no-match-edge-heavy",
+  "purpose": "The no-match query's OTHER arm: on an edge-heavy graph (7 edges > 5 nodes) the clause-reorder pass rebuilds the query-emptied ruleset as a fresh numba typed list (pyreason.py:1603) \u2014 and an empty TYPED list still fingerprints at kernel dispatch, so reason() COMPLETES with zero rules instead of raising the fingerprint ValueError (which fires only when the plain filtered list reaches dispatch un-rebuilt, the reason-queries-no-match arm). Post-reason get_rules is empty, the trace carries only the fact application, and no popular derivation occurs despite the rule's body being satisfiable.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md type:Query + fn:reason queries-filter (empty-survivor, reorder-arm interaction); pyreason.py:1594-1606 at the pin; discriminating probe of the slice-6 review \u2014 screened live on the pin 2026-07-07 (completes, time=3) against the pre-fix rewrite (raised); banked as the regression case for the review fix",
+  "surface_items": [
+    "type:Query",
+    "fn:reason",
+    "fn:get_rules",
+    "fn:get_rule_trace",
+    "fn:get_time",
+    "fn:load_graph",
+    "fn:add_rule",
+    "fn:add_fact",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        "John",
+        "Mary",
+        "Justin",
+        "Dog",
+        "Cat"
+      ],
+      "edges": [
+        [
+          "Justin",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "John",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "John",
+          "Justin",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "Mary",
+          "Cat",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "Justin",
+          "Cat",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "Justin",
+          "Dog",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "John",
+          "Dog",
+          {
+            "owns": 1
+          }
+        ]
+      ]
+    },
+    "rules": [
+      {
+        "text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)",
+        "name": "popular_rule"
+      }
+    ],
+    "facts": [
+      {
+        "text": "popular(Mary)",
+        "name": "popular_fact",
+        "start": 0,
+        "end": 2
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 2,
+        "queries": [
+          "famous(Mary)"
+        ]
+      },
+      "probes": [
+        {
+          "id": "rules-fp",
+          "kind": "accessor_fingerprint",
+          "accessor": "rules"
+        },
+        {
+          "id": "trace-node",
+          "kind": "rule_trace_node"
+        },
+        {
+          "id": "nodes-popular",
+          "kind": "filter_sort_nodes",
+          "labels": [
+            "popular"
+          ]
+        },
+        {
+          "id": "time",
+          "kind": "get_time"
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}
