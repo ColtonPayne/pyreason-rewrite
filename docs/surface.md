@@ -297,35 +297,35 @@ classes likewise.
 
 ## fn:get_rules
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:510
-- status: uncovered
-- cases: none
+- status: cased
+- cases: accessors-fresh-state, accessors-lifecycle, save-rule-trace-clause-reorder
 - input classes:
   - loaded
   - none
   - post-reason-filtered
-- notes: returns the live global — reason(queries=...) permanently narrows what this returns
+- notes: returns the live global — reason(queries=...) permanently narrows what this returns; the reorder pass also *replaces* __rules with a clause-reordered copy whenever edges outnumber nodes (pyreason.py:1598-1606), pinned by save-rule-trace-clause-reorder's post-reason fingerprint (popular(y) moved ahead of Friends(x,y)); fresh-import and post-reset returns are None, never an empty list. Uncovered classes: post-reason-filtered (needs reason(queries=...); the capture's REASON_ARGS excludes queries until the harness can construct Query objects — type:Query is its own uncovered row)
 - analysis: docs/analysis/surface/reason-and-state.md
 
 ## fn:get_logic_program
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:529
-- status: uncovered
-- cases: none
+- status: cased
+- cases: accessors-fresh-state, accessors-lifecycle
 - input classes:
   - before-reason
   - after-reason
   - after-reset
-- notes: reset() never nulls __program — distinguish no-program from program-with-cleared-interpretation
+- notes: reset() never nulls __program — distinguish no-program from program-with-cleared-interpretation; all three classes pinned via the structural fingerprint (None before any reason — even with graph/rules loaded; present holding the exact interpretation reason() returned; present with interp None after reset). Program.interp is the seam get_interpretation reads (pyreason.py:546), so the fingerprint holds a candidate engine's program object to that attribute surface
 - analysis: docs/analysis/surface/reason-and-state.md
 
 ## fn:get_interpretation
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:538
-- status: uncovered
-- cases: none
+- status: cased
+- cases: accessors-fresh-state, accessors-lifecycle
 - input classes:
   - happy
   - no-program
   - program-with-null-interp
-- notes: raise vs return-None hinges on whether reset() ran with a live program
+- notes: raise vs return-None hinges on whether reset() ran with a live program — all three pinned: the no-program raise (builtins.Exception, 'No interpretation found. Please run `pr.reason()` first', banked via allow_raise on fresh import AND on loaded-but-unreasoned state), the happy return (identity with reason()'s return — a live reference, not a copy), and the post-reset None return without raising
 - analysis: docs/analysis/surface/reason-and-state.md
 
 ## fn:get_time
@@ -367,15 +367,15 @@ classes likewise.
 
 ## fn:save_rule_trace
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1645
-- status: uncovered
-- cases: none
+- status: cased
+- cases: save-rule-trace-basic, save-rule-trace-atom-trace-off, save-rule-trace-store-off, save-rule-trace-clause-reorder
 - input classes:
   - happy
   - store-off-assert
   - atom-trace-columns
   - folder-variants
   - clause-map-reorder
-- notes: depends on module-global timestamp + clause maps from the most recent reason()
+- notes: depends on module-global timestamp + clause maps from the most recent reason(); writes rule_trace_{nodes,edges}_{timestamp}.csv (output.py:103-104) — the reason-time wall-clock stamp in the names is canonicalized by the save_rule_trace probe under the same run-schedule rationale as the session-10 .txt stamp (TRACE_TS_RE in harness/capture.py), contents compared exactly. Characterization: with atom_trace off the 'Occurred Due To' column is '-' on every row — the engine stores empty trace names when atom_trace is off (interpretation.py:1543-1548), so output.py's r[7]-name fallback (output.py:23-25) never fires on any reachable path, contra the analysis file's off-arm description. Clause-map reorder pinned with a non-identity map (edge-clause-first rule): CSV Clause-i columns map back to author order while get_rules shows the reordered live rule. A caller folder is passed through verbatim; a nonexistent folder raises pandas' OSError (screened, not cased — the probe creates its named subfolder to keep the refusal from wearing the engine label)
 - analysis: docs/analysis/surface/reason-and-state.md
 
 ## fn:get_rule_trace
