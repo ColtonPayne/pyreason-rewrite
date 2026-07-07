@@ -12,10 +12,11 @@ results-phase3-slice2/
 results-phase3-slice2-review/
 results-phase3-slice3/
 results-phase3-slice3-review/
+results-phase3-slice4/
+results-phase3-slice4-review/
 
 # Caches / rebuildable local state
 __pycache__/
 .pytest_cache/
 .ruff_cache/
 .venv/
-results-phase3-slice4/

@@ -761,6 +761,34 @@ def test_fp_version_runs_the_pinned_fp_schedule(pr):
         'Mary', 'Justin', 'John']
 
 
+def test_fp_get_dict_lands_edge_rows_on_the_last_edge(pr):
+    """proves: on the fp schedule the dict view reproduces the pinned fp
+    get_dict defect — its edge loop indexes the stale `edge` variable left
+    over from the init loop (interpretation_fp.py:852-854), so every edge
+    trace row lands on the LAST edge in self.edges instead of the row's own
+    component, while node rows land correctly (verified against the
+    installed oracle, review probe probe-fp-getdict-edges, session 19)."""
+    pyreason._state_obj.settings.fp_version = True
+    g = nx.DiGraph()
+    g.add_nodes_from(["A", "B", "C"])
+    g.add_edge("A", "B")
+    g.add_edge("B", "C")
+    pr.load_graph(g)
+    pr.add_rule(Rule("linked(y) <-1 rel(x,y):[0.7,1.0]", "linked_rule"))
+    pr.add_fact(Fact("rel(A,B)", "rel_fact", 0, 1))
+    pr.add_fact(Fact("seed(A)", "seed_fact", 0, 0))
+    interp = pr.reason(timesteps=2)
+    d = interp.get_dict()
+    # The rel(A,B) rows surface on (B,C) — the last edge — not on (A,B).
+    assert d[0][("A", "B")] == {}
+    assert d[0][("B", "C")] == {"rel": (1.0, 1.0)}
+    assert d[1][("A", "B")] == {}
+    assert d[1][("B", "C")] == {"rel": (1.0, 1.0)}
+    # Node rows keep their true component.
+    assert d[0]["A"] == {"seed": (1.0, 1.0)}
+    assert d[1]["B"] == {"linked": (1.0, 1.0)}
+
+
 def test_parallel_masks_fp_and_runs_the_default_schedule(pr):
     """proves: parallel_computing=True masks fp_version entirely (the pinned
     dispatch checks parallel first, program.py:42-47) and the parallel arm's

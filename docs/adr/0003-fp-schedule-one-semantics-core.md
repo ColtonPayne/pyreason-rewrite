@@ -42,8 +42,14 @@ normalized body diff of the three variants:
   `_ground_rule`, every grounding/threshold/satisfaction helper, `annotate`,
   `check_consistent_*`, and `resolve_inconsistency_*` line-identical (modulo
   the fp variant's dropped `num_ga` plumbing and one try/except wrapper);
-  only `reason` (the orchestration), the `_add_*`/`_update_*` container
-  plumbing, and the init shape differ.
+  `reason` (the orchestration), the `_add_*`/`_update_*` container
+  plumbing, and the init shape differ — and so do two views: the fp
+  variant's `get_dict` carries a stale-loop-variable defect that lands every
+  edge trace row on the LAST edge in `self.edges`
+  (interpretation_fp.py:852-854; reproduced in fp_mode, session-19 review),
+  and the fp `query`/`delete_*`/`add_edge` gym-facing methods take the
+  t-keyed shape — outside the pinned public surface this campaign compares,
+  so not transcribed.
 - **The pinned Program stamps specific labels onto only the default class**
   (program.py:34-38, upstream's own `#TODO` marks it), so the fp and
   parallel variants always reason with empty specific-label maps.
@@ -81,7 +87,11 @@ normalized body diff of the three variants:
 
 - The public views (`get_rule_trace`, `filter_and_sort_*`, `get_dict`,
   `get_time`) consume only the trace lists and `time`, which both schedules
-  produce in their pinned shapes — no view branches on the knob.
+  produce in their pinned shapes. One view branches on the knob by pinned
+  necessity: `get_dict` in fp_mode reproduces the fp variant's
+  stale-edge-variable defect (every edge row lands on the last edge —
+  session-19 review probe `probe-fp-getdict-edges`, verified against the
+  installed oracle).
 - The fp schedule inherits the pin's non-termination on `timesteps=-1`
   (the fp timestep sweep has no exit when tmax is -1,
   interpretation_fp.py:272-273). Deliberately reproduced, not fixed; a case

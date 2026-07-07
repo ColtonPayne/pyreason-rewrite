@@ -196,7 +196,17 @@ class Interpretation:
         every LATER timestep up to self.time. The timestep axis is
         range(self.time + 1), so a trace row whose t exceeds self.time — the
         restart-true resume state, where the clock reset under an intact
-        trace — raises the pinned KeyError on that t."""
+        trace — raises the pinned KeyError on that t.
+
+        On the fp schedule the pinned view is DIFFERENT by defect: the fp
+        variant's edge loop unpacks the row's component into a variable it
+        never reads and indexes with the stale `edge` left over from the
+        init loop (interpretation_fp.py:852-854), so every edge trace row
+        lands on the LAST edge in self.edges, whatever its true component.
+        Reproduced here for fp_mode (verified against the installed oracle,
+        session-19 review probe probe-fp-getdict-edges); an edge row with no
+        edges cannot arise (edge rows exist only for worlds _add_edge
+        created, which appends to self.edges)."""
         interpretations = {}
         for t in range(self.time + 1):
             interpretations[t] = {}
@@ -205,9 +215,12 @@ class Interpretation:
             for edge in self.edges:
                 interpretations[t][edge] = {}
 
-        for trace in (self.rule_trace_node, self.rule_trace_edge):
+        for trace, is_edge_trace in ((self.rule_trace_node, False),
+                                     (self.rule_trace_edge, True)):
             for change in trace:
                 time, comp, l, bnd = change[0], change[2], change[3], change[4]
+                if is_edge_trace and self.fp_mode:
+                    comp = self.edges[-1]
                 interpretations[time][comp][l.get_value()] = (bnd.lower, bnd.upper)
                 if self.persistent:
                     for t in range(time + 1, self.time + 1):
