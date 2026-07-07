@@ -1,0 +1,47 @@
+{
+  "id": "reset-settings-restore",
+  "purpose": "reset_settings() between two fresh runs: the first run's trace carries atom_trace Clause columns from the nondefault knob, the second — after the restore and with the fact globals already consumed — is rebuilt under defaults (atom_trace off), so its trace loses the Clause columns and 'Occurred Due To' falls back to rule names — the always class, observed through trace shape rather than knob introspection.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md fn:reset_settings always (pyreason.py:561-565, settings defaults at 65-83)",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason", "fn:reset_settings",
+    "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 2}
+    ]
+  },
+  "steps": [
+    {"id": "first-reason", "op": "reason", "args": {"timesteps": 2},
+     "probes": [
+       {"id": "trace-atom-on", "kind": "rule_trace_node"},
+       {"id": "time-1", "kind": "get_time"}
+     ]},
+    {"id": "reset-settings", "op": "reset_settings"},
+    {"id": "second-reason", "op": "reason", "args": {"timesteps": 2},
+     "probes": [
+       {"id": "trace-atom-off", "kind": "rule_trace_node"},
+       {"id": "time-2", "kind": "get_time"}
+     ]}
+  ],
+  "comparison": {"probes": {}}
+}

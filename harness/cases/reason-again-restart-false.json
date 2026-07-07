@@ -1,0 +1,51 @@
+{
+  "id": "reason-again-restart-false",
+  "purpose": "reason(again=True, restart=False) on inputs identical to reason-again-restart-true except the restart flag: the timeline continues (tmax = interp.time + timesteps), so get_time grows from 3 to 4 and the resume fact's 0-0 window sits behind the resumed clock — the restart-false-continue class, isolating the knob pairwise.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md fn:reason restart-false-continue; continuation semantics screened at the pin 2026-07-06 (program.py:57 extends tmax)",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason",
+    "fn:filter_and_sort_nodes", "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 2}
+    ]
+  },
+  "steps": [
+    {"id": "first-reason", "op": "reason", "args": {"timesteps": 2},
+     "probes": [
+       {"id": "time-before", "kind": "get_time"},
+       {"id": "nodes-before", "kind": "filter_sort_nodes", "labels": ["popular"]}
+     ]},
+    {"id": "add-resume-fact", "op": "add_fact",
+     "args": {"text": "popular(Justin)", "name": "resume_fact", "start": 0, "end": 0}},
+    {"id": "resume", "op": "reason",
+     "args": {"timesteps": 2, "again": true, "restart": false},
+     "probes": [
+       {"id": "time-after", "kind": "get_time"},
+       {"id": "nodes-after", "kind": "filter_sort_nodes", "labels": ["popular"]},
+       {"id": "trace-after", "kind": "rule_trace_node"},
+       {"id": "interp-after", "kind": "interpretation_dict"}
+     ]}
+  ],
+  "comparison": {"probes": {}}
+}

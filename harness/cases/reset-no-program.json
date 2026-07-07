@@ -1,0 +1,39 @@
+{
+  "id": "reset-no-program",
+  "purpose": "reset() before any reason(): with __program None it clears only the module globals — the loaded graph, rules, and facts are gone, get_time still answers 0 through its missing-program catch, and a subsequent reason() raises the no-rules Exception — the no-program class.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md fn:reset no-program (pyreason.py:494-507)",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason", "fn:reset",
+    "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 2}
+    ]
+  },
+  "steps": [
+    {"id": "reset", "op": "reset",
+     "probes": [{"id": "time-after-reset", "kind": "get_time"}]},
+    {"id": "reason-after-reset", "op": "reason", "args": {"timesteps": 1}}
+  ],
+  "comparison": {"probes": {}}
+}

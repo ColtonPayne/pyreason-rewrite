@@ -1,0 +1,46 @@
+{
+  "id": "reset-with-program",
+  "purpose": "reset() with a live program: program.reset_graph() nulls the interpretation, so get_time trips the uncaught AttributeError on None.time (the null-interp hypothesis, now pinned), the caller's stale interpretation reference stays consumable by get_rule_trace, a fresh reason() raises the no-rules Exception, and a resumed reason() raises the facts TypeError — the with-program class and its half-cleared ordering interaction.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md fn:reset with-program + fn:get_time null-interp-attribute; screened at the pin 2026-07-06",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason", "fn:reset",
+    "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 2}
+    ]
+  },
+  "steps": [
+    {"id": "first-reason", "op": "reason", "args": {"timesteps": 2},
+     "probes": [{"id": "time-before", "kind": "get_time"}]},
+    {"id": "reset", "op": "reset",
+     "probes": [
+       {"id": "time-after-reset", "kind": "get_time", "allow_raise": true},
+       {"id": "trace-stale", "kind": "rule_trace_node"}
+     ]},
+    {"id": "fresh-reason-after-reset", "op": "reason", "args": {"timesteps": 1}},
+    {"id": "again-reason-after-reset", "op": "reason",
+     "args": {"timesteps": 1, "again": true}}
+  ],
+  "comparison": {"probes": {}}
+}

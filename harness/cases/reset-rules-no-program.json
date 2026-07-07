@@ -1,0 +1,39 @@
+{
+  "id": "reset-rules-no-program",
+  "purpose": "reset_rules() before any reason(): rules clear while graph and facts stay loaded, get_time answers 0, and reason() raises the same no-rules Exception as the full reset — the no-program class (the graph/fact survival it leaves behind is observable only once a rule re-add step exists; this case pins the raise identity).",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md fn:reset_rules no-program (pyreason.py:522-525)",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason", "fn:reset_rules",
+    "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 2}
+    ]
+  },
+  "steps": [
+    {"id": "reset-rules", "op": "reset_rules",
+     "probes": [{"id": "time-after", "kind": "get_time"}]},
+    {"id": "reason-after", "op": "reason", "args": {"timesteps": 1}}
+  ],
+  "comparison": {"probes": {}}
+}

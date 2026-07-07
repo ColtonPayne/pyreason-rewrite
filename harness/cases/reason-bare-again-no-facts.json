@@ -1,0 +1,39 @@
+{
+  "id": "reason-bare-again-no-facts",
+  "purpose": "reason(again=True) directly after a completed run, with no fact added since: _reason cleared the fact globals to None on exit, so _reason_again's numba.typed.List(None) raises TypeError — the pin's sharp edge that forced add_fact into the step-op set, banked so a rewrite that quietly accepts a bare resume surfaces as a divergence.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md fn:reason again-resume boundary; screened at the pin 2026-07-06 (pyreason.py:1623-1624 clears facts, 1636 List(None) raises)",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 2}
+    ]
+  },
+  "steps": [
+    {"id": "first-reason", "op": "reason", "args": {"timesteps": 2},
+     "probes": [{"id": "time-before", "kind": "get_time"}]},
+    {"id": "bare-resume", "op": "reason", "args": {"timesteps": 1, "again": true},
+     "probes": [{"id": "time-after", "kind": "get_time"}]}
+  ],
+  "comparison": {"probes": {}}
+}

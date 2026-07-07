@@ -1,0 +1,44 @@
+{
+  "id": "reset-rules-with-program",
+  "purpose": "reset_rules() with a live program: rules and the program's ruleset clear but the interpretation survives — get_time still answers (the observable contrast with reset-with-program's AttributeError), the trace stays readable, and a fresh reason() raises the no-rules Exception — the with-program class.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md fn:reset_rules with-program (pyreason.py:517-527, program.py reset_rules); screened at the pin 2026-07-06",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason", "fn:reset_rules",
+    "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 2}
+    ]
+  },
+  "steps": [
+    {"id": "first-reason", "op": "reason", "args": {"timesteps": 2},
+     "probes": [{"id": "time-before", "kind": "get_time"}]},
+    {"id": "reset-rules", "op": "reset_rules",
+     "probes": [
+       {"id": "time-after", "kind": "get_time"},
+       {"id": "trace-after", "kind": "rule_trace_node"}
+     ]},
+    {"id": "reason-after", "op": "reason", "args": {"timesteps": 1}}
+  ],
+  "comparison": {"probes": {}}
+}

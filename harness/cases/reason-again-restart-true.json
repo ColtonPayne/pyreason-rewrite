@@ -1,0 +1,52 @@
+{
+  "id": "reason-again-restart-true",
+  "purpose": "reason(again=True, restart=True) after a completed run and a newly added fact: the timeline resets (interp.time lands at 0, get_time 1) while the rule trace keeps the first run's t=1,2 events, so the trace-reconstructing accessors — filter_and_sort_nodes and Interpretation.get_dict — crash with KeyError(1) at the pin (screened 2026-07-06; probed via allow_raise as pinned behavior, an oracle-bug-candidate once a rewrite exists to diverge). The again-resume and restart-true-resume classes, contrasted pairwise with reason-again-restart-false's identical inputs.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md fn:reason resume classes; restart semantics screened at the pin 2026-07-06 (program.py:54-56 resets time under restart)",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason",
+    "fn:filter_and_sort_nodes", "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 2}
+    ]
+  },
+  "steps": [
+    {"id": "first-reason", "op": "reason", "args": {"timesteps": 2},
+     "probes": [
+       {"id": "time-before", "kind": "get_time"},
+       {"id": "nodes-before", "kind": "filter_sort_nodes", "labels": ["popular"]}
+     ]},
+    {"id": "add-resume-fact", "op": "add_fact",
+     "args": {"text": "popular(Justin)", "name": "resume_fact", "start": 0, "end": 0}},
+    {"id": "resume", "op": "reason",
+     "args": {"timesteps": 2, "again": true, "restart": true},
+     "probes": [
+       {"id": "time-after", "kind": "get_time"},
+       {"id": "nodes-after", "kind": "filter_sort_nodes", "labels": ["popular"],
+        "allow_raise": true},
+       {"id": "trace-after", "kind": "rule_trace_node"},
+       {"id": "interp-after", "kind": "interpretation_dict", "allow_raise": true}
+     ]}
+  ],
+  "comparison": {"probes": {}}
+}
