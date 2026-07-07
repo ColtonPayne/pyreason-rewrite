@@ -1,0 +1,40 @@
+{
+  "id": "edge-rule-frames",
+  "purpose": "An edge-head rule (trusted(x,y) <-1 popular(x), Friends(x,y)) over the friends graph: filter_and_sort_edges' happy path plus its edge-component-shape class — the t=0 frame is empty for the rule's label while later frames carry reconstructed (source, target) component tuples, the two column-shape branches in one probe output.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md fn:filter_and_sort_edges happy + edge-component-shape; friends graph from docs/hello-world.py",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason",
+    "fn:filter_and_sort_edges", "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "trusted(x,y) <-1 popular(x), Friends(x,y)", "name": "trusted_rule"}
+    ],
+    "facts": [
+      {"text": "popular(John)", "name": "popular_fact", "start": 0, "end": 2}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "edges-trusted", "kind": "filter_sort_edges", "labels": ["trusted"]},
+    {"id": "trace-edge", "kind": "rule_trace_edge"},
+    {"id": "time", "kind": "get_time"}
+  ],
+  "comparison": {"probes": {}}
+}

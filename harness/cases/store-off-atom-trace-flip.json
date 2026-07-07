@@ -1,0 +1,44 @@
+{
+  "id": "store-off-atom-trace-flip",
+  "purpose": "reason()'s trace-suppression interaction: with store_interpretation_changes off and atom_trace explicitly on, atom_trace reads True before reason() and False after it — the engine force-flips the public knob at reason start (pyreason.py:1584 at the pin) while store itself stays off; the pre-reason readings ride the add_fact step so the flip is pinned to reason(), not to settings application.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md fn:reason trace-suppression-interaction + setting:atom_trace forced-off-by-store; friends graph from docs/hello-world.py",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:atom_trace", "setting:store_interpretation_changes", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "store_interpretation_changes": false, "atom_trace": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ]
+  },
+  "steps": [
+    {"id": "add-popular-fact", "op": "add_fact",
+     "args": {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 2},
+     "probes": [
+       {"id": "atom-trace-before", "kind": "get_setting", "knob": "atom_trace"},
+       {"id": "store-before", "kind": "get_setting", "knob": "store_interpretation_changes"}
+     ]},
+    {"id": "reason", "op": "reason", "args": {"timesteps": 2},
+     "probes": [
+       {"id": "atom-trace-after", "kind": "get_setting", "knob": "atom_trace"},
+       {"id": "store-after", "kind": "get_setting", "knob": "store_interpretation_changes"},
+       {"id": "time", "kind": "get_time"}
+     ]}
+  ],
+  "comparison": {"probes": {}}
+}

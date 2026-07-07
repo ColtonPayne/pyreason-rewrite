@@ -1,0 +1,43 @@
+{
+  "id": "store-off-accessors",
+  "purpose": "store_interpretation_changes=False: reason() still runs and get_time still answers, but every trace-backed accessor — get_rule_trace (node and edge frames) and filter_and_sort_nodes/edges — raises the store-off AssertionError, pinned as data via allow_raise probes: the store-off-assert class across all four accessors.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md setting:store_interpretation_changes nondefault-false-nostore + the accessor store-off-assert classes; friends graph from docs/hello-world.py",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason",
+    "fn:get_rule_trace", "fn:filter_and_sort_nodes", "fn:filter_and_sort_edges",
+    "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:store_interpretation_changes", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "store_interpretation_changes": false},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 2}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "trace-node-store-off", "kind": "rule_trace_node", "allow_raise": true},
+    {"id": "trace-edge-store-off", "kind": "rule_trace_edge", "allow_raise": true},
+    {"id": "nodes-store-off", "kind": "filter_sort_nodes", "labels": ["popular"], "allow_raise": true},
+    {"id": "edges-store-off", "kind": "filter_sort_edges", "labels": ["popular"], "allow_raise": true},
+    {"id": "time", "kind": "get_time"}
+  ],
+  "comparison": {"probes": {}}
+}
