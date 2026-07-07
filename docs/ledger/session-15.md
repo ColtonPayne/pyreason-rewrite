@@ -97,23 +97,28 @@ adjudication, never silently.
 
 ## Asks queued
 
-- **BLOCKING — the Phase-3 `networkx` dependency ask (raised
-  interactively at this session's close).** The rewrite's public
-  boundary must accept NetworkX graphs (`load_graph(graph: nx.Graph)`
-  at the pin) and the graphml loaders traverse NetworkX structures, so
-  the rewrite env needs `networkx` as its first runtime dependency.
-  Prepared command (on operator approval): `uv add networkx` in the
-  campaign repo (the rewrite package's env; the oracle env is untouched
-  — it already carries its own pinned copy). Options: (a) approve
-  `networkx` unpinned within the resolver's compatible range —
-  **recommended**: the rewrite consumes the stable Graph/DiGraph API
-  surface only; (b) approve pinned to the oracle env's exact version —
-  defensible for maximum comparison fidelity, at the cost of aging the
-  rewrite's floor; (c) defer — Phase 3 cannot start its natural first
-  packet (graph loading) and would have to open with a graph-free slice
-  (settings facade only), a materially worse spine order.
-- Carried, non-blocking: the step-outcome message-canonicalization
-  option from session 13 (recommendation stands: leave it).
+Both asks were raised interactively after this session banked and
+**adjudicated by the operator (2026-07-07)**:
+
+- **The Phase-3 `networkx` dependency ask — approved, option (a):
+  unpinned within the resolver's compatible range** (the recommended
+  option; the rewrite consumes only the stable Graph/DiGraph API
+  surface). Executed on approval: `uv add networkx` → networkx 3.6.1
+  in the campaign env; the oracle env untouched (it carries its own
+  pinned copy). Original options for the record: (a) unpinned —
+  approved; (b) pinned to the oracle env's exact version; (c) defer.
+- **The step-outcome message-canonicalization option (carried from
+  session 13) — decided: leave the CWA non-string arm un-cased**, per
+  the standing reviewer + orchestrator recommendation. No masking
+  policy is introduced; the exact-compare guarantee keeps its current
+  scope. The arm stays a prose record on the board (non-string add is
+  silent; the raise surfaces at `reason()` with a run-varying
+  pointer-like token from the numba Label conversion — implementation
+  garbage, not designed behavior). A rewrite that validates the input
+  up front instead goes through AC-6 divergence adjudication as a
+  deliberate improvement.
+
+No asks remain open. Phase 3 is unblocked.
 
 ## Divergences
 
