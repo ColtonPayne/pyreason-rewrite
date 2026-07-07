@@ -8,6 +8,7 @@ oracle-env/
 results/
 results-phase3-slice1/
 results-phase3-slice1-review/
+results-phase3-slice2/
 
 # Caches / rebuildable local state
 __pycache__/
