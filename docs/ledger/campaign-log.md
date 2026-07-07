@@ -556,3 +556,32 @@ and verdict-of-record, after which the loop halts and the operator adjudicates
 DIV-0001, DIV-0002, and the carried oracle-bug-candidate observations.
 
 **Resume prompt.** `/campaign`
+
+## Session 24 — 2026-07-07
+
+**What we knew going in.** Every board row was run (52/52) after the IPL family
+landed in session 23, but every banked verdict was slice-scoped — the phase
+claim still needed the whole corpus through the harness in a single
+invocation. The operator had set the boundary: stop after Phase 3, adjudicate
+everything at once.
+
+**What we learned this session.** Phase 3 is closed and the claim held: all 96
+committed cases pass oracle-vs-rewrite in one twenty-five-minute run, with no
+spot-fixes needed. The independent review re-derived every verdict from the raw
+on-disk captures rather than trusting the summary, confirmed the run was one
+coherent invocation, and reran a fifteen-case sample spanning every family with
+byte-identical digests — the reference core is equivalent to the pinned oracle
+over the full committed corpus. The review also audited the operator's
+adjudication document for completeness and recovered five recorded
+observations the author's sweep of the ledgers had dropped; the batch now
+stands at forty-four sections — two divergence records with recommendations,
+thirty-four oracle-bug-candidates, and eight observations needing no decision.
+The loop stops here, as instructed.
+
+**What we expect to learn next session.** The operator's adjudication verdicts
+on the batch — chiefly the two divergence records and the three
+direction-decisions — and then Phase 4 opens: the workload ladder, the oracle
+baselines on this machine, and the profile that says where the time actually
+goes.
+
+**Resume prompt.** `/campaign` (after adjudicating docs/ledger/phase3-adjudication-batch.md)
