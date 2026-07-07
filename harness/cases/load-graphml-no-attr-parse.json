@@ -1,0 +1,31 @@
+{
+  "id": "load-graphml-no-attr-parse",
+  "purpose": "load_graphml with graph_attribute_parsing=false: the fixture file still parses into the graph (pyreason.py:577) but attribute-to-fact conversion is skipped — the else branch at pyreason.py:582-586 leaves the four grounding tables empty — so with no user facts nothing ever changes: the rule never grounds, derived(B) never appears, both traces are empty, the perfect-convergence exit fires at t=0 (interpretation.py:674-680), get_time reads 1 and every filter probe carries a single empty frame, against the twin load-graphml-basic's derived(B) at t=1/t=2 and get_time 3 (verified at authoring — the harness judges each case within one knob position); knob readback False — the happy-no-attr-parse class over the graphml path, mirroring graph-attr-parsing-off's proof over load_graph.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md fn:load_graphml happy-no-attr-parse",
+  "surface_items": [
+    "fn:load_graphml", "fn:add_rule", "fn:reason",
+    "fn:filter_and_sort_nodes", "fn:filter_and_sort_edges",
+    "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "dsl:rule-text",
+    "setting:graph_attribute_parsing", "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true, "graph_attribute_parsing": false},
+    "graph": {"graphml_path": "harness/fixtures/chain-ab.graphml"},
+    "rules": [
+      {"text": "derived(y) <-1 special(x), rel(x,y)", "name": "derived_rule"}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "nodes-derived", "kind": "filter_sort_nodes", "labels": ["derived"]},
+    {"id": "nodes-special", "kind": "filter_sort_nodes", "labels": ["special"]},
+    {"id": "edges-rel", "kind": "filter_sort_edges", "labels": ["rel"]},
+    {"id": "trace-node", "kind": "rule_trace_node"},
+    {"id": "trace-edge", "kind": "rule_trace_edge"},
+    {"id": "time", "kind": "get_time"},
+    {"id": "parsing-knob", "kind": "get_setting", "knob": "graph_attribute_parsing"}
+  ],
+  "comparison": {"probes": {}}
+}

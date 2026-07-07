@@ -1,0 +1,30 @@
+{
+  "id": "reverse-digraph-on",
+  "purpose": "settings.reverse_digraph=true set before loading: parse_graph reverses every edge after read_graphml (graphml_parser.py:18-19, reached via pyreason.py:577), so the fixture's A->B becomes B->A and the same rule 'derived(y) <-1 rel(x,y)' now derives derived(A) at t=1 and t=2, trace-node grounding [[B,A]] — the flip of both the derived node and the grounded edge against the twin reverse-digraph-default is the reversal evidence (verified at authoring — the harness judges each case within one knob position); knob readback True, get_time 3. The flag is also snapshotted into the Program as reverse_graph (pyreason.py:1609), but engine-side that copy is only stored and threaded (interpretation.py:69/:232/:242, mirrored in the fp and parallel kernels) and never consumed in any kernel body (grep-verified at the pin), so the forwarded-to-engine class has no behavioral observable beyond the snapshot — the nondefault-true-reversed and read-at-load-time classes.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md setting:reverse_digraph nondefault-true-reversed + read-at-load-time",
+  "surface_items": [
+    "fn:load_graphml", "fn:add_rule", "fn:reason",
+    "fn:filter_and_sort_nodes", "fn:filter_and_sort_edges",
+    "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "dsl:rule-text",
+    "setting:reverse_digraph", "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true, "reverse_digraph": true},
+    "graph": {"graphml_path": "harness/fixtures/chain-ab.graphml"},
+    "rules": [
+      {"text": "derived(y) <-1 rel(x,y)", "name": "derived_rule"}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "nodes-derived", "kind": "filter_sort_nodes", "labels": ["derived"]},
+    {"id": "edges-rel", "kind": "filter_sort_edges", "labels": ["rel"]},
+    {"id": "trace-node", "kind": "rule_trace_node"},
+    {"id": "trace-edge", "kind": "rule_trace_edge"},
+    {"id": "time", "kind": "get_time"},
+    {"id": "reverse-knob", "kind": "get_setting", "knob": "reverse_digraph"}
+  ],
+  "comparison": {"probes": {}}
+}

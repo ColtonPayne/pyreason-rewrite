@@ -1,0 +1,26 @@
+{
+  "id": "graphml-empty",
+  "purpose": "load_graphml over the committed zero-node fixture: the file parses into an empty DiGraph (pyreason.py:577), parse_graph_attributes walks nothing, and reason(timesteps=1) with an inert never-grounding rule completes without raising — the step outcome banks {'raised': false}, get_time reads 1 and interpretation_dict is {'0': {}} — the bound-empty-graph class. Authored in steps form so a raising reason would have compared as data rather than failing the capture (it did not raise); the inert rule clears reason()'s no-rules guard, which raises 'There are no rules...' regardless of the graph (observed at authoring when this case first ran rule-less).",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md fn:load_graphml bound-empty-graph",
+  "surface_items": [
+    "fn:load_graphml", "fn:add_rule", "fn:reason", "fn:get_time",
+    "type:Rule", "dsl:rule-text",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false},
+    "graph": {"graphml_path": "harness/fixtures/empty.graphml"},
+    "rules": [
+      {"text": "inert(x) <-1 never(x)", "name": "inert_rule"}
+    ]
+  },
+  "steps": [
+    {"id": "reason-empty", "op": "reason", "args": {"timesteps": 1},
+     "probes": [
+       {"id": "time", "kind": "get_time"},
+       {"id": "interp", "kind": "interpretation_dict", "allow_raise": true}
+     ]}
+  ],
+  "comparison": {"probes": {}}
+}

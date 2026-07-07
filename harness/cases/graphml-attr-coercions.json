@@ -1,0 +1,39 @@
+{
+  "id": "graphml-attr-coercions",
+  "purpose": "load_graphml's attribute-coercion cluster, characterized at the pin before authoring — every malformed input below is a silent coercion, never a raise — and observed through save_graph_attributes_to_trace=true so the t=0 'graph-attribute-fact' rows reach the change store and trace (interpretation.py:1538): score=0.4 becomes bound [0.4,1] under the bare key (graphml_parser.py:35-39; lower from the value, upper forced to 1) and edge w=0.5 likewise [0.5,1] (graphml_parser.py:65-69); flag=1 becomes [1,1]; flag=0 and pair='0,1' coerce to the vacuous default interval [0,1] and leave NO observable row — the no-change update is suppressed at the gate, so absence from nodes-flag/nodes-pair (only N3 appears under flag) is the banked evidence; pair2='0,0' int-parses in range and sets both bounds, [0.0,0.0] with the label reset to the bare key (graphml_parser.py:44-55); fpair='0.3,0.7' hits int()'s ValueError which is silently swallowed (graphml_parser.py:54-55) and falls through to the composed label 'fpair-0.3,0.7' at [1,1] — the comma-float pair never becomes a bound; big=1.5 (out of range) and word='abc' compose 'big-1.5' / 'word-abc' at [1,1] (graphml_parser.py:40-43) and nodes-bare-keys confirms nothing lands under their bare keys — the bound-attr-numeric-in-range, bound-attr-zero-one-edges, bound-attr-comma-pair, malformed-attr-comma-float, malformed-attr-out-of-range and malformed-attr-nonnumeric classes; the inert rule exists only to clear reason()'s no-rules guard.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md fn:load_graphml bound/malformed attribute classes",
+  "surface_items": [
+    "fn:load_graphml", "fn:add_rule", "fn:reason",
+    "fn:filter_and_sort_nodes", "fn:filter_and_sort_edges",
+    "fn:get_time",
+    "type:Rule", "dsl:rule-text",
+    "fn:get_rule_trace",
+    "setting:graph_attribute_parsing", "setting:save_graph_attributes_to_trace",
+    "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true,
+                 "save_graph_attributes_to_trace": true},
+    "graph": {"graphml_path": "harness/fixtures/attr-coercions.graphml"},
+    "rules": [
+      {"text": "inert(x) <-1 never(x)", "name": "inert_rule"}
+    ],
+    "reason": {"timesteps": 1}
+  },
+  "probes": [
+    {"id": "nodes-score", "kind": "filter_sort_nodes", "labels": ["score"]},
+    {"id": "nodes-flag", "kind": "filter_sort_nodes", "labels": ["flag"]},
+    {"id": "nodes-pair", "kind": "filter_sort_nodes", "labels": ["pair"]},
+    {"id": "nodes-pair2", "kind": "filter_sort_nodes", "labels": ["pair2"]},
+    {"id": "nodes-fpair-label", "kind": "filter_sort_nodes", "labels": ["fpair-0.3,0.7"]},
+    {"id": "nodes-big-label", "kind": "filter_sort_nodes", "labels": ["big-1.5"]},
+    {"id": "nodes-word-label", "kind": "filter_sort_nodes", "labels": ["word-abc"]},
+    {"id": "nodes-bare-keys", "kind": "filter_sort_nodes", "labels": ["fpair", "big", "word"]},
+    {"id": "edges-w", "kind": "filter_sort_edges", "labels": ["w"]},
+    {"id": "trace-node", "kind": "rule_trace_node"},
+    {"id": "trace-edge", "kind": "rule_trace_edge"},
+    {"id": "time", "kind": "get_time"}
+  ],
+  "comparison": {"probes": {}}
+}
