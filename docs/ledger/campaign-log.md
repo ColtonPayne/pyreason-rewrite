@@ -470,3 +470,33 @@ reproduces cleanly; after that, Phase 3's breadth boundary sweep comes
 into view.
 
 **Resume prompt.** `/campaign`
+
+## Session 21 — 2026-07-07
+
+**What we knew going in.** The graph boundary had landed in session 20 and the
+board had just crossed half (29/52). The next slice was the output surface —
+about thirteen cases covering writing results to files, the memory-profile
+line, the rule-trace CSVs, and the `queries` argument's rule filtering — with
+the pyyaml ask already approved so the IPL file family sat unblocked behind it.
+
+**What we learned this session.** The output surface is now equivalent, and the
+review shape earned its keep: the author landed all thirteen cases green, but
+the independent reviewer's own probes caught two real defects the cases had
+missed — the rewrite raised an error on an empty filtered ruleset where the
+pinned oracle quietly completes with zero rules on edge-heavy graphs, and it
+raised the wrong exception type when saving a trace into a missing folder. Both
+were fixed in-review and the packet now stands at fourteen-of-fourteen passing,
+with a new regression case banked. The memory-profile line needed no new
+dependency — the standard library's `resource` module reproduces the observable
+shape. One open question went to the operator as DIV-0001: the rewrite
+deliberately refuses (with a clean error) a pathological query input that
+crashes the pinned oracle's process outright, and that intentional divergence
+needs an operator signature the ledger trail doesn't yet carry. The board sits
+at 47/52.
+
+**What we expect to learn next session.** Whether the harness can be taught to
+conditionally njit-wrap registered functions — the accommodation the registrand
+family's five cases have been gated on — without disturbing any banked verdict,
+and whether those five cases then prove equivalent end-to-end.
+
+**Resume prompt.** `/campaign`
