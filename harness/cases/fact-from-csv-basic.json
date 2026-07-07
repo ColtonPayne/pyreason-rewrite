@@ -1,0 +1,125 @@
+{
+  "id": "fact-from-csv-basic",
+  "purpose": "add_fact_from_csv over the committed facts.csv fixture: the exact-match header row is skipped (pyreason.py:1344-1347), a named node fact parses with 'false' static, a quoted row carries a comma-bearing edge fact with an interval bound (the edge trace pins it), an all-empty-params row auto-names (fact_2 through the shared counter) with truthy 'yes' static, and a two-field short row is padded by the reader (start/end default 0, static False) \u2014 every cell read as a string with keep_default_na off, pinned through the reason step's node and edge traces.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_fact_from_csv happy-basic/happy-header/interacts-quoted-commas/bound-short-rows/interacts-static_field; pyreason.py:1294-1412 at the pin; fixture harness/fixtures/facts.csv",
+  "surface_items": [
+    "fn:load_graph",
+    "fn:add_rule",
+    "fn:reason",
+    "type:Rule",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose",
+    "fn:add_fact_from_csv",
+    "fn:add_fact",
+    "fn:get_rule_trace",
+    "fn:get_time"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        "John",
+        "Mary",
+        "Justin",
+        "Dog",
+        "Cat"
+      ],
+      "edges": [
+        [
+          "Justin",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "John",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "John",
+          "Justin",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "Mary",
+          "Cat",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "Justin",
+          "Cat",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "Justin",
+          "Dog",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "John",
+          "Dog",
+          {
+            "owns": 1
+          }
+        ]
+      ]
+    },
+    "rules": [
+      {
+        "text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)",
+        "name": "popular_rule"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "load-facts",
+      "op": "add_fact_from_csv",
+      "args": {
+        "path": "harness/fixtures/facts.csv"
+      }
+    },
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 2
+      },
+      "probes": [
+        {
+          "id": "trace-node",
+          "kind": "rule_trace_node"
+        },
+        {
+          "id": "trace-edge",
+          "kind": "rule_trace_edge"
+        },
+        {
+          "id": "time",
+          "kind": "get_time"
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

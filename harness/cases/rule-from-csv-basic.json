@@ -1,0 +1,135 @@
+{
+  "id": "rule-from-csv-basic",
+  "purpose": "add_rule_from_csv over the committed rules.csv fixture: the exact-match header row is skipped (pyreason.py:806-809), a full row parses a rule whose explicit [0.5,1] bound rides its body clause (the head bnd defaults [1,1] in the fingerprint) with truthy-string booleans 'no'/'false', an all-empty-params row auto-names through add_rule (rule_1), and a quoted row carries commas inside rule_text with infer_edges 'yes' and set_static '1' coerced true (_parse_bool_param, pyreason.py:692-725) \u2014 the fingerprint pins the three parsed rules in row order and the reason step consumes them (the infer_edges edge rule writes inferred team edges into the edge trace). The set_static flag itself is not rendered by the fingerprint \u2014 named unobserved; its surface sits with type:Rule.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_rule_from_csv happy-full-row/happy-minimal-row/happy-header-present/bound-bool-truthy-strings/bound-quoted-commas; pyreason.py:753-866 at the pin; fixture harness/fixtures/rules.csv",
+  "surface_items": [
+    "fn:load_graph",
+    "fn:add_fact",
+    "fn:reason",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose",
+    "fn:add_rule_from_csv",
+    "fn:add_rule",
+    "fn:get_rules",
+    "fn:get_rule_trace",
+    "fn:get_time"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        "John",
+        "Mary",
+        "Justin",
+        "Dog",
+        "Cat"
+      ],
+      "edges": [
+        [
+          "Justin",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "John",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "John",
+          "Justin",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "Mary",
+          "Cat",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "Justin",
+          "Cat",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "Justin",
+          "Dog",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "John",
+          "Dog",
+          {
+            "owns": 1
+          }
+        ]
+      ]
+    },
+    "facts": [
+      {
+        "text": "popular(Mary)",
+        "name": "popular_fact",
+        "start": 0,
+        "end": 2
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "load-csv",
+      "op": "add_rule_from_csv",
+      "args": {
+        "path": "harness/fixtures/rules.csv"
+      },
+      "probes": [
+        {
+          "id": "rules-fp",
+          "kind": "accessor_fingerprint",
+          "accessor": "rules"
+        }
+      ]
+    },
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 2
+      },
+      "probes": [
+        {
+          "id": "trace-node",
+          "kind": "rule_trace_node"
+        },
+        {
+          "id": "trace-edge",
+          "kind": "rule_trace_edge"
+        },
+        {
+          "id": "time",
+          "kind": "get_time"
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

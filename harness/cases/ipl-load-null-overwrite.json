@@ -1,0 +1,137 @@
+{
+  "id": "ipl-load-null-overwrite",
+  "purpose": "load_inconsistent_predicate_list overwrites the IPL wholesale (pyreason.py:616-617 rebinds the global; contrast add_inconsistent_predicate's append): the case adds [popular, unpopular] through inputs.ipl first, then loads the committed ipl-null.yaml (an 'ipl:' key holding null, which parse_ipl reduces to an empty list without raising) \u2014 the reason step's trace carries no unpopular complement rows at all, pinning both the bound-ipl-null acceptance and the overwrite-not-merge semantics in one observation (ipl-load-basic is the complement-rows-present twin).",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:load_inconsistent_predicate_list bound-ipl-null + the overwrite note; pyreason.py:611-629 and yaml_parser.py:190-196 at the pin; fixture harness/fixtures/ipl-null.yaml",
+  "surface_items": [
+    "fn:load_graph",
+    "fn:add_rule",
+    "fn:add_fact",
+    "fn:reason",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose",
+    "fn:load_inconsistent_predicate_list",
+    "fn:add_inconsistent_predicate",
+    "fn:get_rule_trace",
+    "fn:get_time"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        "John",
+        "Mary",
+        "Justin",
+        "Dog",
+        "Cat"
+      ],
+      "edges": [
+        [
+          "Justin",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "John",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "John",
+          "Justin",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "Mary",
+          "Cat",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "Justin",
+          "Cat",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "Justin",
+          "Dog",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "John",
+          "Dog",
+          {
+            "owns": 1
+          }
+        ]
+      ]
+    },
+    "rules": [
+      {
+        "text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)",
+        "name": "popular_rule"
+      }
+    ],
+    "facts": [
+      {
+        "text": "popular(Mary)",
+        "name": "popular_fact",
+        "start": 0,
+        "end": 2
+      }
+    ],
+    "ipl": [
+      [
+        "popular",
+        "unpopular"
+      ]
+    ]
+  },
+  "steps": [
+    {
+      "id": "load-null",
+      "op": "load_inconsistent_predicate_list",
+      "args": {
+        "path": "harness/fixtures/ipl-null.yaml"
+      }
+    },
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 2
+      },
+      "probes": [
+        {
+          "id": "trace-node",
+          "kind": "rule_trace_node"
+        },
+        {
+          "id": "time",
+          "kind": "get_time"
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

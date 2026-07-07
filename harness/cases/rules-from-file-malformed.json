@@ -1,0 +1,57 @@
+{
+  "id": "rules-from-file-malformed",
+  "purpose": "add_rules_from_file's malformed arms via the apply_input raising probe: a missing file raises the bare open() FileNotFoundError (errno message embedding the repo-resolved path \u2014 identical for both engines run from this repo); the bad middle line of rules-badline.txt raises ValueError \"Line 2: Failed to parse rule ...\" under raise_errors=True AFTER loading line 1 (the partial load pinned by the following fingerprint: [rule_0]); the same file under the default raise_errors=False warns, skips the bad line, and leaves the name gap rule_1/rule_3 (i indexes the filtered line list even for failed lines, pyreason.py:677) \u2014 the malformed-missing-file, malformed-line-raise, and malformed-line-skip classes plus the raise-then-continue state contamination.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_rules_from_file malformed-* classes; pyreason.py:669-690 at the pin; exception text screened live 2026-07-07; fixture harness/fixtures/rules-badline.txt",
+  "surface_items": [
+    "fn:add_rules_from_file",
+    "fn:get_rules",
+    "dsl:rule-text",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false
+    }
+  },
+  "probes": [
+    {
+      "id": "missing-file",
+      "kind": "apply_input",
+      "op": "add_rules_from_file",
+      "args": {
+        "missing_path": "harness/fixtures/no-such-rules.txt"
+      }
+    },
+    {
+      "id": "line-raise",
+      "kind": "apply_input",
+      "op": "add_rules_from_file",
+      "args": {
+        "path": "harness/fixtures/rules-badline.txt",
+        "raise_errors": true
+      }
+    },
+    {
+      "id": "rules-after-raise",
+      "kind": "accessor_fingerprint",
+      "accessor": "rules"
+    },
+    {
+      "id": "line-skip",
+      "kind": "apply_input",
+      "op": "add_rules_from_file",
+      "args": {
+        "path": "harness/fixtures/rules-badline.txt"
+      }
+    },
+    {
+      "id": "rules-after-skip",
+      "kind": "accessor_fingerprint",
+      "accessor": "rules"
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

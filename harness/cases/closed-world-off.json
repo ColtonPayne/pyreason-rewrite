@@ -1,0 +1,88 @@
+{
+  "id": "closed-world-off",
+  "purpose": "the exact closed-world-on program with no closed-world predicate registered: the suspicious(x):[0,0] clause is checked by the ordinary is_satisfied path, where an absent label never satisfies a [0,0] bound, so no safe row is ever derived \u2014 the trace holds only the suspicious(Mary) fact rows and the safe frames stay empty, the discriminating twin for the CWA's unknown-as-false treatment.",
+  "runtime_class": "smoke",
+  "provenance": "twin of closed-world-on against docs/surface.md fn:add_closed_world_predicate happy-basic (off arm); interpretation.py:1757-1775 at the pin",
+  "surface_items": [
+    "fn:load_graph",
+    "fn:add_rule",
+    "fn:add_fact",
+    "fn:reason",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose",
+    "fn:add_closed_world_predicate",
+    "fn:get_rule_trace",
+    "fn:filter_and_sort_nodes",
+    "fn:get_time"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        "John",
+        "Mary",
+        "Justin"
+      ],
+      "edges": [
+        [
+          "John",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "Justin",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ]
+      ]
+    },
+    "rules": [
+      {
+        "text": "safe(x) <-1 Friends(x,y), suspicious(x) : [0,0]",
+        "name": "safe_rule"
+      }
+    ],
+    "facts": [
+      {
+        "text": "suspicious(Mary)",
+        "name": "sus_fact",
+        "start": 0,
+        "end": 2
+      }
+    ],
+    "reason": {
+      "timesteps": 2
+    }
+  },
+  "probes": [
+    {
+      "id": "trace-node",
+      "kind": "rule_trace_node"
+    },
+    {
+      "id": "nodes-safe",
+      "kind": "filter_sort_nodes",
+      "labels": [
+        "safe"
+      ]
+    },
+    {
+      "id": "time",
+      "kind": "get_time"
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

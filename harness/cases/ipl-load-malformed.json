@@ -1,0 +1,51 @@
+{
+  "id": "ipl-load-malformed",
+  "purpose": "load_inconsistent_predicate_list's malformed arms, each a distinct exception type at the pin (parse_ipl validates nothing itself): a missing file raises open()'s FileNotFoundError; a YAML document without the 'ipl' key raises KeyError (message is the quoted key, \"'ipl'\"); a one-element pair raises IndexError 'list index out of range' at labels[1]; and invalid YAML syntax raises yaml.parser.ParserError whose multi-line message embeds the repo-resolved fixture path and parse position \u2014 identical for both engines run from this repo, so it compares exactly with no canonicalization.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:load_inconsistent_predicate_list malformed-missing-ipl-key/malformed-short-pair/malformed-missing-file/malformed-bad-yaml; yaml_parser.py:187-196 at the pin; exception text screened live 2026-07-07",
+  "surface_items": [
+    "fn:load_inconsistent_predicate_list"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false
+    }
+  },
+  "probes": [
+    {
+      "id": "missing-file",
+      "kind": "apply_input",
+      "op": "load_inconsistent_predicate_list",
+      "args": {
+        "missing_path": "harness/fixtures/no-such-ipl.yaml"
+      }
+    },
+    {
+      "id": "missing-key",
+      "kind": "apply_input",
+      "op": "load_inconsistent_predicate_list",
+      "args": {
+        "path": "harness/fixtures/ipl-missing-key.yaml"
+      }
+    },
+    {
+      "id": "short-pair",
+      "kind": "apply_input",
+      "op": "load_inconsistent_predicate_list",
+      "args": {
+        "path": "harness/fixtures/ipl-short-pair.yaml"
+      }
+    },
+    {
+      "id": "bad-yaml",
+      "kind": "apply_input",
+      "op": "load_inconsistent_predicate_list",
+      "args": {
+        "path": "harness/fixtures/ipl-bad.yaml"
+      }
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

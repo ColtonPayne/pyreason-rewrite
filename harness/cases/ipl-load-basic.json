@@ -1,0 +1,131 @@
+{
+  "id": "ipl-load-basic",
+  "purpose": "load_inconsistent_predicate_list over the committed ipl.yaml (one [popular, unpopular] pair): the pair loads through yaml_parser.parse_ipl (yaml_parser.py:187-196) and its semantic effect shows in reasoning \u2014 every popular derivation banks a complement unpopular [0,0] row named 'IPL: popular' with Triggered By 'IPL' in the node trace \u2014 the happy-basic class observed through reason(), not a stored value.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:load_inconsistent_predicate_list happy-basic; pyreason.py:611-618 and yaml_parser.py:187-196 at the pin; fixture harness/fixtures/ipl.yaml",
+  "surface_items": [
+    "fn:load_graph",
+    "fn:add_rule",
+    "fn:add_fact",
+    "fn:reason",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose",
+    "fn:load_inconsistent_predicate_list",
+    "fn:get_rule_trace",
+    "fn:get_time",
+    "setting:inconsistency_check"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        "John",
+        "Mary",
+        "Justin",
+        "Dog",
+        "Cat"
+      ],
+      "edges": [
+        [
+          "Justin",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "John",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "John",
+          "Justin",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "Mary",
+          "Cat",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "Justin",
+          "Cat",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "Justin",
+          "Dog",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "John",
+          "Dog",
+          {
+            "owns": 1
+          }
+        ]
+      ]
+    },
+    "rules": [
+      {
+        "text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)",
+        "name": "popular_rule"
+      }
+    ],
+    "facts": [
+      {
+        "text": "popular(Mary)",
+        "name": "popular_fact",
+        "start": 0,
+        "end": 2
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "load-ipl",
+      "op": "load_inconsistent_predicate_list",
+      "args": {
+        "path": "harness/fixtures/ipl.yaml"
+      }
+    },
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 2
+      },
+      "probes": [
+        {
+          "id": "trace-node",
+          "kind": "rule_trace_node"
+        },
+        {
+          "id": "time",
+          "kind": "get_time"
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

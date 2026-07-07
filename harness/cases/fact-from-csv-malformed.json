@@ -1,0 +1,53 @@
+{
+  "id": "fact-from-csv-malformed",
+  "purpose": "add_fact_from_csv's malformed arms: missing file ('CSV file not found: <path>'); an invalid static cell (\"Row 1: Failed to parse fact - Row 1: Invalid static value 'maybe'\" \u2014 doubled prefix); a missing fact_text cell (same doubled shape); and a zero-byte file, which warns and returns without raising (pandas' EmptyDataError swallowed at pyreason.py:1334-1337) \u2014 the no-raise outcome record is the compared observation for the bound-empty-file class (the warning lands on stderr, uncompared; no fact accessor exists to observe the empty state).",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_fact_from_csv malformed-missing-file/malformed-bad-static/malformed-missing-fact_text/bound-empty-file; pyreason.py:1326-1412 at the pin; exception text screened live 2026-07-07",
+  "surface_items": [
+    "fn:add_fact_from_csv",
+    "dsl:fact-text",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false
+    }
+  },
+  "probes": [
+    {
+      "id": "missing-file",
+      "kind": "apply_input",
+      "op": "add_fact_from_csv",
+      "args": {
+        "missing_path": "harness/fixtures/no-such-facts.csv"
+      }
+    },
+    {
+      "id": "bad-static",
+      "kind": "apply_input",
+      "op": "add_fact_from_csv",
+      "args": {
+        "path": "harness/fixtures/facts-bad-static.csv"
+      }
+    },
+    {
+      "id": "missing-text",
+      "kind": "apply_input",
+      "op": "add_fact_from_csv",
+      "args": {
+        "path": "harness/fixtures/facts-missing-text.csv"
+      }
+    },
+    {
+      "id": "empty-file",
+      "kind": "apply_input",
+      "op": "add_fact_from_csv",
+      "args": {
+        "path": "harness/fixtures/facts-empty.csv"
+      }
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

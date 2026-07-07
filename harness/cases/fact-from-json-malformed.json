@@ -1,0 +1,69 @@
+{
+  "id": "fact-from-json-malformed",
+  "purpose": "add_fact_from_json's malformed arms: missing file ('JSON file not found: <path>'); a non-integer start_time (\"Item 0: Failed to parse fact - Item 0: Invalid start_time 'soon'\" \u2014 doubled prefix, re-wrapped at pyreason.py:1281); a missing fact_text (same doubled shape); an unparseable fact_text (single prefix \u2014 the fact parser's own ValueError 'Missing closing parenthesis in fact' carries no item tag); a duplicate name at item 1 raising AFTER item 0 loaded (the partial load has no accessor to observe \u2014 named unobserved); and a non-array document ('array of fact objects'). The loaded-fact state after each raise is unobservable at this seam (no fact accessor at the pin) \u2014 the outcome records are the compared observations.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_fact_from_json malformed-* classes; pyreason.py:1240-1292 at the pin; exception text screened live 2026-07-07",
+  "surface_items": [
+    "fn:add_fact_from_json",
+    "dsl:fact-text",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false
+    }
+  },
+  "probes": [
+    {
+      "id": "missing-file",
+      "kind": "apply_input",
+      "op": "add_fact_from_json",
+      "args": {
+        "missing_path": "harness/fixtures/no-such-facts.json"
+      }
+    },
+    {
+      "id": "bad-time",
+      "kind": "apply_input",
+      "op": "add_fact_from_json",
+      "args": {
+        "path": "harness/fixtures/facts-badtime.json"
+      }
+    },
+    {
+      "id": "missing-text",
+      "kind": "apply_input",
+      "op": "add_fact_from_json",
+      "args": {
+        "path": "harness/fixtures/facts-missing-text.json"
+      }
+    },
+    {
+      "id": "bad-text",
+      "kind": "apply_input",
+      "op": "add_fact_from_json",
+      "args": {
+        "path": "harness/fixtures/facts-badtext.json"
+      }
+    },
+    {
+      "id": "dup-intrafile",
+      "kind": "apply_input",
+      "op": "add_fact_from_json",
+      "args": {
+        "path": "harness/fixtures/facts-dup.json"
+      }
+    },
+    {
+      "id": "not-array",
+      "kind": "apply_input",
+      "op": "add_fact_from_json",
+      "args": {
+        "path": "harness/fixtures/notarray.json"
+      }
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

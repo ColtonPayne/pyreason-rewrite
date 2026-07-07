@@ -1,0 +1,129 @@
+{
+  "id": "fact-from-json-basic",
+  "purpose": "add_fact_from_json over the committed facts.json fixture: a named windowed fact, an unnamed bounded fact auto-named fact_1 through add_fact's shared node+edge counter (pyreason.py:1148-1150), and a static boolean fact \u2014 loaded state observed through the reason step's trace, where each fact's name (given or auto) appears on its rows with the declared window and bound. The loader's summary print is unconditional at the pin (pyreason.py:1290-1292, unlike the CSV loader's verbose gate) but lands on pre-reason process stdout, which the harness does not compare \u2014 named unobserved.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_fact_from_json happy-basic/bound-defaults/interacts-static_field; pyreason.py:1168-1292 at the pin; fixture harness/fixtures/facts.json",
+  "surface_items": [
+    "fn:load_graph",
+    "fn:add_rule",
+    "fn:reason",
+    "type:Rule",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose",
+    "fn:add_fact_from_json",
+    "fn:add_fact",
+    "fn:get_rule_trace",
+    "fn:filter_and_sort_nodes",
+    "fn:get_time"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        "John",
+        "Mary",
+        "Justin",
+        "Dog",
+        "Cat"
+      ],
+      "edges": [
+        [
+          "Justin",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "John",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "John",
+          "Justin",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "Mary",
+          "Cat",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "Justin",
+          "Cat",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "Justin",
+          "Dog",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "John",
+          "Dog",
+          {
+            "owns": 1
+          }
+        ]
+      ]
+    },
+    "rules": [
+      {
+        "text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)",
+        "name": "popular_rule"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "load-facts",
+      "op": "add_fact_from_json",
+      "args": {
+        "path": "harness/fixtures/facts.json"
+      }
+    },
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 2
+      },
+      "probes": [
+        {
+          "id": "trace-node",
+          "kind": "rule_trace_node"
+        },
+        {
+          "id": "nodes-popular",
+          "kind": "filter_sort_nodes",
+          "labels": [
+            "popular"
+          ]
+        },
+        {
+          "id": "time",
+          "kind": "get_time"
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

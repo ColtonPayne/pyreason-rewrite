@@ -1,0 +1,138 @@
+{
+  "id": "rules-from-file-basic",
+  "purpose": "add_rules_from_file over the committed rules-multi.txt fixture (a first-character '#' comment line and a blank line, both skipped at pyreason.py:669, then two rules) with one rule already added inline: the loader names file rules rule_{i+offset} where offset is the live rule count (pyreason.py:675-679), so the fingerprint pins [popular_rule, rule_1 (trendy), rule_2 (influencer)] in file order, and the reason step shows the file-loaded trendy rule firing at t2 \u2014 the happy-multi-rule, happy-comments-and-blanks, and bound-name-offset classes with the loaded rules consumed by reasoning.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_rules_from_file happy-multi-rule/happy-comments-and-blanks/bound-name-offset; pyreason.py:652-690 at the pin; fixture harness/fixtures/rules-multi.txt",
+  "surface_items": [
+    "fn:load_graph",
+    "fn:add_rule",
+    "fn:add_fact",
+    "fn:reason",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose",
+    "fn:add_rules_from_file",
+    "fn:get_rules",
+    "fn:get_rule_trace",
+    "fn:get_time"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        "John",
+        "Mary",
+        "Justin",
+        "Dog",
+        "Cat"
+      ],
+      "edges": [
+        [
+          "Justin",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "John",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "John",
+          "Justin",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "Mary",
+          "Cat",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "Justin",
+          "Cat",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "Justin",
+          "Dog",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "John",
+          "Dog",
+          {
+            "owns": 1
+          }
+        ]
+      ]
+    },
+    "rules": [
+      {
+        "text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)",
+        "name": "popular_rule"
+      }
+    ],
+    "facts": [
+      {
+        "text": "popular(Mary)",
+        "name": "popular_fact",
+        "start": 0,
+        "end": 2
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "load-file",
+      "op": "add_rules_from_file",
+      "args": {
+        "path": "harness/fixtures/rules-multi.txt"
+      },
+      "probes": [
+        {
+          "id": "rules-fp",
+          "kind": "accessor_fingerprint",
+          "accessor": "rules"
+        }
+      ]
+    },
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 2
+      },
+      "probes": [
+        {
+          "id": "trace-node",
+          "kind": "rule_trace_node"
+        },
+        {
+          "id": "time",
+          "kind": "get_time"
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

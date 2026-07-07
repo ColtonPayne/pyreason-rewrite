@@ -1,0 +1,75 @@
+{
+  "id": "rule-from-json-malformed",
+  "purpose": "add_rule_from_json's malformed arms: missing file ('JSON file not found: <path>'); invalid JSON syntax (ValueError embedding json's position message); a non-array document ('JSON file must contain an array of rule objects, got dict'); a string item (the doubled item prefix \"Item 0: Failed to parse rule - Item 0: Expected object, got str\" \u2014 the inner message is re-wrapped at pyreason.py:1064); a threshold object missing 'thresh' (\"Item 0, threshold 0: Invalid threshold - 'thresh'\" \u2014 the KeyError's key surfaces verbatim); and a non-integer custom_thresholds dict key (\"custom_thresholds dict key 'one' must be an integer clause index\"). All six raise before any add_rule \u2014 pinned by the closing fingerprint returning null (no rule global was ever initialized).",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_rule_from_json malformed-* classes; pyreason.py:944-1080 at the pin; exception text screened live 2026-07-07",
+  "surface_items": [
+    "fn:add_rule_from_json",
+    "fn:get_rules",
+    "type:Threshold",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false
+    }
+  },
+  "probes": [
+    {
+      "id": "missing-file",
+      "kind": "apply_input",
+      "op": "add_rule_from_json",
+      "args": {
+        "missing_path": "harness/fixtures/no-such-rules.json"
+      }
+    },
+    {
+      "id": "bad-syntax",
+      "kind": "apply_input",
+      "op": "add_rule_from_json",
+      "args": {
+        "path": "harness/fixtures/bad-syntax.json"
+      }
+    },
+    {
+      "id": "not-array",
+      "kind": "apply_input",
+      "op": "add_rule_from_json",
+      "args": {
+        "path": "harness/fixtures/notarray.json"
+      }
+    },
+    {
+      "id": "item-not-object",
+      "kind": "apply_input",
+      "op": "add_rule_from_json",
+      "args": {
+        "path": "harness/fixtures/rules-item-not-object.json"
+      }
+    },
+    {
+      "id": "threshold-missing-field",
+      "kind": "apply_input",
+      "op": "add_rule_from_json",
+      "args": {
+        "path": "harness/fixtures/rules-bad-threshold.json"
+      }
+    },
+    {
+      "id": "threshold-bad-key",
+      "kind": "apply_input",
+      "op": "add_rule_from_json",
+      "args": {
+        "path": "harness/fixtures/rules-threshold-badkey.json"
+      }
+    },
+    {
+      "id": "rules-after",
+      "kind": "accessor_fingerprint",
+      "accessor": "rules"
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

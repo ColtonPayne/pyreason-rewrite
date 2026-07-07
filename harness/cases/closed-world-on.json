@@ -1,0 +1,108 @@
+{
+  "id": "closed-world-on",
+  "purpose": "add_closed_world_predicate's semantic effect: on a two-Friends-edge graph with suspicious(Mary) known [1,1] and suspicious never stated for John/Justin, the rule safe(x) <-1 Friends(x,y), suspicious(x):[0,0] fires for John and Justin only when 'suspicious' is closed-world \u2014 the Friends clause grounds x, then is_satisfied_node's CWA branch (interpretation.py:1763-1770) treats the missing/unknown [0,1] label as [0,0], satisfying the [0,0] clause, while Mary's known [1,1] still fails it. A second identical add is a set-level no-op (pyreason.py:1130) \u2014 same downstream results with the duplicate applied. closed-world-off is the no-CWA twin (no safe rows at all); the effect is deferred to reason(), observed through the trace, never a stored value.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_closed_world_predicate happy-basic/bound-duplicate; pyreason.py:1122-1130, :1613-1617 and interpretation.py:1757-1775 at the pin; semantics screened live 2026-07-07",
+  "surface_items": [
+    "fn:load_graph",
+    "fn:add_rule",
+    "fn:add_fact",
+    "fn:reason",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose",
+    "fn:add_closed_world_predicate",
+    "fn:get_rule_trace",
+    "fn:filter_and_sort_nodes",
+    "fn:get_time"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        "John",
+        "Mary",
+        "Justin"
+      ],
+      "edges": [
+        [
+          "John",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "Justin",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ]
+      ]
+    },
+    "rules": [
+      {
+        "text": "safe(x) <-1 Friends(x,y), suspicious(x) : [0,0]",
+        "name": "safe_rule"
+      }
+    ],
+    "facts": [
+      {
+        "text": "suspicious(Mary)",
+        "name": "sus_fact",
+        "start": 0,
+        "end": 2
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "cwa-add",
+      "op": "add_closed_world_predicate",
+      "args": {
+        "name": "suspicious"
+      }
+    },
+    {
+      "id": "cwa-dup",
+      "op": "add_closed_world_predicate",
+      "args": {
+        "name": "suspicious"
+      }
+    },
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 2
+      },
+      "probes": [
+        {
+          "id": "trace-node",
+          "kind": "rule_trace_node"
+        },
+        {
+          "id": "nodes-safe",
+          "kind": "filter_sort_nodes",
+          "labels": [
+            "safe"
+          ]
+        },
+        {
+          "id": "time",
+          "kind": "get_time"
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

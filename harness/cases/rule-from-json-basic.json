@@ -1,0 +1,132 @@
+{
+  "id": "rule-from-json-basic",
+  "purpose": "add_rule_from_json over the committed rules.json fixture: four accepted items \u2014 a plain rule, custom_thresholds in the list form, custom_thresholds in the dict form (clause-index key '1' parsed to int, unnamed clauses defaulted, pyreason.py:996-1027), and a weights list \u2014 the fingerprint pins the four parsed rules in item order and the reason step consumes them. The fingerprint renders names/targets/clauses but neither thresholds nor weights (the accessor fingerprint's pinned shape) \u2014 the thresholds' and weights' semantic surfaces are named unobserved here and sit with type:Threshold and the annotation-function rows.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_rule_from_json happy-basic/happy-custom-thresholds-list/happy-custom-thresholds-dict/happy-weights; pyreason.py:868-1080 at the pin; fixture harness/fixtures/rules.json",
+  "surface_items": [
+    "fn:load_graph",
+    "fn:add_fact",
+    "fn:reason",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose",
+    "fn:add_rule_from_json",
+    "fn:add_rule",
+    "fn:get_rules",
+    "fn:get_rule_trace",
+    "fn:get_time",
+    "type:Threshold"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        "John",
+        "Mary",
+        "Justin",
+        "Dog",
+        "Cat"
+      ],
+      "edges": [
+        [
+          "Justin",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "John",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "John",
+          "Justin",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "Mary",
+          "Cat",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "Justin",
+          "Cat",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "Justin",
+          "Dog",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "John",
+          "Dog",
+          {
+            "owns": 1
+          }
+        ]
+      ]
+    },
+    "facts": [
+      {
+        "text": "popular(Mary)",
+        "name": "popular_fact",
+        "start": 0,
+        "end": 2
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "load-json",
+      "op": "add_rule_from_json",
+      "args": {
+        "path": "harness/fixtures/rules.json"
+      },
+      "probes": [
+        {
+          "id": "rules-fp",
+          "kind": "accessor_fingerprint",
+          "accessor": "rules"
+        }
+      ]
+    },
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 2
+      },
+      "probes": [
+        {
+          "id": "trace-node",
+          "kind": "rule_trace_node"
+        },
+        {
+          "id": "time",
+          "kind": "get_time"
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

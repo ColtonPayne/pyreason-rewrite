@@ -1,0 +1,147 @@
+{
+  "id": "memory-profile-output-on",
+  "purpose": "memory_profile and output_to_file together on the hello-world program: the redirect file carries the verbose reason-time prints (output-to-file-on's exact shape) PLUS the profiled branch's peak-MB line (pyreason.py:1520), which is a run-varying measurement \u2014 the case declares canonicalize_peak_mb so exactly that number reduces to '<peak-mb>' (recorded canonicalization, same run-schedule rationale as the timestamp stamps; screened 103.20 vs 103.53 MB across identical fresh processes) while the line's fixed text, every other line, and the timestamp-canonicalized name compare exactly; reasoning probes stay digest-comparable to the memory-profile/output-to-file twins \u2014 the interaction-output class (setting:memory_profile) pinned.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md setting:memory_profile interaction-output (operator-approved canonicalization, 2026-07-07); pyreason.py:1513-1527 at the pin; hello-world program with both knobs true",
+  "surface_items": [
+    "fn:load_graph",
+    "fn:add_rule",
+    "fn:add_fact",
+    "fn:reason",
+    "fn:filter_and_sort_nodes",
+    "fn:get_rule_trace",
+    "fn:get_time",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:memory_profile",
+    "setting:output_to_file",
+    "setting:output_file_name",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "atom_trace": true,
+      "memory_profile": true,
+      "output_to_file": true
+    },
+    "graph": {
+      "nodes": [
+        "John",
+        "Mary",
+        "Justin",
+        "Dog",
+        "Cat"
+      ],
+      "edges": [
+        [
+          "Justin",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "John",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "John",
+          "Justin",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "Mary",
+          "Cat",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "Justin",
+          "Cat",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "Justin",
+          "Dog",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "John",
+          "Dog",
+          {
+            "owns": 1
+          }
+        ]
+      ]
+    },
+    "rules": [
+      {
+        "text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)",
+        "name": "popular_rule"
+      }
+    ],
+    "facts": [
+      {
+        "text": "popular(Mary)",
+        "name": "popular_fact",
+        "start": 0,
+        "end": 2
+      }
+    ],
+    "reason": {
+      "timesteps": 2
+    }
+  },
+  "probes": [
+    {
+      "id": "nodes-popular",
+      "kind": "filter_sort_nodes",
+      "labels": [
+        "popular"
+      ]
+    },
+    {
+      "id": "trace-node",
+      "kind": "rule_trace_node"
+    },
+    {
+      "id": "trace-edge",
+      "kind": "rule_trace_edge"
+    },
+    {
+      "id": "time",
+      "kind": "get_time"
+    },
+    {
+      "id": "mem-knob",
+      "kind": "get_setting",
+      "knob": "memory_profile"
+    },
+    {
+      "id": "out-knob",
+      "kind": "get_setting",
+      "knob": "output_to_file"
+    },
+    {
+      "id": "output-files",
+      "kind": "output_file",
+      "canonicalize_peak_mb": true
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

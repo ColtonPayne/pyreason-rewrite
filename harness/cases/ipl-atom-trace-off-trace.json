@@ -1,0 +1,125 @@
+{
+  "id": "ipl-atom-trace-off-trace",
+  "purpose": "the IPL-with-atom-trace-off trace arm (session 12 review H1's screen, now a committed case): with atom_trace off and the yaml-loaded [popular, unpopular] pair, the saved node CSV shows 'Occurred Due To' = '-' on every fact- and rule-triggered popular row (those append sites bank empty names when atom_trace is off) and 'IPL: popular' on every unpopular complement row (the IPL append sites bank names unconditionally, interpretation.py:304/:308/:380/:384/:1582/:1599 + fp mirrors) \u2014 output.py:23-25's r[7]-name fallback firing exactly where the pin makes it reachable.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:save_rule_trace scoped-fallback note + session 12 review docs/reviews/2026-07-07-accessor-trace-cases.md H1; fixture harness/fixtures/ipl.yaml",
+  "surface_items": [
+    "fn:load_graph",
+    "fn:add_rule",
+    "fn:add_fact",
+    "fn:reason",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose",
+    "fn:load_inconsistent_predicate_list",
+    "fn:save_rule_trace"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": false
+    },
+    "graph": {
+      "nodes": [
+        "John",
+        "Mary",
+        "Justin",
+        "Dog",
+        "Cat"
+      ],
+      "edges": [
+        [
+          "Justin",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "John",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "John",
+          "Justin",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "Mary",
+          "Cat",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "Justin",
+          "Cat",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "Justin",
+          "Dog",
+          {
+            "owns": 1
+          }
+        ],
+        [
+          "John",
+          "Dog",
+          {
+            "owns": 1
+          }
+        ]
+      ]
+    },
+    "rules": [
+      {
+        "text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)",
+        "name": "popular_rule"
+      }
+    ],
+    "facts": [
+      {
+        "text": "popular(Mary)",
+        "name": "popular_fact",
+        "start": 0,
+        "end": 2
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "load-ipl",
+      "op": "load_inconsistent_predicate_list",
+      "args": {
+        "path": "harness/fixtures/ipl.yaml"
+      }
+    },
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 2
+      },
+      "probes": [
+        {
+          "id": "srt-default",
+          "kind": "save_rule_trace"
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

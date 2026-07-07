@@ -1,0 +1,59 @@
+{
+  "id": "rule-from-csv-malformed",
+  "purpose": "add_rule_from_csv's malformed arms: a missing file raises the loader's own FileNotFoundError ('CSV file not found: <path>'); an empty rule_text cell raises ValueError with the doubled row prefix (\"Row 1: Failed to parse rule - Row 1: Missing required 'rule_text'\" \u2014 the inner message is re-wrapped at pyreason.py:851); a file-local duplicate name raises at row 2 AFTER loading row 1 (partial load pinned by the closing fingerprint: [same_name] only); and an unquoted comma inside rule_text makes pandas' tokenizer fail wholesale (ValueError 'Error reading CSV file ...: Error tokenizing data ...'), loading nothing from that file \u2014 the row-wise vs whole-file failure asymmetry pinned in one case.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_rule_from_csv malformed-missing-file/malformed-missing-rule_text/malformed-duplicate-name/malformed-unreadable; pyreason.py:784-866 at the pin; exception text screened live 2026-07-07",
+  "surface_items": [
+    "fn:add_rule_from_csv",
+    "fn:get_rules",
+    "dsl:rule-text",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false
+    }
+  },
+  "probes": [
+    {
+      "id": "missing-file",
+      "kind": "apply_input",
+      "op": "add_rule_from_csv",
+      "args": {
+        "missing_path": "harness/fixtures/no-such-rules.csv"
+      }
+    },
+    {
+      "id": "missing-text",
+      "kind": "apply_input",
+      "op": "add_rule_from_csv",
+      "args": {
+        "path": "harness/fixtures/rules-missing-text.csv"
+      }
+    },
+    {
+      "id": "dup-name",
+      "kind": "apply_input",
+      "op": "add_rule_from_csv",
+      "args": {
+        "path": "harness/fixtures/rules-dup.csv"
+      }
+    },
+    {
+      "id": "unquoted-comma",
+      "kind": "apply_input",
+      "op": "add_rule_from_csv",
+      "args": {
+        "path": "harness/fixtures/rules-unquoted.csv"
+      }
+    },
+    {
+      "id": "rules-after",
+      "kind": "accessor_fingerprint",
+      "accessor": "rules"
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}
