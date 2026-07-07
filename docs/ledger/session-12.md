@@ -109,10 +109,12 @@ the two callable-registering functions (`add_annotation_function`,
 `add_head_function` — these take Python callables and likely need a
 named-function registry in the capture; design it in the same packet if
 tractable, else name the blocker precisely) ride the same or a following
-packet. **After that, the board's un-gated breadth is exhausted and the
-Phase-3 sequencing decision (start the pure-Python reference core; its
-likely `networkx` dependency ask rides the same decision) is the
-operator's — queued below.**
+packet. The operator-approved raising-probe form (Asks queued, below)
+and the approved `memory_profile` peak-MB canonicalization ride this
+breadth work — the raising probe is the natural home for the loader
+rows' malformed-input arms. **After the breadth session(s), open Phase 3
+(the pure-Python reference core) per the operator's decision below; its
+first action is the `networkx` dependency ask.**
 
 ## Deviations
 
@@ -122,18 +124,24 @@ is a named stop condition).
 
 ## Asks queued
 
-None blocking. For operator triage at this boundary:
-- **The Phase-3 fork (new):** open the reference-core rewrite now vs
-  after the last breadth packets. Recommendation: one more breadth
-  session to close the un-gated fn rows, then open Phase 3; the rewrite's
-  first dependency ask (`networkx`, since `load_graph` accepts NetworkX
-  graphs at the public boundary) rides the Phase-3 opening.
-- The raising-probe form (carried): one probe shape unlocking
-  `type-reject` family-wide, `load_graphml` missing-file/bad-content, the
-  `"0.5.5"` float-guard raise — and now also the natural home for
-  malformed-input arms of the upcoming loader rows.
-- The `memory_profile`/`interaction-output` text-canonicalization policy
-  (carried).
+All three boundary asks were raised interactively at session close and
+**adjudicated by the operator (2026-07-07)**:
+- **The Phase-3 fork — decided: one more breadth session first.** Close
+  the un-gated loader/semantic fn rows, then open Phase 3 (the
+  pure-Python reference core); the rewrite's first dependency ask
+  (`networkx`, since `load_graph` accepts NetworkX graphs at the public
+  boundary) rides the Phase-3 opening as its own ask.
+- **The raising-probe form — approved as a packet.**
+  Apply-inputs-expecting-raise: unlocks `type-reject` family-wide,
+  `load_graphml` missing-file/bad-content, the `"0.5.5"` float-guard
+  raise, and the malformed-input arms of the upcoming loader rows. Run
+  alongside or just after the loader-rows session.
+- **The `memory_profile`/`interaction-output` text-canonicalization
+  policy — approved.** Canonicalize only the run-varying peak-MB line,
+  rationale recorded in the case record per AC-2's per-case normalization
+  contract, consistent with the existing timestamp canonicalizations.
+
+No asks remain open.
 
 ## Divergences
 
