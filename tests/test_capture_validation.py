@@ -362,11 +362,13 @@ def test_graphml_path_fixture_case_passes_the_guard():
 
 
 def test_graphml_path_rejects_the_authoring_faults():
-    """proves: an absolute path, a missing file, an empty/non-string path, and
-    a graphml_path mixed with inline graph keys are each refused before the
-    engine runs — a mistyped fixture is exit-2 usage, never an engine finding."""
+    """proves: an absolute path, a ..-escaping path, a missing file, an
+    empty/non-string path, and a graphml_path mixed with inline graph keys are
+    each refused before the engine runs — a mistyped fixture is exit-2 usage,
+    never an engine finding."""
     faults = [
         ({"graphml_path": "/abs/elsewhere.graphml"}, "repo-relative"),
+        ({"graphml_path": "../elsewhere.graphml"}, "outside the repo"),
         ({"graphml_path": "harness/fixtures/no-such.graphml"}, "no committed file"),
         ({"graphml_path": ""}, "non-empty string"),
         ({"graphml_path": 3}, "non-empty string"),

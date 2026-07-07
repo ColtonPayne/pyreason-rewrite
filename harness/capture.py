@@ -196,6 +196,9 @@ def _graph_fault(graph_spec) -> str | None:
         return "graphml_path must be a non-empty string"
     if Path(path).is_absolute():
         return f"graphml_path must be repo-relative, got {path!r}"
+    if not (REPO / path).resolve().is_relative_to(REPO):
+        return (f"graphml_path resolves outside the repo: {path!r} — a fixture "
+                f"must be a file committed in this repo")
     if not (REPO / path).is_file():
         return f"graphml_path names no committed file: {path!r}"
     return None

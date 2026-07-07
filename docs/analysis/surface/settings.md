@@ -88,10 +88,10 @@ Read timing splits the knobs into two groups:
 - `input classes`:
   - default-false-asis: `False` → edges kept as loaded.
   - nondefault-true-reversed: `True` → graph reversed in graphml_parser.py:18-19 (`self.graph.reverse()`) via `parse_graph(path, settings.reverse_digraph)` at pyreason.py:577.
-  - forwarded-to-engine: same value passed to `Program` as `reverse_graph` (pyreason.py:1609) → interpretation.py:69.
-  - read-at-load-time: the actual reversal happens during `load_graph`; set before loading. The engine-side `reverse_graph` copy is re-read at reason time.
+  - forwarded-to-engine: same value passed to `Program` as `reverse_graph` (pyreason.py:1609) → stored at interpretation.py:69 and threaded into the kernel `reason` call (interpretation.py:232/:242, mirrored in the fp and parallel kernels), but never consumed in any kernel body — a dead snapshot with no behavioral observable (session 9, grep-verified at the pin).
+  - read-at-load-time: the actual reversal happens during `load_graphml` (`load_graph` never reads the knob: pyreason.py:589-599); set before loading.
   - type-reject: non-bool → `TypeError` at pyreason.py:319.
-- `notes`: Split read — graph structure is reversed once at load, but the flag is also snapshotted into the `Program`. Setting it after `load_graph` reverses nothing but still flips the engine flag.
+- `notes`: Split read — graph structure is reversed once at load (graphml path only), and the flag is also snapshotted into the `Program` at reason time. Setting it after loading reverses nothing but still flips the engine-side flag, which is itself inert at the pin (see forwarded-to-engine). An earlier revision of this section said the engine copy "is re-read at reason time" — refuted session 9: it is passed, never read.
 
 ## setting:atom_trace
 
