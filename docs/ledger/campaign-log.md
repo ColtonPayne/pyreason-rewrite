@@ -307,3 +307,38 @@ sessions start proving rewrite-vs-oracle equivalence case by case, and the
 board's `equivalent` column finally starts moving off 0/52.
 
 **Resume prompt.** `/campaign`
+
+## Session 16 — 2026-07-07
+
+**What we knew going in.** The harness phase was closed (94/94
+verdict-of-record), the operator had approved networkx as the rewrite's
+first runtime dependency, and Phase 3 — the pure-Python reference core —
+stood unblocked with nothing of the rewrite yet written. The board's
+`equivalent` column sat at 0/52.
+
+**What we learned this session.** The rewrite exists, and it starts life
+equivalent. Its opening slice — an explicit-state core under the
+module-global pyreason facade, with the settings facade, the Interval and
+Label value types, the four public constructors and their validating
+text-DSL parsers, the loader-family malformed arms, and the fresh-state
+accessors — passed all twelve of the corpus's no-reason cases against the
+oracle on the first banked run, and matched all 85 probe digests from the
+banked sweep artifacts. Two design facts earned their keep: the src-tree +
+wrapper layout keeps the rewrite off the oracle subprocess's import path
+with zero install surface (ADR 0001), and the banked sweep artifacts work
+as probe-level ground truth an author can hit before ever running the live
+harness. The independent review fixed two real CSV-seam defects the twelve
+fixtures alone would never have caught (record-ordinal line numbering on
+quoted multi-line records; non-UTF8 faults dodging the pinned error wrap)
+— vindication for the overfitting-probe lens. First two rows flip to
+equivalent: Interval and Label, 2/52.
+
+**What we expect to learn next session.** Whether the reasoning spine
+itself — load_graph, rule and fact parsing on the happy path, the
+fixed-point reason loop, the trace and the filter/sort accessors — can be
+built to the same standard: hello-world green oracle-vs-rewrite, then the
+smoke-class reason-bearing cases. That slice is where the engine's real
+semantics (interval updates, rule grounding, convergence) start being
+meaning-for-meaning reproductions rather than parser equivalence.
+
+**Resume prompt.** `/campaign`
