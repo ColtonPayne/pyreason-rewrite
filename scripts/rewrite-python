@@ -1,0 +1,13 @@
+#!/bin/sh
+# Engine-B interpreter for the differential harness: the campaign venv's
+# python with the rewrite package's src/ prepended to PYTHONPATH.
+#
+# The rewrite lives under src/ (never a top-level pyreason/ directory)
+# because `python -m harness.capture` puts the repo root first on sys.path —
+# a top-level pyreason/ would shadow the oracle env's installed pyreason in
+# the engine-A subprocess and turn the differential run into a silent
+# self-comparison (ADR 0001). This wrapper is the one place engine B's
+# import path is granted; pass it as --engine-b to harness/run.py.
+set -eu
+repo="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+PYTHONPATH="$repo/src${PYTHONPATH:+:$PYTHONPATH}" exec "$repo/.venv/bin/python" "$@"

@@ -1,0 +1,189 @@
+"""The fact-text DSL parser — validating entry point for `pyreason.Fact`.
+
+Behavior target: the pinned oracle's fact parser (oracle
+scripts/utils/fact_parser.py), whose rejection behavior and exact message
+text are banked by the fact-text-malformed case. The control flow below
+mirrors the pin statement-for-statement so every raise arm fires on the same
+inputs with the same text; the bound object comes from this package's
+`interval.closed`.
+
+Pinned quirks kept on purpose (equivalence first, per AC-6):
+- spaces are stripped wholesale before any check, so 'si ck(Alice)' parses
+  as 'sick(Alice)';
+- the predicate charset accepts '-' and '.' ('si-ck.v2' is an accepted
+  boundary shape, not a malformed one);
+- negating an explicit interval rounds to 10 decimal places before the
+  [1-u, 1-l] flip.
+"""
+
+import re
+
+from . import interval
+
+_PREDICATE_RE = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_.\-]*$')
+_COMPONENT_RE = re.compile(r'^[a-zA-Z0-9_][a-zA-Z0-9_.@\-]*$')
+
+
+def _validate_predicate(name):
+    """Validate that a predicate name starts with a letter/underscore."""
+    if not name:
+        raise ValueError("Predicate name cannot be empty")
+    if not _PREDICATE_RE.match(name):
+        if name[0].isdigit():
+            raise ValueError(f"Predicate name '{name}' cannot start with a digit. Must start with a letter or underscore")
+        else:
+            raise ValueError(f"Predicate name '{name}' contains invalid characters. Must match [a-zA-Z_][a-zA-Z0-9_.\\-]*")
+
+
+def _validate_component(name, context):
+    """Validate that a component (entity) name contains only valid characters. May start with a digit."""
+    if not name:
+        raise ValueError(f"{context} name cannot be empty")
+    if not _COMPONENT_RE.match(name):
+        raise ValueError(f"{context} name '{name}' contains invalid characters. Must match [a-zA-Z0-9_][a-zA-Z0-9_.@\\-]*")
+
+
+def parse_fact(fact_text):
+    """Parse one fact-text string into (pred, component, bound, fact_type)."""
+    # Validate input is not empty or whitespace only
+    if not fact_text or not fact_text.strip():
+        raise ValueError("Fact text cannot be empty or whitespace only")
+
+    f = fact_text.replace(' ', '')
+
+    # Check for multiple colons
+    colon_count = f.count(':')
+    if colon_count > 1:
+        raise ValueError(f"Fact text contains multiple colons ({colon_count}), expected at most 1")
+
+    # Check for double negation
+    if f.startswith('~~'):
+        raise ValueError("Double negation is not allowed")
+
+    # Separate into predicate-component and bound. If there is no bound it means it's true
+    negate_interval = False
+    if ':' in f:
+        parts = f.split(':')
+        if len(parts) != 2:
+            raise ValueError("Invalid fact format: expected at most one colon separator")
+        pred_comp, bound = parts
+
+        # Check for negation with explicit bound
+        if pred_comp.startswith('~'):
+            pred_comp = pred_comp[1:]
+            if bound.lower() == 'true':
+                bound = 'False'
+            elif bound.lower() == 'false':
+                bound = 'True'
+            else:
+                negate_interval = True
+    else:
+        pred_comp = f
+        if pred_comp.startswith('~'):
+            bound = 'False'
+            pred_comp = pred_comp[1:]
+        else:
+            bound = 'True'
+
+    # Validate predicate-component is not empty
+    if not pred_comp:
+        raise ValueError("Predicate-component cannot be empty")
+
+    # Validate parentheses exist and are properly formed
+    if '(' not in pred_comp:
+        raise ValueError("Missing opening parenthesis in fact")
+    if ')' not in pred_comp:
+        raise ValueError("Missing closing parenthesis in fact")
+
+    # Check for nested or multiple parentheses
+    open_count = pred_comp.count('(')
+    close_count = pred_comp.count(')')
+    if open_count != 1 or close_count != 1:
+        raise ValueError(f"Invalid parentheses: found {open_count} '(' and {close_count} ')', expected exactly 1 of each")
+
+    # Check parentheses are in correct order
+    open_idx = pred_comp.find('(')
+    close_idx = pred_comp.find(')')
+    if open_idx >= close_idx:
+        raise ValueError("Invalid parentheses order: '(' must come before ')'")
+
+    # Check closing parenthesis is at the end
+    if close_idx != len(pred_comp) - 1:
+        raise ValueError("Closing parenthesis must be at the end of predicate-component")
+
+    # Split the predicate and component
+    idx = pred_comp.find('(')
+    pred = pred_comp[:idx]
+    component = pred_comp[idx + 1:-1]
+
+    # Validate predicate name
+    _validate_predicate(pred)
+
+    # Validate component is not empty
+    if not component:
+        raise ValueError("Component cannot be empty")
+
+    # Check if it is a node or edge fact
+    if ',' in component:
+        fact_type = 'edge'
+        components = component.split(',')
+
+        # Validate exactly 2 components for edges
+        if len(components) != 2:
+            raise ValueError(f"Edge facts must have exactly 2 components, found {len(components)}")
+
+        # Validate component names
+        for i, comp in enumerate(components):
+            _validate_component(comp, f"Edge component {i+1}")
+
+        component = tuple(components)
+    else:
+        fact_type = 'node'
+        _validate_component(component, "Node component")
+
+    # Check if bound is a boolean or a list of floats
+    if bound.lower() == 'true':
+        bound = interval.closed(1, 1)
+    elif bound.lower() == 'false':
+        bound = interval.closed(0, 0)
+    else:
+        # Validate interval format
+        if not bound.startswith('['):
+            raise ValueError(f"Invalid bound format: expected '[' at start of interval, got '{bound[0] if bound else 'empty'}'")
+        if not bound.endswith(']'):
+            raise ValueError(f"Invalid bound format: expected ']' at end of interval, got '{bound[-1] if bound else 'empty'}'")
+
+        # Extract values between brackets
+        interval_content = bound[1:-1]
+        if not interval_content:
+            raise ValueError("Interval cannot be empty")
+
+        # Parse float values
+        parts = interval_content.split(',')
+        if len(parts) != 2:
+            raise ValueError(f"Interval must have exactly 2 values, found {len(parts)}")
+
+        try:
+            bound_values = [float(b) for b in parts]
+        except ValueError as e:
+            raise ValueError(f"Invalid interval values: {e}")
+
+        lower, upper = bound_values
+        # Validate bounds are in valid range [0, 1]
+        if lower < 0 or lower > 1:
+            raise ValueError(f"Interval lower bound {lower} is out of valid range [0, 1]")
+        if upper < 0 or upper > 1:
+            raise ValueError(f"Interval upper bound {upper} is out of valid range [0, 1]")
+
+        # Validate lower <= upper
+        if lower > upper:
+            raise ValueError(f"Interval lower bound {lower} cannot be greater than upper bound {upper}")
+
+        # ~[l,u] = [1-u, 1-l], rounded to 10 decimal places to eliminate
+        # floating point precision artifacts (e.g. 1 - 0.8 = 0.19999999...)
+        if negate_interval:
+            lower, upper = round(1 - upper, 10), round(1 - lower, 10)
+
+        bound = interval.closed(lower, upper)
+
+    return pred, component, bound, fact_type
