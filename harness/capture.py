@@ -28,7 +28,14 @@ harness-failure label instead of comparing as a divergence. An `output_file`
 probe reads back every .txt file the engine wrote into the capture's confined
 working directory (the surface `settings.output_to_file` redirects stdout
 into), timestamp-canonicalized — which is why that knob is only allowed in a
-case that carries this probe.
+case that carries this probe. An `accessor_fingerprint` probe renders one of
+the get-family accessors' returns (`get_rules`, `get_logic_program`,
+`get_interpretation`) into canonical comparable data — None stays None, a
+rule list becomes per-rule parse-shaped dicts, and the program/interpretation
+objects reduce to presence + identity-with-the-last-reason-return flags. A
+`save_rule_trace` probe calls the engine's save_rule_trace into the confined
+working directory (or a named subdirectory of it) and reads back the CSV
+files it wrote, timestamp-canonicalized like the output_file probe's .txt.
 
 The artifact is self-describing: the case id, engine identity + environment
 fingerprint, each probe's canonical output, and a digest per probe. Exit codes:
@@ -52,15 +59,23 @@ REPO = Path(__file__).resolve().parent.parent
 
 PROBE_KINDS = {"filter_sort_nodes", "filter_sort_edges", "rule_trace_node",
                "rule_trace_edge", "get_time", "get_setting",
-               "interpretation_dict", "expect_raise", "output_file"}
+               "interpretation_dict", "expect_raise", "output_file",
+               "accessor_fingerprint", "save_rule_trace"}
 # Probe kinds that consume the interpretation reason() returns — a case using
-# any of them must carry an inputs.reason block. get_time and get_setting read
-# module state, output_file reads the confined working directory, and
-# expect_raise constructs in isolation; all run without one.
+# any of them must carry an inputs.reason block (or a preceding reason step).
+# get_time and get_setting read module state, output_file reads the confined
+# working directory, expect_raise constructs in isolation, and
+# accessor_fingerprint reads the get-family accessors (whose before-any-reason
+# returns are themselves compared observations); all run without one.
+# save_rule_trace consumes the interpretation like the trace-view probes do.
 INTERP_PROBE_KINDS = {"filter_sort_nodes", "filter_sort_edges",
                       "rule_trace_node", "rule_trace_edge",
-                      "interpretation_dict"}
+                      "interpretation_dict", "save_rule_trace"}
 EXPECT_RAISE_CONSTRUCTS = {"rule", "fact"}
+# The get-family accessors an accessor_fingerprint probe can render. Each
+# fingerprint is the accessor's return reduced to canonical data (see
+# probe_accessor_fingerprint); an unknown name is an authoring fault (exit 2).
+FINGERPRINT_ACCESSORS = {"rules", "logic_program", "interpretation"}
 # The multi-step ops: reason/add_fact consume an args dict; the reset family
 # takes none. add_fact exists because _reason clears the fact globals on exit,
 # so a resumed reason() with no fact added since raises — a resume case that
@@ -98,6 +113,17 @@ SETTINGS_KNOBS = {"verbose", "output_to_file", "output_file_name",
 # it; file presence, count, the interpolated output_file_name basename, and
 # the full contents all compare exactly.
 OUTPUT_TS_RE = re.compile(r"_\d{8}-\d{6}\.txt$")
+# save_rule_trace embeds the same reason-time wall-clock stamp in its CSV
+# names (`rule_trace_{nodes,edges}_{__timestamp}.csv`, output.py:103-104 at
+# the pin, stamp set at pyreason.py:1511) — the identical run-schedule
+# rationale, so the save_rule_trace probe canonicalizes it identically; the
+# basenames around the stamp and the full CSV contents compare exactly.
+TRACE_TS_RE = re.compile(r"_\d{8}-\d{6}\.csv$")
+# A save_rule_trace probe's optional folder is a single plain path segment
+# created inside the capture's confined working directory — separators, '..',
+# and absolute paths are refused so an engine-written trace file can never
+# land outside the per-capture directory.
+TRACE_FOLDER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
 def _probe_list_fault(probes: list, owner: str) -> str | None:
@@ -124,6 +150,18 @@ def _probe_list_fault(probes: list, owner: str) -> str | None:
                     f"it reads the capture's own confined output directory, so "
                     f"a read fault there is a harness failure, never a "
                     f"comparable engine observation")
+        if p.get("kind") == "accessor_fingerprint" \
+                and p.get("accessor") not in FINGERPRINT_ACCESSORS:
+            return (f"accessor_fingerprint probe {p['id']!r}: 'accessor' must "
+                    f"name one of {sorted(FINGERPRINT_ACCESSORS)}, got "
+                    f"{p.get('accessor')!r}")
+        if p.get("kind") == "save_rule_trace" and "folder" in p:
+            folder = p["folder"]
+            if not isinstance(folder, str) or not TRACE_FOLDER_RE.match(folder):
+                return (f"save_rule_trace probe {p['id']!r}: 'folder' must be "
+                        f"a plain path segment (no separators, no '..', not "
+                        f"absolute) so the trace files stay confined to the "
+                        f"per-capture directory, got {folder!r}")
         if p.get("kind") != "expect_raise":
             continue
         if p.get("allow_raise"):
@@ -323,6 +361,83 @@ def parse_fingerprint(construct: str, obj) -> dict:
             "bound": obj.bound, "type": obj.type}
 
 
+def rule_fingerprint(r) -> dict:
+    """One live rule (get_rules' element type) as canonical, digestable data.
+
+    Deeper than parse_fingerprint's rule branch on purpose: get_rules returns
+    the live __rules global, and reason() replaces it with a clause-reordered
+    copy when the graph has more edges than nodes (pyreason.py:1598-1606 at
+    the pin) — so the clause list, in order, is part of what the accessor
+    must be held to, not just its length. Bounds reduce via the compare
+    layer's interval duck-typing.
+    """
+    return {"name": r.get_rule_name(), "type": r.get_rule_type(),
+            "target": r.get_target().get_value(),
+            "head_variables": list(r.get_head_variables()),
+            "delta": r.get_delta(), "bnd": r.get_bnd(),
+            "clauses": [[c[0], c[1].get_value(), list(c[2]), c[3], c[4]]
+                        for c in r.get_clauses()]}
+
+
+def probe_accessor_fingerprint(pr, interpretation, probe):
+    """Render one get-family accessor's return as canonical comparable data.
+
+    None stays None in every branch — the pinned accessors' before-load /
+    after-reset returns are themselves the compared observations. The program
+    and interpretation fingerprints are structural: presence plus identity
+    with the interpretation the capture's most recent successful reason()
+    returned (the pinned accessors return live references, pyreason.py:535/
+    :546, so identity is contract, not incidental). Program.interp is the
+    exact attribute get_interpretation reads at the pin (pyreason.py:546) —
+    the fingerprint holds a candidate engine's program object to that same
+    seam. A raise (get_interpretation with no program) propagates; the author
+    declares allow_raise to bank it as data.
+    """
+    accessor = probe["accessor"]
+    if accessor == "rules":
+        rules = pr.get_rules()
+        return None if rules is None else [rule_fingerprint(r) for r in rules]
+    if accessor == "logic_program":
+        program = pr.get_logic_program()
+        if program is None:
+            return None
+        return {"interp_present": program.interp is not None,
+                "interp_is_reason_return": program.interp is interpretation
+                if program.interp is not None else None}
+    interp = pr.get_interpretation()
+    if interp is None:
+        return None
+    return {"time": interp.time,
+            "is_reason_return": interp is interpretation}
+
+
+def probe_save_rule_trace(pr, interpretation, probe):
+    """Call the engine's save_rule_trace and read back what it wrote.
+
+    The write target is the capture's confined working directory (main()
+    chdir'd there — case_wants_output_dir covers this kind), or a named
+    subdirectory of it created here first: the pinned engine hands `folder`
+    straight to pandas, which refuses a non-existent directory, and that
+    refusal would be an authoring artifact, not engine behavior. Omitting
+    `folder` exercises the pinned default `folder='./'` (pyreason.py:1645).
+    The readback is every .csv in the target, sorted, names stamp-
+    canonicalized (TRACE_TS_RE), contents verbatim — the compared observation
+    is the files themselves. A raise before any write (the store-off assert)
+    propagates unless the author declared allow_raise.
+    """
+    folder = probe.get("folder")
+    target = Path.cwd()
+    if folder is None:
+        pr.save_rule_trace(interpretation)
+    else:
+        target = target / folder
+        target.mkdir(exist_ok=True)
+        pr.save_rule_trace(interpretation, folder)
+    return [{"name": TRACE_TS_RE.sub("_<timestamp>.csv", path.name),
+             "content": path.read_text()}
+            for path in sorted(target.glob("*.csv"))]
+
+
 def raise_record(exc: Exception) -> dict:
     """A raise reduced to comparable data: module-qualified type + message."""
     return {"raised": True,
@@ -358,6 +473,10 @@ def run_probe(pr, interpretation, probe):
     kind = probe["kind"]
     if kind == "expect_raise":
         return probe_expect_raise(pr, probe)
+    if kind == "accessor_fingerprint":
+        return probe_accessor_fingerprint(pr, interpretation, probe)
+    if kind == "save_rule_trace":
+        return probe_save_rule_trace(pr, interpretation, probe)
     if kind == "get_setting":
         # However the engine stores the knob — validation already vouched for
         # the name; an engine actually missing it fails the capture.
@@ -447,9 +566,11 @@ def apply_settings(pr, settings: dict):
 
 def case_wants_output_dir(case: dict) -> bool:
     """Whether main() must confine the capture's working directory: the case
-    either turns the redirect on or observes the (absent) redirect file."""
+    turns the stdout redirect on, observes the (absent) redirect file, or
+    calls save_rule_trace — whose pinned default folder is the cwd."""
     return (case["inputs"].get("settings", {}).get("output_to_file") is True
-            or any(p.get("kind") == "output_file" for p in _all_probes(case)))
+            or any(p.get("kind") in ("output_file", "save_rule_trace")
+                   for p in _all_probes(case)))
 
 
 def fresh_output_dir(out: Path) -> Path:

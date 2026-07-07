@@ -205,12 +205,13 @@ def test_probe_expect_raise_missing_constructor_is_a_capture_failure():
 
 def test_interp_probe_kinds_partition_the_probe_surface():
     """proves: every probe kind is either interpretation-consuming or one of
-    the four standalone kinds — a new kind added to the dispatch without a
+    the five standalone kinds — a new kind added to the dispatch without a
     reason-block ruling reds here instead of mislabeling exits later."""
     from harness.capture import INTERP_PROBE_KINDS
 
     assert PROBE_KINDS == INTERP_PROBE_KINDS | {"get_time", "get_setting",
-                                                "expect_raise", "output_file"}
+                                                "expect_raise", "output_file",
+                                                "accessor_fingerprint"}
 
 
 def test_get_setting_probe_requires_a_pinned_knob_name():
@@ -459,6 +460,150 @@ def test_non_object_graph_input_is_rejected():
     path would otherwise reach build_graph and wear the engine-failure label."""
     assert "object" in validate_case(
         {**VALID, "inputs": {"graph": FIXTURE}})
+
+
+def test_accessor_fingerprint_requires_a_known_accessor():
+    """proves: an accessor_fingerprint probe whose accessor is missing, empty,
+    or off the three-name get-family surface is an authoring fault caught
+    before the engine runs — in the top-level list and inside steps alike."""
+    for accessor in (None, "", "get_rules", "interp"):
+        probe = {"id": "p", "kind": "accessor_fingerprint"}
+        if accessor is not None:
+            probe["accessor"] = accessor
+        assert "accessor" in validate_case({**VALID, "probes": [probe]}), accessor
+    bad_step = {**VALID_STEPS, "steps": [
+        {"id": "s", "op": "reset",
+         "probes": [{"id": "p", "kind": "accessor_fingerprint",
+                     "accessor": "get_rules"}]}]}
+    assert "accessor" in validate_case(bad_step)
+    ok = {**VALID, "probes": [
+        {"id": "p", "kind": "accessor_fingerprint", "accessor": "rules"}]}
+    assert validate_case(ok) is None
+
+
+def test_accessor_fingerprint_needs_no_reason_block():
+    """proves: accessor_fingerprint probes validate without an inputs.reason
+    block — the accessors' before-any-reason returns (None / a raise) are
+    themselves the compared observations."""
+    case = {"id": "c", "inputs": {}, "probes": [
+        {"id": "r", "kind": "accessor_fingerprint", "accessor": "rules"},
+        {"id": "i", "kind": "accessor_fingerprint", "accessor": "interpretation",
+         "allow_raise": True}]}
+    assert validate_case(case) is None
+
+
+def test_accessor_fingerprint_renders_the_three_accessors():
+    """proves: the fingerprint reduces each accessor's return to comparable
+    data — None passes through untouched, a rule list becomes per-rule dicts
+    carrying the ordered clause list, and the program/interpretation branches
+    carry presence plus identity-with-the-reason-return, so an engine handing
+    back a copy instead of the live object cannot compare equal."""
+    from harness.capture import run_probe
+
+    clause = ("edge", SimpleNamespace(get_value=lambda: "Friends"),
+              ["x", "y"], [1, 1], "")
+    rule = SimpleNamespace(
+        get_rule_name=lambda: "r1", get_rule_type=lambda: "node",
+        get_target=lambda: SimpleNamespace(get_value=lambda: "popular"),
+        get_head_variables=lambda: ["x"], get_delta=lambda: 1,
+        get_bnd=lambda: [1, 1], get_clauses=lambda: [clause])
+    interp = SimpleNamespace(time=2)
+    program = SimpleNamespace(interp=interp)
+    pr = SimpleNamespace(get_rules=lambda: [rule],
+                         get_logic_program=lambda: program,
+                         get_interpretation=lambda: interp)
+
+    def probe(accessor):
+        return {"id": "p", "kind": "accessor_fingerprint", "accessor": accessor}
+
+    assert run_probe(pr, interp, probe("rules")) == [
+        {"name": "r1", "type": "node", "target": "popular",
+         "head_variables": ["x"], "delta": 1, "bnd": [1, 1],
+         "clauses": [["edge", "Friends", ["x", "y"], [1, 1], ""]]}]
+    assert run_probe(pr, interp, probe("logic_program")) == {
+        "interp_present": True, "interp_is_reason_return": True}
+    assert run_probe(pr, None, probe("logic_program")) == {
+        "interp_present": True, "interp_is_reason_return": False}
+    assert run_probe(pr, interp, probe("interpretation")) == {
+        "time": 2, "is_reason_return": True}
+
+    pr_bare = SimpleNamespace(get_rules=lambda: None,
+                              get_logic_program=lambda: None,
+                              get_interpretation=lambda: None)
+    assert run_probe(pr_bare, None, probe("rules")) is None
+    assert run_probe(pr_bare, None, probe("logic_program")) is None
+    assert run_probe(pr_bare, None, probe("interpretation")) is None
+    program.interp = None
+    assert run_probe(pr, None, probe("logic_program")) == {
+        "interp_present": False, "interp_is_reason_return": None}
+
+
+def test_save_rule_trace_folder_must_stay_confined():
+    """proves: a save_rule_trace folder that is absolute, path-separated,
+    '..', empty, or a non-string is refused before the engine runs — an
+    engine-written trace file can never land outside the per-capture
+    directory — while a plain segment and the folder-less default validate."""
+    good = {**VALID, "inputs": {"reason": {}}}
+    for folder in ("/abs", "a/b", "..", ".", "", 3):
+        bad = {**good, "probes": [
+            {"id": "p", "kind": "save_rule_trace", "folder": folder}]}
+        assert "folder" in validate_case(bad), folder
+    ok_plain = {**good, "probes": [
+        {"id": "p", "kind": "save_rule_trace", "folder": "traces"}]}
+    assert validate_case(ok_plain) is None
+    ok_default = {**good, "probes": [{"id": "p", "kind": "save_rule_trace"}]}
+    assert validate_case(ok_default) is None
+
+
+def test_save_rule_trace_probe_requires_a_reason():
+    """proves: save_rule_trace consumes the interpretation like the trace-view
+    probes — without an inputs.reason block (or a preceding reason step) the
+    case is an authoring fault naming the probe."""
+    case = {"id": "c", "inputs": {},
+            "probes": [{"id": "p", "kind": "save_rule_trace"}]}
+    assert "reason" in validate_case(case)
+
+
+def test_save_rule_trace_probe_confines_the_capture_cwd():
+    """proves: a case carrying a save_rule_trace probe gets the confined
+    per-capture working directory — the pinned default folder is the cwd, so
+    without confinement the engine would write CSVs into the repo root."""
+    from harness.capture import case_wants_output_dir
+
+    case = {**VALID, "inputs": {"reason": {}},
+            "probes": [{"id": "p", "kind": "save_rule_trace"}]}
+    assert case_wants_output_dir(case)
+
+
+def test_save_rule_trace_probe_calls_engine_and_reads_back(tmp_path, monkeypatch):
+    """proves: the probe hands the engine the pinned default (no folder arg)
+    or the named subdirectory it creates first, then returns the written CSVs
+    sorted by name with the reason-time stamp reduced to '<timestamp>' and
+    contents verbatim — the compared observation is the files themselves."""
+    from harness.capture import run_probe
+
+    monkeypatch.chdir(tmp_path)
+    calls = []
+
+    def save_rule_trace(interpretation, folder=None):
+        target = tmp_path if folder is None else tmp_path / folder
+        calls.append((interpretation, folder))
+        (target / "rule_trace_nodes_20260707-014926.csv").write_text("nodes\n")
+        (target / "rule_trace_edges_20260707-014926.csv").write_text("edges\n")
+
+    pr = SimpleNamespace(save_rule_trace=save_rule_trace)
+    default = run_probe(pr, "interp", {"id": "p", "kind": "save_rule_trace"})
+    assert calls == [("interp", None)]
+    assert default == [
+        {"name": "rule_trace_edges_<timestamp>.csv", "content": "edges\n"},
+        {"name": "rule_trace_nodes_<timestamp>.csv", "content": "nodes\n"},
+    ]
+    sub = run_probe(pr, "interp", {"id": "p", "kind": "save_rule_trace",
+                                   "folder": "traces"})
+    assert calls[1] == ("interp", "traces")
+    assert (tmp_path / "traces").is_dir()
+    assert [f["name"] for f in sub] == [
+        "rule_trace_edges_<timestamp>.csv", "rule_trace_nodes_<timestamp>.csv"]
 
 
 def test_run_case_routes_graphml_path_through_load_graphml(monkeypatch):
