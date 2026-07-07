@@ -1,9 +1,14 @@
 """Graph loading and graph-attribute parsing over the explicit state.
 
-Behavior target: the pinned `load_graph` path (oracle pyreason.py:589-608 +
-scripts/utils/graphml_parser.py). Loading copies the caller's graph into a
-fresh DiGraph and — when `graph_attribute_parsing` is on — reduces every
-node/edge attribute to one graph-attribute fact plus a specific-label entry:
+Behavior target: the pinned `load_graph` and `load_graphml` paths (oracle
+pyreason.py:569-608 + scripts/utils/graphml_parser.py). `load_graph` copies
+the caller's graph into a fresh DiGraph; `load_graphml` reads a GraphML file
+through networkx's `read_graphml` (typed values ride the file's attr.type
+declarations), coerces to DiGraph, and — only on this path — reverses every
+edge when the `reverse_digraph` knob is on (graphml_parser.py:15-20; the
+pinned `load_graph` never consults that knob). Either way, when
+`graph_attribute_parsing` is on the load reduces every node/edge attribute
+to one graph-attribute fact plus a specific-label entry:
 
 - a numeric (or numeric-string) value v in [0,1] becomes label `key` with
   bound [v, 1];
@@ -98,9 +103,23 @@ def parse_graph_attributes(graph, static_facts):
     return facts_node, facts_edge, specific_node_labels, specific_edge_labels
 
 
-def load_graph(state, graph) -> None:
-    """Load a networkx DiGraph into the state — copy, then attribute-parse."""
-    state.graph = nx.DiGraph(graph)
+def parse_graphml(graph_path, reverse):
+    """A GraphML file to the engine's DiGraph — the pinned parse
+    (graphml_parser.py:15-20): read_graphml, coerce to DiGraph, then reverse
+    every edge when asked. read_graphml types each value by the file's
+    attr.type key, so the attribute coercion ladder downstream sees ints,
+    floats, and strings exactly as the pin does."""
+    graph = nx.read_graphml(graph_path)
+    graph = nx.DiGraph(graph)
+    if reverse:
+        graph = graph.reverse()
+    return graph
+
+
+def _parse_attributes_under_settings(state) -> None:
+    """The shared post-load branch (pyreason.py:579-586/:601-608): parse
+    attributes into the four graph-fact products, or leave all four empty
+    when the knob is off."""
     if state.settings.graph_attribute_parsing:
         (state.graph_facts_node, state.graph_facts_edge,
          state.specific_graph_node_labels, state.specific_graph_edge_labels) = \
@@ -110,3 +129,18 @@ def load_graph(state, graph) -> None:
         state.graph_facts_edge = []
         state.specific_graph_node_labels = {}
         state.specific_graph_edge_labels = {}
+
+
+def load_graph(state, graph) -> None:
+    """Load a networkx DiGraph into the state — copy, then attribute-parse.
+    Deliberately never reads reverse_digraph (pyreason.py:589-599 carries no
+    read — the pinned load-path knob asymmetry)."""
+    state.graph = nx.DiGraph(graph)
+    _parse_attributes_under_settings(state)
+
+
+def load_graphml(state, graph_path) -> None:
+    """Load a GraphML file into the state — parse (reversing under the
+    reverse_digraph knob, read at load time), then attribute-parse."""
+    state.graph = parse_graphml(graph_path, state.settings.reverse_digraph)
+    _parse_attributes_under_settings(state)

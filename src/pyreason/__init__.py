@@ -127,6 +127,13 @@ def add_fact_from_csv(csv_path: str, raise_errors=True) -> None:
     _loaders.add_fact_from_csv(_state_obj, csv_path, raise_errors)
 
 
+def load_graphml(path: str) -> None:
+    """Load a GraphML file into the engine (edges reversed when
+    reverse_digraph is on — read at load time, unlike load_graph; attributes
+    parsed into graph facts under the graph_attribute_parsing knob)."""
+    _graph.load_graphml(_state_obj, path)
+
+
 def load_graph(graph: nx.DiGraph) -> None:
     """Load a networkx DiGraph into the engine (copied; attributes parsed
     into graph facts under the graph_attribute_parsing knob)."""

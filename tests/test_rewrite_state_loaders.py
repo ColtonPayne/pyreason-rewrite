@@ -6,11 +6,15 @@ malformed cases (rules-from-file-malformed, rule-from-csv-malformed,
 rule-from-json-malformed, fact-from-csv-malformed, fact-from-json-malformed):
 message text verbatim, partial-load state observed through the rule list —
 the same seam the harness fingerprints. Loader tests write their own files
-via tmp_path so they exercise the real file I/O path.
+via tmp_path so they exercise the real file I/O path; the happy-path tests
+load the committed harness fixtures instead — the same files the five
+*-basic equivalence cases load.
 """
 
 import json
+from pathlib import Path
 
+import networkx as nx
 import pytest
 
 import pyreason
@@ -401,3 +405,104 @@ def test_fact_json_malformed_arms(state, tmp_path):
                 "duplicate - all fact names must be unique.",
                 lambda: _loaders.add_fact_from_json(state, str(dup)))
     assert [f.name for f in state.node_facts] == ["dup"]
+
+
+# --- loader happy paths over the committed harness fixtures ---
+# The same files the equivalence cases load — the seam under test is the one
+# the harness fingerprints; expectations cross-checked against the banked
+# session-15 oracle artifacts for the five *-basic loader cases.
+
+FIXTURES = Path(__file__).resolve().parent.parent / "harness" / "fixtures"
+
+
+def _fact_shape(f):
+    return (f.name, str(f.pred), f.component, str(f.bound),
+            f.start_time, f.end_time, f.static)
+
+
+def test_fact_csv_happy_fixture_rows_reach_the_state(state):
+    """proves: over the committed facts.csv fixture the exact-match header
+    row is skipped, a quoted comma-bearing cell parses as one edge fact with
+    its interval bound, an all-empty-params row auto-names fact_2 through
+    the shared node+edge counter with truthy 'yes' static, and a two-field
+    short row pads to defaults (start/end 0, static False)."""
+    _loaders.add_fact_from_csv(state, str(FIXTURES / "facts.csv"))
+    assert [_fact_shape(f) for f in state.node_facts] == [
+        ("csv-popular", "popular", "Mary", "[1.0,1.0]", 0, 2, False),
+        ("fact_2", "special", "Justin", "[1.0,1.0]", 0, 0, True),
+        ("csv-short", "seen", "Dog", "[1.0,1.0]", 0, 0, False),
+    ]
+    assert [_fact_shape(f) for f in state.edge_facts] == [
+        ("csv-edge", "Friends", ("John", "Mary"), "[0.9,1.0]", 0, 2, False),
+    ]
+
+
+def test_fact_json_happy_fixture_items_reach_the_state(state, capsys):
+    """proves: over the committed facts.json fixture a named windowed fact,
+    an unnamed bounded fact auto-named fact_1, and a static boolean fact all
+    load with their declared windows/bounds — and the closing loaded-count
+    print is unconditional (pyreason.py:1290, the one loader not gated on
+    verbose)."""
+    _loaders.add_fact_from_json(state, str(FIXTURES / "facts.json"))
+    assert [_fact_shape(f) for f in state.node_facts] == [
+        ("json-popular", "popular", "Mary", "[1.0,1.0]", 0, 2, False),
+        ("fact_1", "special", "John", "[0.7,1.0]", 1, 2, False),
+        ("json-static", "special", "Justin", "[1.0,1.0]", 0, 0, True),
+    ]
+    assert state.edge_facts == []
+    assert "Loaded 3 facts" in capsys.readouterr().out
+
+
+def test_rule_csv_happy_fixture_rows_reach_the_state(state):
+    """proves: over the committed rules.csv fixture the exact-match header
+    row is skipped and three rules load in row order — a full row whose
+    explicit [0.5,1] bound rides its body clause, an all-empty-params row
+    auto-named rule_1 through add_rule, and a quoted comma-bearing row with
+    infer_edges 'yes' coerced true (an edge-target rule)."""
+    _loaders.add_rule_from_csv(state, str(FIXTURES / "rules.csv"))
+    assert [r.get_rule_name() for r in state.rules] == [
+        "csv_full", "rule_1", "csv_quoted"]
+    full = state.rules[0]
+    assert str(full.get_clauses()[0][3]) == "[0.5,1.0]"
+    assert state.rules[2].get_rule_type() == "edge"
+
+
+def test_rule_json_happy_fixture_items_reach_the_state(state):
+    """proves: over the committed rules.json fixture all four accepted item
+    forms load in item order — a plain rule, custom_thresholds in the list
+    form, the dict form (string clause-index key '1' parsed to int, the
+    unnamed clause 0 defaulted), and a weights list replacing the default
+    per-clause 1.0."""
+    _loaders.add_rule_from_json(state, str(FIXTURES / "rules.json"))
+    assert [r.get_rule_name() for r in state.rules] == [
+        "json_basic", "json_thresh_list", "json_thresh_dict", "json_weights"]
+    assert state.rules[1].get_thresholds() == [
+        ("greater_equal", ("number", "total"), 1)]
+    assert state.rules[2].get_thresholds() == [
+        ("greater_equal", ("number", "total"), 1.0),
+        ("greater_equal", ("percent", "total"), 100)]
+    assert list(state.rules[3].get_weights()) == [2.0]
+
+
+def test_rules_from_file_happy_rules_reach_reasoning(monkeypatch):
+    """proves: the committed rules-multi.txt fixture's comment and blank
+    lines are skipped, its two rules load as rule_0/rule_1 (zero offset —
+    no rule preloaded), and the loaded rules actually drive reasoning:
+    popular(A) derives trendy(A) at t=1 and influencer(A) at t=2 through
+    the file-loaded chain."""
+    fresh = EngineState()
+    fresh.settings.verbose = False
+    fresh.settings.atom_trace = True
+    monkeypatch.setattr(pyreason, "_state_obj", fresh)
+    monkeypatch.setattr(pyreason, "settings", fresh.settings)
+    g = nx.DiGraph()
+    g.add_nodes_from(["A"])
+    pyreason.load_graph(g)
+    pyreason.add_rules_from_file(str(FIXTURES / "rules-multi.txt"))
+    assert [r.get_rule_name() for r in fresh.rules] == ["rule_0", "rule_1"]
+    pyreason.add_fact(pyreason.Fact("popular(A)", "pop", 0, 2))
+    interp = pyreason.reason(timesteps=2)
+    frames = pyreason.filter_and_sort_nodes(interp, ["trendy", "influencer"])
+    rows = [[list(r) for r in f.itertuples(index=False, name=None)] for f in frames]
+    assert rows[1] == [["A", [1.0, 1.0], [0, 1]]]
+    assert rows[2] == [["A", [1.0, 1.0], [1.0, 1.0]]]
