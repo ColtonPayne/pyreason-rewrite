@@ -1,0 +1,41 @@
+{
+  "id": "abort-on-inconsistency-default",
+  "purpose": "settings.abort_on_inconsistency left unset on an inconsistency-triggering program (IPL conflict sick/healthy on Alice plus a same-predicate bound conflict on Bob): the knob readback pins the default False (pyreason.py:70), and the conflicts are resolved by the inconsistency_check=True default path with the resolution visible in the trace's Consistent / Inconsistency Message columns — the baseline twin whose reasoning probe digests abort-on-inconsistency-on matched at authoring (the harness judges each case within one knob position).",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md setting:abort_on_inconsistency; inconsistency-ipl-resolve program with the knob readback, inconsistency_check left at default",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:add_inconsistent_predicate",
+    "fn:reason", "fn:filter_and_sort_nodes", "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:abort_on_inconsistency", "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true},
+    "graph": {
+      "nodes": ["Alice", "Bob", "Carol"],
+      "edges": [
+        ["Alice", "Bob", {"contact": 1}],
+        ["Bob", "Carol", {"contact": 1}]
+      ]
+    },
+    "ipl": [["sick", "healthy"]],
+    "rules": [
+      {"text": "sick(y):[0.5,0.7] <- sick(x):[0.5,1.0], contact(x,y)", "name": "spread_rule"}
+    ],
+    "facts": [
+      {"text": "sick(Alice):[0.8,1.0]", "name": "alice_sick_fact", "start": 0, "end": 0},
+      {"text": "healthy(Alice):[0.9,1.0]", "name": "alice_healthy_fact", "start": 0, "end": 0},
+      {"text": "tired(Bob):[0.8,1.0]", "name": "bob_tired_fact_1", "start": 0, "end": 0},
+      {"text": "tired(Bob):[0.0,0.1]", "name": "bob_tired_fact_2", "start": 0, "end": 0}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "nodes-sick-healthy-tired", "kind": "filter_sort_nodes", "labels": ["sick", "healthy", "tired"]},
+    {"id": "trace-node", "kind": "rule_trace_node"},
+    {"id": "trace-edge", "kind": "rule_trace_edge"},
+    {"id": "time", "kind": "get_time"},
+    {"id": "abort-knob", "kind": "get_setting", "knob": "abort_on_inconsistency"}
+  ],
+  "comparison": {"probes": {}}
+}

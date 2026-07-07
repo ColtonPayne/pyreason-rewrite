@@ -1,0 +1,44 @@
+{
+  "id": "canonical-on",
+  "purpose": "settings.canonical=True set alone, persistent never touched, on the exact persistent-on program: canonical is a pure alias — the setter writes self.__persistent (pyreason.py:357) and the getter returns self.__persistent (pyreason.py:167), no __canonical field exists — so the persistent readback flips to true and the per-timestep bound reset (interpretation.py:260) is skipped exactly as under persistent=True (reasoning probe digests matched persistent-on's at authoring; the harness judges each case within one knob position) — the alias-of-persistent class. The naming-mismatch class (the value rides into Program under the parameter name canonical, pyreason.py:1609) is source-level only, not observable at this seam.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md setting:canonical alias-of-persistent; persistent-on program with both-knob readbacks",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason",
+    "fn:filter_and_sort_nodes", "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:canonical", "setting:persistent", "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true, "canonical": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 0},
+      {"text": "special(Dog)", "name": "special_fact", "start": 0, "end": 0, "static": true}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "nodes-popular-special", "kind": "filter_sort_nodes", "labels": ["popular", "special"]},
+    {"id": "interp-dict", "kind": "interpretation_dict"},
+    {"id": "trace-node", "kind": "rule_trace_node"},
+    {"id": "time", "kind": "get_time"},
+    {"id": "canonical-knob", "kind": "get_setting", "knob": "canonical"},
+    {"id": "persistent-knob", "kind": "get_setting", "knob": "persistent"}
+  ],
+  "comparison": {"probes": {}}
+}

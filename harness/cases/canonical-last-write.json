@@ -1,0 +1,44 @@
+{
+  "id": "canonical-last-write",
+  "purpose": "settings.persistent=True written first, then settings.canonical=False (the capture applies inputs.settings knobs in case order): canonical's setter writes the shared self.__persistent field (pyreason.py:357), so the later canonical write overturns the earlier persistent one — both readbacks return false and the per-timestep bound reset (interpretation.py:260) runs exactly as under an untouched default (reasoning probe digests matched persistent-off's at authoring; the harness judges each case within one knob position) — the last-write-wins class on the one-field alias pair.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md setting:canonical last-write-wins; persistent-off program with both-knob readbacks",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason",
+    "fn:filter_and_sort_nodes", "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:canonical", "setting:persistent", "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true, "persistent": true, "canonical": false},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 0},
+      {"text": "special(Dog)", "name": "special_fact", "start": 0, "end": 0, "static": true}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "nodes-popular-special", "kind": "filter_sort_nodes", "labels": ["popular", "special"]},
+    {"id": "interp-dict", "kind": "interpretation_dict"},
+    {"id": "trace-node", "kind": "rule_trace_node"},
+    {"id": "time", "kind": "get_time"},
+    {"id": "canonical-knob", "kind": "get_setting", "knob": "canonical"},
+    {"id": "persistent-knob", "kind": "get_setting", "knob": "persistent"}
+  ],
+  "comparison": {"probes": {}}
+}
