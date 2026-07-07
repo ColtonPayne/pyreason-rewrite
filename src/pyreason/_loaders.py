@@ -15,10 +15,12 @@ reads through the stdlib csv module and reproduces the observable pandas
 behaviors the banked artifacts pin: the wrapped 'CSV file not found' /
 'Error reading CSV file' / empty-file-warn arms, blank-line skipping, and
 the C-tokenizer message for a row with more fields than the first row
-(hand-matched text, see _TOKENIZER_MSG). A row with FEWER fields than the
-first row is padded with '' here; the pinned pandas path pads with NaN — no
-committed case exercises a ragged-short row, and the gap is recorded in the
-packet report rather than guessed at.
+(hand-matched text, see _TOKENIZER_MSG; the message's line number is the
+record ordinal, see _numbered_rows). A row with FEWER fields than the first
+row is padded with '' here, matching the pinned pandas read
+(keep_default_na=False reads missing trailing cells as '', not NaN —
+verified empirically: a short row missing its name cell autonames rule_<n>
+identically in both engines; session-16 review probe).
 """
 
 import csv
@@ -67,10 +69,15 @@ def _read_csv_rows(csv_path):
 
 
 def _numbered_rows(reader):
-    """Each parsed row with the physical line number it ended on — the
-    number the pinned tokenizer message reports."""
-    for row in reader:
-        yield reader.line_num, row
+    """Each parsed row with the line number the pinned tokenizer message
+    reports: the record ordinal, NOT the physical line — a blank line counts
+    one record, a quoted field spanning physical lines counts once (verified
+    against the pinned pandas C tokenizer: 'line 2' for a wide row after a
+    two-physical-line quoted record, 'line 5' after three blank lines;
+    csv.reader.line_num counts physical lines and diverges on quoted
+    multi-line records)."""
+    for record_ordinal, row in enumerate(reader, start=1):
+        yield record_ordinal, row
 
 
 def _read_csv(csv_path, kind: str):
@@ -84,9 +91,13 @@ def _read_csv(csv_path, kind: str):
     except _EmptyCsvError:
         warnings.warn(f"CSV file {csv_path} is empty, no {kind} loaded")
         return None
-    except (_TokenizeError, csv.Error, OSError) as e:
+    except (_TokenizeError, csv.Error, OSError, UnicodeDecodeError) as e:
         # The pinned loader wraps any other read fault into ValueError
-        # (pyreason.py:795-796/:1340-1341).
+        # (pyreason.py:795-796/:1340-1341). UnicodeDecodeError must be named
+        # here: it subclasses ValueError, so without it a non-UTF8 file's
+        # decode fault would propagate raw instead of taking the pinned wrap
+        # (the codec text itself matches the oracle's byte-for-byte —
+        # session-16 review probe).
         raise ValueError(f"Error reading CSV file {csv_path}: {e}")
 
 

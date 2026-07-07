@@ -7,6 +7,7 @@ oracle-env/
 # Harness run artifacts — rebuildable; verdicts of record bank in the ledger
 results/
 results-phase3-slice1/
+results-phase3-slice1-review/
 
 # Caches / rebuildable local state
 __pycache__/

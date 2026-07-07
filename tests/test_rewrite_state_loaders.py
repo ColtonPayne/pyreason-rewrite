@@ -230,6 +230,54 @@ def test_rule_csv_wide_row_raises_pinned_tokenizer_text(state, tmp_path):
     assert state.rules is None
 
 
+def test_rule_csv_tokenizer_line_is_record_ordinal_not_physical_line(state, tmp_path):
+    """proves: the tokenizer message's line number counts records — a quoted
+    field spanning two physical lines counts once, so the wide second record
+    reports 'line 2' (pinned pandas semantics, verified against the oracle
+    env in the session-16 review; reader.line_num would say 3)."""
+    path = tmp_path / "rules.csv"
+    path.write_text('"n(x)<-\no(x)",r9,,\n'
+                    "q(x)<-s(x),r10,,extra,\n")
+    _raises_msg(ValueError,
+                f"Error reading CSV file {path}: Error tokenizing data. "
+                "C error: Expected 4 fields in line 2, saw 5\n",
+                lambda: _loaders.add_rule_from_csv(state, str(path)))
+
+
+def test_rule_csv_blank_lines_count_in_tokenizer_line_number(state, tmp_path):
+    """proves: skipped blank lines still advance the tokenizer message's
+    record count — a wide row after three blank lines reports 'line 5'
+    (pinned pandas semantics, verified against the oracle env)."""
+    path = tmp_path / "rules.csv"
+    path.write_text("a(x)<-b(x),r1,,\n\n\n\nc(x)<-d(x),r2,,extra,\n")
+    _raises_msg(ValueError,
+                f"Error reading CSV file {path}: Error tokenizing data. "
+                "C error: Expected 4 fields in line 5, saw 5\n",
+                lambda: _loaders.add_rule_from_csv(state, str(path)))
+
+
+def test_rule_csv_short_row_pads_empty_missing_name_autogenerates(state, tmp_path):
+    """proves: a row with fewer fields than the first row pads with '' —
+    its missing name cell autonames rule_<n>, never a 'nan' name (pinned
+    pandas keep_default_na=False read, verified against the oracle env)."""
+    path = tmp_path / "rules.csv"
+    path.write_text("a(x)<-b(x),namedrow,,\nz(x)<-y(x)\n")
+    _loaders.add_rule_from_csv(state, str(path))
+    assert [r.get_rule_name() for r in state.rules] == ["namedrow", "rule_1"]
+
+
+def test_rule_csv_non_utf8_file_takes_the_pinned_valueerror_wrap(state, tmp_path):
+    """proves: a non-UTF8 CSV raises ValueError('Error reading CSV file
+    ...: <codec text>') — the pinned wrap, never a raw UnicodeDecodeError
+    (codec text verified equal against the oracle env)."""
+    path = tmp_path / "rules.csv"
+    path.write_bytes(b"a(x)<-b(x),r1,,\n\xff\xfe bad bytes,r2,,\n")
+    _raises_msg(ValueError,
+                f"Error reading CSV file {path}: 'utf-8' codec can't decode "
+                "byte 0xff in position 16: invalid start byte",
+                lambda: _loaders.add_rule_from_csv(state, str(path)))
+
+
 def test_rule_csv_exact_header_row_is_skipped(state, tmp_path):
     """proves: a first row exactly matching the pinned header is skipped and
     row numbering still starts the first data row at Row 2."""
