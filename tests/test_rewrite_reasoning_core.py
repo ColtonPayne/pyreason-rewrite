@@ -495,3 +495,291 @@ def test_store_off_flips_atom_trace_and_gates_views(pr):
         'store interpretation changes setting is off, turn on to save rule trace')
     with pytest.raises(AssertionError):
         pr.filter_and_sort_nodes(interp, ['pop'])
+
+
+# --- the knob-arm semantics (session 19) ---
+
+def _conflict_program(pr, inconsistency_check=None):
+    """The inconsistency-ipl-resolve program: sick/healthy declared IPL,
+    both asserted on Alice (IPL conflict), tired(Bob) asserted with two
+    non-overlapping bounds (same-predicate conflict)."""
+    if inconsistency_check is not None:
+        pyreason._state_obj.settings.inconsistency_check = inconsistency_check
+    g = nx.DiGraph()
+    g.add_nodes_from(["Alice", "Bob", "Carol"])
+    g.add_edge("Alice", "Bob", contact=1)
+    g.add_edge("Bob", "Carol", contact=1)
+    pr.load_graph(g)
+    pr.add_inconsistent_predicate("sick", "healthy")
+    pr.add_rule(Rule("sick(y):[0.5,0.7] <- sick(x):[0.5,1.0], contact(x,y)", "spread_rule"))
+    pr.add_fact(Fact("sick(Alice):[0.8,1.0]", "alice_sick_fact", 0, 0))
+    pr.add_fact(Fact("healthy(Alice):[0.9,1.0]", "alice_healthy_fact", 0, 0))
+    pr.add_fact(Fact("tired(Bob):[0.8,1.0]", "bob_tired_fact_1", 0, 0))
+    pr.add_fact(Fact("tired(Bob):[0.0,0.1]", "bob_tired_fact_2", 0, 0))
+    return pr.reason(timesteps=2)
+
+
+def test_inconsistency_resolve_pins_vacuous_static_with_message(pr):
+    """proves: under the default inconsistency_check=True, an IPL conflict
+    and a same-predicate bound conflict each bank a Consistent=False trace
+    row carrying the pinned message, pin the atom (and its IPL complement)
+    to static [0,1], and the pinned static bounds stop all later derivation
+    (interpretation.py:1960-2083; banked inconsistency-ipl-resolve)."""
+    interp = _conflict_program(pr)
+    node_frame, _ = pr.get_rule_trace(interp)
+    rows = [list(r) for r in node_frame.itertuples(index=False, name=None)]
+    # (label, new bound, consistent, triggered by) per row, banked shape
+    assert [(r[3], r[5], r[7], r[8]) for r in rows] == [
+        ('sick', '[0.8,1.0]', True, 'Fact'),
+        ('healthy', '[0.0,0.19999999999999996]', True, 'IPL'),
+        ('healthy', '[0.0,1.0]', False, 'Fact'),
+        ('sick', '[0.0,1.0]', False, 'IPL'),
+        ('tired', '[0.8,1.0]', True, 'Fact'),
+        ('tired', '[0.0,1.0]', False, 'Fact'),
+    ]
+    assert rows[2][9] == ('Inconsistency occurred. Grounding healthy(Alice) '
+                          'conflicts with grounding sick(Alice). Setting bounds '
+                          'to [0,1] and static=True for this timestep.')
+    assert rows[5][9] == ('Inconsistency occurred. Conflicting bounds for '
+                          'tired(Bob). Update from [0.800, 1.000] to '
+                          '[0.000, 0.100] is not allowed. Setting bounds to '
+                          '[0,1] and static=True for this timestep.')
+    # Static [0,1] sick(Alice) satisfies no clause bound: nothing derives,
+    # perfect convergence fires at t=0.
+    assert pr.get_time() == 1
+    frames = pr.filter_and_sort_nodes(interp, ['sick', 'healthy', 'tired'])
+    assert [list(r) for r in frames[0].itertuples(index=False, name=None)] == [
+        ['Alice', [0, 1], [0, 1], [0, 1]],
+        ['Bob', [0, 1], [0, 1], [0, 1]],
+    ]
+
+
+def test_inconsistency_override_forces_bounds_through(pr):
+    """proves: inconsistency_check=False forces a conflicting update through
+    the override path instead of resolving — the second bound replaces the
+    first wholesale (yielding the pinned INVERTED sick(Alice) interval
+    [0.8,0.099...] via IPL), every row stays Consistent=True, and the rule
+    still fires down the chain (interpretation.py:311-323 override arm;
+    banked inconsistency-ipl-override)."""
+    interp = _conflict_program(pr, inconsistency_check=False)
+    node_frame, _ = pr.get_rule_trace(interp)
+    rows = [list(r) for r in node_frame.itertuples(index=False, name=None)]
+    assert all(r[7] is True for r in rows)
+    assert [(r[2], r[3], r[5]) for r in rows[:6]] == [
+        ('Alice', 'sick', '[0.8,1.0]'),
+        ('Alice', 'healthy', '[0.0,0.19999999999999996]'),
+        ('Alice', 'healthy', '[0.9,1.0]'),
+        ('Alice', 'sick', '[0.8,0.09999999999999998]'),
+        ('Bob', 'tired', '[0.8,1.0]'),
+        ('Bob', 'tired', '[0.0,0.1]'),
+    ]
+    # The forced-through sick(Alice) still satisfies the [0.5,1] clause
+    # lower bound check, so sick spreads to Bob and Carol at fp 1 and 2.
+    assert [(r[0], r[1], r[2], r[3]) for r in rows[6:]] == [
+        (0, 1, 'Bob', 'sick'), (0, 1, 'Bob', 'healthy'),
+        (0, 2, 'Carol', 'sick'), (0, 2, 'Carol', 'healthy'),
+    ]
+
+
+def test_abort_on_inconsistency_is_dead_at_the_pin(pr):
+    """proves: abort_on_inconsistency=True changes NOTHING but its own
+    readback — the conflict program resolves identically to the default arm
+    and nothing aborts (the knob's name appears only inside the pinned
+    _Settings, pyreason.py:49/:70/:118-123/:284-294; banked
+    abort-on-inconsistency-on digest-equals its default twin)."""
+    baseline = _conflict_program(pr)
+    base_frame, _ = pr.get_rule_trace(baseline)
+    base_rows = [list(r) for r in base_frame.itertuples(index=False, name=None)]
+
+    fresh = EngineState()
+    fresh.settings.verbose = False
+    fresh.settings.atom_trace = True
+    fresh.settings.abort_on_inconsistency = True
+    import unittest.mock as mock
+    with mock.patch.object(pyreason, "_state_obj", fresh), \
+            mock.patch.object(pyreason, "settings", fresh.settings):
+        interp = _conflict_program(pr)
+        assert pyreason.settings.abort_on_inconsistency is True
+        frame, _ = pr.get_rule_trace(interp)
+        rows = [list(r) for r in frame.itertuples(index=False, name=None)]
+    assert rows == base_rows
+
+
+def _update_mode_program(pr, update_mode=None):
+    """The update-mode twin program: two same-atom wide(A) facts, a rule
+    whose clause bound [0.1,1] discriminates intersect from override."""
+    if update_mode is not None:
+        pyreason._state_obj.settings.update_mode = update_mode
+    g = nx.DiGraph()
+    g.add_nodes_from(["A", "B"])
+    g.add_edge("A", "B", rel=1)
+    pr.load_graph(g)
+    pr.add_rule(Rule("derived(y) <-1 wide(x):[0.1,1.0], rel(x,y)", "derived_rule"))
+    pr.add_fact(Fact("wide(A):[0.2,1.0]", "wide_fact_1", 0, 0))
+    pr.add_fact(Fact("wide(A):[0.0,0.8]", "wide_fact_2", 0, 0))
+    return pr.reason(timesteps=2)
+
+
+def test_update_mode_default_intersects_same_atom_facts(pr):
+    """proves: under the default update_mode='intersection' two same-atom
+    facts intersect ([0.2,1] then [0,0.8] -> [0.2,0.8]), which satisfies the
+    rule's [0.1,1] clause bound so derived(B) appears at t=1
+    (world.update at the pin; banked update-mode-default)."""
+    interp = _update_mode_program(pr)
+    frames = pr.filter_and_sort_nodes(interp, ['wide', 'derived'])
+    assert [list(r) for r in frames[0].itertuples(index=False, name=None)] == [
+        ['A', [0.2, 0.8], [0, 1]]]
+    assert [list(r) for r in frames[1].itertuples(index=False, name=None)] == [
+        ['B', [0, 1], [1, 1]]]
+
+
+def test_update_mode_override_replaces_bounds_wholesale(pr):
+    """proves: update_mode='override' replaces bounds instead of
+    intersecting (set_lower_upper vs world.update at the pin): the second
+    fact wins ([0,0.8]), its lower bound fails the [0.1,1] clause bound, and
+    derived(B) never appears (banked update-mode-override)."""
+    interp = _update_mode_program(pr, update_mode='override')
+    frames = pr.filter_and_sort_nodes(interp, ['wide', 'derived'])
+    assert [list(r) for r in frames[0].itertuples(index=False, name=None)] == [
+        ['A', [0, 0.8], [0, 1]]]
+    assert all(f.empty for f in frames[1:])
+
+
+def test_update_mode_junk_string_behaves_as_intersection(pr):
+    """proves: the update_mode setter type-checks only, so an unrecognized
+    string silently behaves as intersection (every consumption site is a
+    string-equality against 'override') while the knob reads back the junk
+    verbatim (banked update-mode-junk-string digest-equals its default
+    twin on every reasoning probe)."""
+    interp = _update_mode_program(pr, update_mode='junk')
+    assert pyreason.settings.update_mode == 'junk'
+    frames = pr.filter_and_sort_nodes(interp, ['wide', 'derived'])
+    assert [list(r) for r in frames[0].itertuples(index=False, name=None)] == [
+        ['A', [0.2, 0.8], [0, 1]]]
+    assert [list(r) for r in frames[1].itertuples(index=False, name=None)] == [
+        ['B', [0, 1], [1, 1]]]
+
+
+def _static_graph_facts_program(pr, static_graph_facts=None):
+    """The static-graph-facts twin program: one attributed node + edge under
+    persistent=False, so the stamping decides whether the graph-attribute
+    bounds survive the per-timestep reset."""
+    pyreason._state_obj.settings.persistent = False
+    if static_graph_facts is not None:
+        pyreason._state_obj.settings.static_graph_facts = static_graph_facts
+    g = nx.DiGraph()
+    g.add_node("A", special=1)
+    g.add_node("B")
+    g.add_edge("A", "B", rel=1)
+    pr.load_graph(g)
+    pr.add_rule(Rule("derived(y) <-1 special(x), rel(x,y)", "derived_rule"))
+    return pr.reason(timesteps=2)
+
+
+def test_static_graph_facts_on_escapes_reset_and_rederives(pr):
+    """proves: with the default static_graph_facts=True the generated
+    graph-attribute facts are stamped static at load time
+    (graphml_parser.py:60/90 via pyreason.py:603), so under persistent=False
+    the special/rel bounds escape the per-timestep reset, the rule regrounds
+    every step (derived(B) at t=1 AND t=2), and the regrounding holds
+    perfect convergence open through t=2 (get_time 3; banked
+    static-graph-facts-on)."""
+    interp = _static_graph_facts_program(pr)
+    assert pyreason.settings.static_graph_facts is True
+    assert pr.get_time() == 3
+    frames = pr.filter_and_sort_nodes(interp, ['derived'])
+    assert len(frames) == 3
+    assert [list(r) for r in frames[1].itertuples(index=False, name=None)] == [
+        ['B', [1, 1]]]
+    assert [list(r) for r in frames[2].itertuples(index=False, name=None)] == [
+        ['B', [1, 1]]]
+
+
+def test_static_graph_facts_off_resets_and_converges_earlier(pr):
+    """proves: static_graph_facts=False stamps the graph-attribute facts
+    non-static, so under persistent=False the special/rel bounds reset to
+    [0,1] at every t>0 (interpretation.py:260-273), the rule grounds only at
+    t=0 (derived(B) at t=1 only), and perfect convergence fires a step
+    earlier (get_time 2; banked static-graph-facts-off)."""
+    interp = _static_graph_facts_program(pr, static_graph_facts=False)
+    assert pr.get_time() == 2
+    frames = pr.filter_and_sort_nodes(interp, ['derived'])
+    assert len(frames) == 2
+    assert [list(r) for r in frames[1].itertuples(index=False, name=None)] == [
+        ['B', [1, 1]]]
+
+
+def _hello_world_graph():
+    """The hello-world friends graph (docs/hello-world.py) — the program the
+    fp/parallel twin cases run."""
+    g = nx.DiGraph()
+    g.add_nodes_from(["John", "Mary", "Justin", "Dog", "Cat"])
+    for s, t in (("Justin", "Mary"), ("John", "Mary"), ("John", "Justin")):
+        g.add_edge(s, t, Friends=1)
+    for s, t in (("Mary", "Cat"), ("Justin", "Cat"), ("Justin", "Dog"),
+                 ("John", "Dog")):
+        g.add_edge(s, t, owns=1)
+    return g
+
+
+def _hello_world_run(pr, **settings):
+    for knob, value in settings.items():
+        setattr(pyreason._state_obj.settings, knob, value)
+    pr.load_graph(_hello_world_graph())
+    pr.add_rule(Rule("popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)",
+                     "popular_rule"))
+    pr.add_fact(Fact("popular(Mary)", "popular_fact", 0, 2))
+    return pr.reason(timesteps=2)
+
+
+def test_fp_version_runs_the_pinned_fp_schedule(pr):
+    """proves: fp_version=True selects the fp schedule, whose observable
+    output is the pinned fp variant's, not the default kernel's — fact rows
+    for all timesteps sort before the rule rows their pass produced, trace
+    rows carry the PASS counter (facts and first-pass conclusions at fp 0,
+    the second-pass John derivation at fp 1), the t=2 Justin re-derivation
+    duplicates its Friends grounding (the per-timestep worlds re-enter the
+    shared predicate map each timestep), and the t=2 frame orders
+    [Mary, Justin, John] (banked fp-version-on, interpretation_fp.py:251-807)."""
+    interp = _hello_world_run(pr, fp_version=True)
+    assert pr.get_time() == 3
+    node_frame, _ = pr.get_rule_trace(interp)
+    rows = [list(r) for r in node_frame.itertuples(index=False, name=None)]
+    assert [(r[0], r[1], r[2], r[8]) for r in rows] == [
+        (0, 0, 'Mary', 'Fact'), (1, 0, 'Mary', 'Fact'), (2, 0, 'Mary', 'Fact'),
+        (1, 0, 'Justin', 'Rule'), (2, 0, 'Justin', 'Rule'),
+        (2, 1, 'John', 'Rule'),
+    ]
+    # The pass-0 t=1 grounding sees Mary in the predicate map twice (t=0 and
+    # t=1 fact applications), so the enqueued t=2 conclusion carries the
+    # duplicated qualified edge.
+    assert rows[4][11] == [('Justin', 'Mary'), ('Justin', 'Mary')]
+    # John's pass-1 grounding: Mary three times, Justin twice.
+    assert rows[5][11] == [('John', 'Mary')] * 3 + [('John', 'Justin')] * 2
+    frames = pr.filter_and_sort_nodes(interp, ['popular'])
+    assert [r[0] for r in frames[2].itertuples(index=False, name=None)] == [
+        'Mary', 'Justin', 'John']
+
+
+def test_parallel_masks_fp_and_runs_the_default_schedule(pr):
+    """proves: parallel_computing=True masks fp_version entirely (the pinned
+    dispatch checks parallel first, program.py:42-47) and the parallel arm's
+    observable output is the default kernel's (banked parallel-computing-on
+    and parallel-fp-precedence digest-equal the default twin): fp counters
+    advance per inner fixed-point round, fact rows interleave per timestep,
+    no grounding duplicates, and the t=2 frame orders [Mary, John, Justin]."""
+    interp = _hello_world_run(pr, fp_version=True, parallel_computing=True)
+    assert pyreason.settings.parallel_computing is True
+    assert pyreason.settings.fp_version is True
+    assert pr.get_time() == 3
+    node_frame, _ = pr.get_rule_trace(interp)
+    rows = [list(r) for r in node_frame.itertuples(index=False, name=None)]
+    assert [(r[0], r[1], r[2], r[8]) for r in rows] == [
+        (0, 0, 'Mary', 'Fact'),
+        (1, 1, 'Mary', 'Fact'), (1, 1, 'Justin', 'Rule'),
+        (2, 2, 'Mary', 'Fact'), (2, 2, 'John', 'Rule'), (2, 2, 'Justin', 'Rule'),
+    ]
+    assert rows[5][11] == [('Justin', 'Mary')]
+    frames = pr.filter_and_sort_nodes(interp, ['popular'])
+    assert [r[0] for r in frames[2].itertuples(index=False, name=None)] == [
+        'Mary', 'John', 'Justin']
