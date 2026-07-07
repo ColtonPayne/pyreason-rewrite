@@ -64,8 +64,8 @@ classes likewise.
 
 ## fn:load_inconsistent_predicate_list
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:611
-- status: uncovered
-- cases: none
+- status: cased
+- cases: ipl-load-basic, ipl-load-null-overwrite, ipl-load-malformed, ipl-atom-trace-off-trace
 - input classes:
   - happy-basic
   - bound-ipl-null
@@ -74,7 +74,7 @@ classes likewise.
   - malformed-short-pair
   - malformed-missing-file
   - malformed-bad-yaml
-- notes: overwrites __ipl wholesale (contrast add_inconsistent_predicate); IPL survives reset()
+- notes: overwrites __ipl wholesale — pinned semantically by ipl-load-null-overwrite (add_inconsistent_predicate first, then a null-'ipl:' yaml → zero complement rows in the trace); the happy pair's effect observed through reason() complement rows ('IPL: popular', Triggered By 'IPL'), not a stored value. The four malformed arms are four distinct exception types (parse_ipl validates nothing itself, yaml_parser.py:187-196): FileNotFoundError / KeyError "'ipl'" / IndexError / yaml.parser.ParserError — the yaml error's message embeds the repo-resolved fixture path, identical for both engines run from this repo, so it compares exactly. Uncovered: bound-ipl-empty-list (an explicit `ipl: []` — same code path as null by inspection at yaml_parser.py:191-194, not cased) and the IPL-survives-reset() interaction (unpinned by any committed case)
 - analysis: docs/analysis/surface/facts-and-graph.md
 
 ## fn:add_inconsistent_predicate
@@ -93,8 +93,8 @@ classes likewise.
 
 ## fn:add_closed_world_predicate
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1122
-- status: uncovered
-- cases: none
+- status: cased
+- cases: closed-world-on, closed-world-off
 - input classes:
   - happy-basic
   - bound-duplicate
@@ -102,7 +102,7 @@ classes likewise.
   - malformed-non-str
   - interacts-unknown-predicate
   - interacts-reset
-- notes: effect deferred to reason() (unknown [0,1] treated as [0,0]); cleared by reset() unlike IPL
+- notes: effect deferred to reason() — pinned differentially by the on/off twins: with 'suspicious' closed-world, a suspicious(x):[0,0] clause over Friends-grounded x fires for the never-stated nodes (is_satisfied_node's CWA branch treats a missing/unknown [0,1] label as [0,0], interpretation.py:1763-1770) while the known-[1,1] node still fails it; off, no safe row ever derives. Duplicate add is a set no-op (pinned: the on twin applies it twice). Uncovered: bound-empty-string (screened 2026-07-07: adds and reasons without effect on a program whose rules never name an empty predicate — not cased), malformed-non-str (screened: the add itself is silent — a bare set.add — and the raise surfaces only at reason() from the numba Label conversion with a run-varying character-code message, unbankable under exact compare; a canonicalization would need its own recorded policy), interacts-reset (cleared by reset() unlike IPL — unpinned), interacts-unknown-predicate
 - analysis: docs/analysis/surface/facts-and-graph.md
 
 ## fn:add_fact
@@ -122,8 +122,8 @@ classes likewise.
 
 ## fn:add_fact_from_json
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1168
-- status: uncovered
-- cases: none
+- status: cased
+- cases: fact-from-json-basic, fact-from-json-malformed
 - input classes:
   - happy-basic
   - bound-empty-array
@@ -137,13 +137,13 @@ classes likewise.
   - interacts-duplicate-name-intrafile
   - malformed-missing-file
   - malformed-bad-json
-- notes: invalid end_time silently defaults to start_time; summary print unconditional (differs from CSV loader)
+- notes: loaded state observed through the reason trace (no fact accessor at the pin): given + auto-counter names, windows, bounds, static all pinned there. Malformed arms pin the doubled item prefix on loader-level failures ("Item 0: Failed to parse fact - Item 0: ...") vs the single prefix when the fact parser itself raises ("Item 0: Failed to parse fact - Missing closing parenthesis in fact"); duplicate-name raises at item 1 AFTER item 0 loaded (that partial state has no accessor — named unobserved). The summary print is unconditional at the pin (pyreason.py:1290-1292, differs from the CSV loader's verbose gate) but lands on pre-reason process stdout, which the harness never compares — named unobserved. Uncovered: bound-empty-array, malformed-item-not-object (pinned on the rule loader only; the shared helper makes the fact-side message shape a same-code-path inference, not a banked observation), malformed-nonint-time's end_time half (the "invalid end_time silently defaults to start_time" behavior lives on the raise_errors=False path — no warn-and-skip arm of this loader is cased)
 - analysis: docs/analysis/surface/facts-and-graph.md
 
 ## fn:add_fact_from_csv
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1294
-- status: uncovered
-- cases: none
+- status: cased
+- cases: fact-from-csv-basic, fact-from-csv-malformed
 - input classes:
   - happy-basic
   - happy-header
@@ -157,7 +157,7 @@ classes likewise.
   - interacts-quoted-commas
   - interacts-duplicate-name-intrafile
   - malformed-missing-file
-- notes: header detection is an exact-match; every cell read as string with keep_default_na off
+- notes: header detection is an exact-match (pinned: the fixture's exact header row loads no fact); every cell read as string with keep_default_na off — short rows are padded by the reader (the two-field row loads with start/end 0, static False), truthy 'yes' coerces static, a quoted comma-bearing edge fact with an interval bound rides one cell, empty name cells auto-name through the shared node+edge counter, and a zero-byte file warns and returns without raising (the no-raise outcome record is the compared observation — nothing else is observable, no fact accessor exists). Malformed arms: missing file ('CSV file not found'), invalid static cell, missing fact_text — all doubled-row-prefix ValueErrors. Uncovered: bound-header-mismatch, malformed-bad-fact_text and malformed-nonint-time on this loader (pinned on the JSON fact loader; the shared _parse_and_validate_fact_params makes the CSV-side shape a same-code-path inference, not a banked observation), interacts-duplicate-name-intrafile on this loader, every raise_errors=False warn-and-skip arm
 - analysis: docs/analysis/surface/facts-and-graph.md
 
 ## fn:add_rule
@@ -176,8 +176,8 @@ classes likewise.
 
 ## fn:add_rules_from_file
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:652
-- status: uncovered
-- cases: none
+- status: cased
+- cases: rules-from-file-basic, rules-from-file-malformed
 - input classes:
   - happy-multi-rule
   - happy-comments-and-blanks
@@ -189,13 +189,13 @@ classes likewise.
   - interacts-infer_edges
   - interacts-verbose
   - bound-inline-comma
-- notes: raise_errors defaults False here (CSV/JSON default True); # comments only when first char
+- notes: raise_errors defaults False here (CSV/JSON default True) — both arms pinned on the same bad-middle-line fixture: True raises "Line 2: ..." after loading line 1 (partial load pinned by fingerprint), default warns, skips, and leaves the rule_1/rule_3 name gap (the loader names rule_{i+offset} over the filtered line list even for failed lines, with offset = live rule count — bound-name-offset pinned with one inline rule preloaded); '#' comments only when first char (pinned: the fixture's comment + blank lines load nothing). Missing file raises open()'s bare errno FileNotFoundError (contrast the CSV/JSON loaders' own messages). Uncovered: bound-empty-file, interacts-infer_edges, interacts-verbose, bound-inline-comma
 - analysis: docs/analysis/surface/rules.md
 
 ## fn:add_rule_from_csv
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:753
-- status: uncovered
-- cases: none
+- status: cased
+- cases: rule-from-csv-basic, rule-from-csv-malformed
 - input classes:
   - happy-full-row
   - happy-minimal-row
@@ -211,13 +211,13 @@ classes likewise.
   - malformed-duplicate-name
   - bound-quoted-commas
   - interacts-verbose
-- notes: file-local name dedup never consults the engine-global rule-name set
+- notes: file-local name dedup never consults the engine-global rule-name set (the dup raise fires at row 2 after row 1 loaded — partial load pinned by fingerprint). Happy arms pinned: exact-match header skip, explicit clause bound, truthy 'yes'/'1' strings coercing infer_edges/set_static, quoted comma-bearing rule_text, empty-name auto-naming through add_rule, and the loaded rules consumed by reason() (the infer_edges rule writes inferred team edges into the edge trace). Failure granularity pinned: a bad row raises row-wise, but an unquoted comma fails pandas' tokenizer wholesale ('Error reading CSV file ...'), loading nothing from that file. Named unobserved: the set_static flag is not rendered by the accessor fingerprint (its surface sits with type:Rule). Uncovered: malformed-header-mismatch, malformed-empty-file, malformed-bool-invalid, bound-numeric-bool, interacts-verbose, every raise_errors=False arm
 - analysis: docs/analysis/surface/rules.md
 
 ## fn:add_rule_from_json
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:868
-- status: uncovered
-- cases: none
+- status: cased
+- cases: rule-from-json-basic, rule-from-json-malformed
 - input classes:
   - happy-basic
   - happy-custom-thresholds-list
@@ -236,7 +236,7 @@ classes likewise.
   - malformed-missing-file
   - malformed-duplicate-name
   - interacts-thresholds-vs-clause-count
-- notes: the only loader exposing custom_thresholds and weights
+- notes: the only loader exposing custom_thresholds and weights — both accepted forms pinned as acceptance + parsed-rule fingerprints (list form, dict form with a string clause-index key parsed to int and unnamed clauses defaulted, and a weights list), but the fingerprint renders neither thresholds nor weights, so their *contents* are unobserved here (they sit with type:Threshold and the annotation-function rows). Malformed arms pinned: the four file/document faults plus two threshold faults ("Item 0, threshold 0: Invalid threshold - 'thresh'" — the KeyError key verbatim — and the non-integer dict key), all six raising before any add_rule (closing fingerprint None — the rules global never initialized). Doubled item prefix pinned ("Item 0: Failed to parse rule - Item 0: ..."). Uncovered: bound-empty-array, malformed-missing-rule_text, malformed-threshold-not-object, malformed-custom_thresholds-wrong-type, malformed-weights-not-list, malformed-duplicate-name on this loader, interacts-thresholds-vs-clause-count, every raise_errors=False arm
 - analysis: docs/analysis/surface/rules.md
 
 ## fn:add_annotation_function
@@ -368,14 +368,14 @@ classes likewise.
 ## fn:save_rule_trace
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1645
 - status: cased
-- cases: save-rule-trace-basic, save-rule-trace-atom-trace-off, save-rule-trace-store-off, save-rule-trace-clause-reorder
+- cases: save-rule-trace-basic, save-rule-trace-atom-trace-off, save-rule-trace-store-off, save-rule-trace-clause-reorder, ipl-atom-trace-off-trace
 - input classes:
   - happy
   - store-off-assert
   - atom-trace-columns
   - folder-variants
   - clause-map-reorder
-- notes: depends on module-global timestamp + clause maps from the most recent reason(); writes rule_trace_{nodes,edges}_{timestamp}.csv (output.py:103-104) — the reason-time wall-clock stamp in the names is canonicalized by the save_rule_trace probe under the same run-schedule rationale as the session-10 .txt stamp (TRACE_TS_RE in harness/capture.py), contents compared exactly. Characterization (scoped): with atom_trace off, fact-, rule-, and inconsistency-triggered rows bank an empty trace name (interpretation.py:298, :374, :1544-1549, :1663-1668, resolve_inconsistency_* :1969-1974; interpretation_fp.py mirrors), so for them 'Occurred Due To' stays '-' and output.py's r[7]-name fallback (output.py:23-25) never fires — contra the analysis file's off-arm description ("comes from the rule name r[7]"). The fallback is NOT dead outright: IPL complement rows bank 'IPL: <label>' unconditionally (interpretation.py:304, :308, :380, :384, :1582, :1599; fp mirrors), so with atom_trace off those rows show 'IPL: <label>' via exactly this fallback (screened live 2026-07-07: friends graph + add_inconsistent_predicate(popular, unpopular), atom_trace off — every unpopular row reads 'IPL: popular'). The IPL-with-atom-trace-off trace arm is not exercised by any committed case — named uncovered, sits with the inconsistency-ipl cases' program family. Clause-map reorder pinned with a non-identity map (edge-clause-first rule): CSV Clause-i columns map back to author order while get_rules shows the reordered live rule. A caller folder is passed through verbatim; a nonexistent folder raises pandas' OSError (screened, not cased — the probe creates its named subfolder to keep the refusal from wearing the engine label)
+- notes: depends on module-global timestamp + clause maps from the most recent reason(); writes rule_trace_{nodes,edges}_{timestamp}.csv (output.py:103-104) — the reason-time wall-clock stamp in the names is canonicalized by the save_rule_trace probe under the same run-schedule rationale as the session-10 .txt stamp (TRACE_TS_RE in harness/capture.py), contents compared exactly. Characterization (scoped): with atom_trace off, fact-, rule-, and inconsistency-triggered rows bank an empty trace name (interpretation.py:298, :374, :1544-1549, :1663-1668, resolve_inconsistency_* :1969-1974; interpretation_fp.py mirrors), so for them 'Occurred Due To' stays '-' and output.py's r[7]-name fallback (output.py:23-25) never fires — contra the analysis file's off-arm description ("comes from the rule name r[7]"). The fallback is NOT dead outright: IPL complement rows bank 'IPL: <label>' unconditionally (interpretation.py:304, :308, :380, :384, :1582, :1599; fp mirrors), so with atom_trace off those rows show 'IPL: <label>' via exactly this fallback (pinned by the committed ipl-atom-trace-off-trace case, session 13: friends graph + the yaml-loaded [popular, unpopular] pair, atom_trace off — the saved node CSV shows '-' on all 6 popular rows and 'IPL: popular' on all 6 unpopular rows). Clause-map reorder pinned with a non-identity map (edge-clause-first rule): CSV Clause-i columns map back to author order while get_rules shows the reordered live rule. A caller folder is passed through verbatim; a nonexistent folder raises pandas' OSError (screened, not cased — the probe creates its named subfolder to keep the refusal from wearing the engine label)
 - analysis: docs/analysis/surface/reason-and-state.md
 
 ## fn:get_rule_trace
@@ -699,13 +699,13 @@ classes likewise.
 ## setting:memory_profile
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:126
 - status: cased
-- cases: memory-profile-default, memory-profile-on
+- cases: memory-profile-default, memory-profile-on, memory-profile-output-on
 - input classes:
   - default-false-direct
   - nondefault-true-profiled
   - interaction-output
   - type-reject
-- notes: observational wrapper; interpretation unchanged. interaction-output remains uncovered but is now authorable: the output_file probe (session 10) can read the redirect file, yet under memory_profile the file would carry the run-varying peak-MB line (pyreason.py:1520), and the compare layer's per-probe policy supports only numeric tolerance, not text canonicalization — that recorded-canonicalization decision is the remaining blocker
+- notes: observational wrapper; interpretation unchanged. interaction-output pinned by memory-profile-output-on under the operator-approved (2026-07-07) peak-MB canonicalization: the redirect file carries output-to-file-on's print shape plus the profiled branch's peak line (pyreason.py:1520), whose number is run-varying measurement (103.20 vs 103.53 MB across identical fresh processes at screening) — the output_file probe's per-case canonicalize_peak_mb opt-in reduces exactly that number to '<peak-mb>' (PEAK_MB_RE rationale at the definition site in harness/capture.py; the flag is validation-gated to memory_profile cases) while every other character compares exactly. Uncovered: type-reject (family-wide)
 - analysis: docs/analysis/surface/settings.md
 
 ## setting:reverse_digraph
