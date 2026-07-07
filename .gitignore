@@ -16,6 +16,8 @@ results-phase3-slice4/
 results-phase3-slice4-review/
 results-phase3-slice5/
 results-phase3-slice5-review/
+results-phase3-slice7/
+results-phase3-slice7-review/
 
 # Caches / rebuildable local state
 __pycache__/

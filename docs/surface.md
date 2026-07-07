@@ -241,7 +241,7 @@ classes likewise.
 
 ## fn:add_annotation_function
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1415
-- status: cased
+- status: equivalent
 - cases: annotation-fn-two-arg, annotation-fn-six-arg, annotation-fn-unregistered-name, annotation-fn-reset-clears
 - input classes:
   - happy-2arg
@@ -251,19 +251,19 @@ classes likewise.
   - bound-defaulted-or-varargs
   - interacts-reset
   - interacts-reorder_clauses
-- notes: cased through the named-function registry (harness/reference_fns.py — committed reference functions selected by name, njit applied at resolve time). Registration gate pinned: 3 positional args and a *args function (co_argcount 0) both TypeError with the pinned message naming the function and count; bound-njit-wrapped pinned on the dispatcher side (every registrand is an njit dispatcher, so the py_func unwrap runs in every banked registration). SEMANTICS pinned through reason() output, not registration state: the 2-arg form's derived bound (weight-scaled mean — and the weights parameter's consumption pinned differentially: default-weights combo [0.5,1] vs weights [0.5,1.5] combo2 [0.625,1] in one case) and the 6-arg extended form's qualified-grounding metadata (crowd(A)=[0.25,1] from 2 clause-0 groundings/8, with atom_trace OFF so the metadata flows through the extended-flag gate alone). interacts-reset pinned: reset_rules clears the registration and the re-added rule then raises the same NameError(\"name 'annotation' is not defined\") the never-registered arm banks (annotate's objmode output is only assigned inside the name-match loop, interpretation.py:1918-1930). Named unobserved: a PLAIN (non-njit) callable is accepted by the registration gate but reason() then fails numba argument typing (screened 2026-07-07: TypingError 'Cannot determine Numba type of <class tuple>' embedding engine-env paths — unbanked because the message is engine-environment text, guaranteed to differ across environments); interacts-reorder_clauses (the 6-arg case's graph has edges ≤ nodes, so the reorder pass never runs — the extended args' post-reorder clause-order contract is unexercised); annotation functions returning an Interval instead of a 2-tuple (the objmode return contract, interpretation.py:1918)
+- notes: cased through the named-function registry (harness/reference_fns.py — committed reference functions selected by name; since the slice-7 conditional-njit accommodation, resolve() njit-wraps where numba imports — the oracle env — and hands the committed function plain where it does not — the rewrite env, so both engines consume the same committed source in the form their kernels require). Registration gate pinned: 3 positional args and a *args function (co_argcount 0) both TypeError with the pinned message naming the function and count; bound-njit-wrapped pinned on the dispatcher side (every registrand is an njit dispatcher, so the py_func unwrap runs in every banked registration). SEMANTICS pinned through reason() output, not registration state: the 2-arg form's derived bound (weight-scaled mean — and the weights parameter's consumption pinned differentially: default-weights combo [0.5,1] vs weights [0.5,1.5] combo2 [0.625,1] in one case) and the 6-arg extended form's qualified-grounding metadata (crowd(A)=[0.25,1] from 2 clause-0 groundings/8, with atom_trace OFF so the metadata flows through the extended-flag gate alone). interacts-reset pinned: reset_rules clears the registration and the re-added rule then raises the same NameError(\"name 'annotation' is not defined\") the never-registered arm banks (annotate's objmode output is only assigned inside the name-match loop, interpretation.py:1918-1930). Named unobserved: a PLAIN (non-njit) callable is accepted by the registration gate but reason() then fails numba argument typing (screened 2026-07-07: TypingError 'Cannot determine Numba type of <class tuple>' embedding engine-env paths — unbanked because the message is engine-environment text, guaranteed to differ across environments); interacts-reorder_clauses (the 6-arg case's graph has edges ≤ nodes, so the reorder pass never runs — the extended args' post-reorder clause-order contract is unexercised); annotation functions returning an Interval instead of a 2-tuple (the objmode return contract, interpretation.py:1918)
 - analysis: docs/analysis/surface/rules.md
 
 ## fn:add_head_function
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1484
-- status: cased
+- status: equivalent
 - cases: head-fn-grounding, head-fn-unregistered-name, head-fn-reset-clears
 - input classes:
   - happy-basic
   - bound-no-validation
   - interacts-reset
   - interacts-head-fn-in-dsl
-- notes: cased through the named-function registry. The no-validation asymmetry pinned live: the SAME star_args_stub that TypeErrors at add_annotation_function registers here silently ({'raised': false}) and, unreferenced by any rule head, is inert — while the referenced head function grounds the head variable through the DSL's f(X) form and Processed(A):[1,1] derives (both halves of interacts-head-fn-in-dsl in one case). The unregistered-name arm is SILENT at the pin — _call_head_function's objmode loop finds no __name__ match and returns the pre-seeded empty grounding (interpretation.py:2330-2338), so the rule fires for no one and reason() completes with zero rule rows — the sharp asymmetry with the annotation side's NameError. interacts-reset pinned by the same silent-empty shape after reset_rules clears the registration (rule re-added via the add_rule step; head-fn-grounding is the derivation twin). Named unobserved: a non-njit registration, though silently accepted, poisons reason() with a numba argument TypingError even when UNREFERENCED (the pyobject in the head_functions tuple fails kernel typing — screened 2026-07-07, unbanked: engine-environment message text); edge-rule head-function forms (f(X) in one or both edge-head positions — only the node-rule form is cased); a head function returning something other than a numba typed list of strings (the objmode unbox contract, interpretation.py:2332)
+- notes: cased through the named-function registry (conditional-njit resolve since slice 7 — see fn:add_annotation_function). The no-validation asymmetry pinned live: the SAME star_args_stub that TypeErrors at add_annotation_function registers here silently ({'raised': false}) and, unreferenced by any rule head, is inert — while the referenced head function grounds the head variable through the DSL's f(X) form and Processed(A):[1,1] derives (both halves of interacts-head-fn-in-dsl in one case). The unregistered-name arm is SILENT at the pin — _call_head_function's objmode loop finds no __name__ match and returns the pre-seeded empty grounding (interpretation.py:2330-2338), so the rule fires for no one and reason() completes with zero rule rows — the sharp asymmetry with the annotation side's NameError. interacts-reset pinned by the same silent-empty shape after reset_rules clears the registration (rule re-added via the add_rule step; head-fn-grounding is the derivation twin). Named unobserved: a non-njit registration, though silently accepted, poisons reason() with a numba argument TypingError even when UNREFERENCED (the pyobject in the head_functions tuple fails kernel typing — screened 2026-07-07, unbanked: engine-environment message text); edge-rule head-function forms (f(X) in one or both edge-head positions — only the node-rule form is cased); a head function returning something other than a numba typed list of strings (the objmode unbox contract, interpretation.py:2332)
 - analysis: docs/analysis/surface/rules.md
 
 ## fn:reset
@@ -278,7 +278,7 @@ classes likewise.
 
 ## fn:reset_rules
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:517
-- status: cased
+- status: equivalent
 - cases: reset-rules-no-program, reset-rules-with-program, annotation-fn-reset-clears, head-fn-reset-clears
 - input classes:
   - no-program
