@@ -79,7 +79,7 @@ classes likewise.
 
 ## fn:add_inconsistent_predicate
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:620
-- status: cased
+- status: equivalent
 - cases: inconsistency-ipl-resolve, inconsistency-ipl-override, abort-on-inconsistency-default, abort-on-inconsistency-on
 - input classes:
   - happy-basic
@@ -688,7 +688,7 @@ classes likewise.
 
 ## setting:abort_on_inconsistency
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:118
-- status: cased
+- status: equivalent
 - cases: abort-on-inconsistency-default, abort-on-inconsistency-on
 - input classes:
   - dead-knob
@@ -760,7 +760,7 @@ classes likewise.
 
 ## setting:persistent
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:170
-- status: cased
+- status: equivalent
 - cases: persistent-off, persistent-on, static-graph-facts-on, static-graph-facts-off, canonical-on, canonical-last-write
 - input classes:
   - default-false-nonpersistent
@@ -773,7 +773,7 @@ classes likewise.
 
 ## setting:inconsistency_check
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:178
-- status: cased
+- status: equivalent
 - cases: inconsistency-ipl-resolve, inconsistency-ipl-override
 - input classes:
   - default-true-resolve
@@ -784,7 +784,7 @@ classes likewise.
 
 ## setting:static_graph_facts
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:186
-- status: cased
+- status: equivalent
 - cases: static-graph-facts-on, static-graph-facts-off
 - input classes:
   - default-true-static
@@ -797,7 +797,7 @@ classes likewise.
 
 ## setting:store_interpretation_changes
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:194
-- status: cased
+- status: equivalent
 - cases: store-off-accessors, store-off-atom-trace-flip
 - input classes:
   - default-true-store
@@ -809,7 +809,7 @@ classes likewise.
 
 ## setting:parallel_computing
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:203
-- status: cased
+- status: equivalent
 - cases: parallel-computing-default, parallel-computing-on, parallel-fp-precedence
 - input classes:
   - default-false-standard
@@ -821,7 +821,7 @@ classes likewise.
 
 ## setting:update_mode
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:212
-- status: cased
+- status: equivalent
 - cases: update-mode-default, update-mode-override, update-mode-junk-string
 - input classes:
   - default-intersection
@@ -833,7 +833,7 @@ classes likewise.
 
 ## setting:allow_ground_rules
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:220
-- status: cased
+- status: equivalent
 - cases: allow-ground-rules-on, allow-ground-rules-off
 - input classes:
   - default-false-nonground
@@ -845,7 +845,7 @@ classes likewise.
 
 ## setting:fp_version
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:228
-- status: cased
+- status: equivalent
 - cases: fp-version-on, parallel-fp-precedence
 - input classes:
   - default-false-optimized
