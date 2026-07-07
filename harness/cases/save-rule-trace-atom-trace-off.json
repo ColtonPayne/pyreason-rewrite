@@ -1,6 +1,6 @@
 {
   "id": "save-rule-trace-atom-trace-off",
-  "purpose": "save_rule_trace with atom_trace off over the same hello-world program: the CSVs keep the fixed 10-column header (no Clause-i columns), Old Bound stays the '-' placeholder, and Occurred Due To carries the rule/fact name from the trace tuple instead of the atom-trace grounding — the atom-trace-columns class's off arm.",
+  "purpose": "save_rule_trace with atom_trace off over the same hello-world program: the CSVs keep the fixed 10-column header (no Clause-i columns), Old Bound stays the '-' placeholder, and Occurred Due To stays '-' on every row — the engine banks empty trace names for fact- and rule-triggered rows when atom_trace is off, so the r[7]-name fallback (output.py:23-25) never fires for this IPL-free program — the atom-trace-columns class's off arm.",
   "runtime_class": "smoke",
   "provenance": "twin of save-rule-trace-basic against docs/surface.md fn:save_rule_trace atom-trace-columns (off arm); output.py:24-47 at the pin",
   "surface_items": [

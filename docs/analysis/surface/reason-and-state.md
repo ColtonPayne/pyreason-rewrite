@@ -53,7 +53,7 @@ files in `folder`, using the `Output` helper.
 **input classes:**
 - happy: `store_interpretation_changes` on and a valid interpretation writes both traces (`pyreason.py:1654-1655`).
 - store-off-assert: `settings.store_interpretation_changes=False` fails `assert` before any I/O (`pyreason.py:1652`).
-- atom-trace-columns: `interpretation.atom_trace=True` adds per-clause `Clause-i` columns and fills "Occurred Due To" from the atom trace; off, those columns are absent and "Occurred Due To" comes from the rule name `r[7]` (`output.py:24-47`).
+- atom-trace-columns: `interpretation.atom_trace=True` adds per-clause `Clause-i` columns and fills "Occurred Due To" from the atom trace (`output.py:27-47`); off, those columns are absent and "Occurred Due To" is the `'-'` placeholder for fact-, rule-, and inconsistency-triggered rows — the engine stores empty trace names when `atom_trace` is off (`interpretation.py:298`, `:374`, `:1544-1549`, `:1663-1668`, `:1969-1974`; `interpretation_fp.py` mirrors), so the `r[7]`-name fallback (`output.py:23-25`) fires only for IPL complement rows, whose `IPL: <label>` name is written unconditionally (`interpretation.py:304`, `:308`, `:1582`, `:1599`; screened live 2026-07-07, session 12 review).
 - folder-variants: default `folder='./'` vs. a caller path; the path is passed straight through to `Output.save_rule_trace` (`pyreason.py:1650`, `1655`).
 - clause-map-reorder: a non-empty `__clause_maps` (populated by `reason`) drives `_reorder_row`, so trace column order reflects clause reordering; an empty/`None` map leaves order untouched (`output.py:6-8`, `93-97`).
 
