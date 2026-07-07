@@ -110,3 +110,33 @@ file-output probe — the last two knob surfaces before the owed full-corpus
 sweep at the phase boundary.
 
 **Resume prompt.** `/campaign`
+
+## Session 10 — 2026-07-07
+
+**What we knew going in.** Two settings knobs stood between the campaign
+and the settings-knob phase boundary: parallel_computing (unknown whether
+the parallel kernel even runs laptop-local — the pin's own docstrings
+promise a recompile every run) and the output_to_file/output_file_name
+pair, which the harness flatly forbade because it had no way to compare a
+file the oracle writes.
+
+**What we learned this session.** Both knobs are now cased and the phase
+is complete. The harness grew a file-output probe: the redirect file the
+oracle writes is captured in a confined per-run directory, its timestamp
+canonicalized, its contents compared exactly — and the redirect turned out
+to be precisely what the pin reads as: cwd-relative, append-mode, never
+closed, moving prints but never reasoning. The parallel kernel surprised
+us in the good direction: it runs fine on this laptop, reasons
+digest-identically to the serial kernel on the pair's program, and its
+compile *caches across processes* (~174s once, ~3s ever after) — the
+pin's "recompiles every run" belief is written in three places and wrong
+in all three. Dispatch precedence (parallel beats fp_version) is pinned
+behaviorally. Seven new cases (corpus 53), three rows flipped (board
+35/52), review 0 High / 0 Medium / 3 Low, all settled.
+
+**What we expect to learn next session.** Whether all 53 cases pass
+together — the owed full-corpus sweep is the phase's verdict-of-record,
+and any same-engine irreproducibility it surfaces is a harness defect to
+root-cause, not a finding to absorb.
+
+**Resume prompt.** `/campaign`
