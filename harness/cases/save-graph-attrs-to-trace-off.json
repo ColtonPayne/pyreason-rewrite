@@ -1,6 +1,6 @@
 {
   "id": "save-graph-attrs-to-trace-off",
-  "purpose": "settings.save_graph_attributes_to_trace left at its default False: the trace gate (save_graph_attributes_to_rule_trace or not graph_attribute) at interpretation.py:1538 and the static-reapplication branch at :297/:373 suppress every 'graph-attribute-fact' row, so trace-node carries only the rule-derived derived(B) rows and trace-edge plus the special/rel frames stay empty, while nodes-derived digest-equals the twin save-graph-attrs-to-trace-on (verified at authoring; the harness judges each case within one knob position): trace contents only, never derived bounds — the default-false-exclude class.",
+  "purpose": "settings.save_graph_attributes_to_trace left at its default False: the trace gates — (save_graph_attributes_to_rule_trace or not mode=='graph-attribute-fact') in _update_node/_update_edge at interpretation.py:1538/:1657, and (save_graph_attributes_to_rule_trace or not graph_attribute) at the static-reapplication branches :297/:373 — suppress every 'graph-attribute-fact' row, so trace-node carries only the rule-derived derived(B) rows and trace-edge plus the special/rel frames stay empty, while nodes-derived digest-equals the twin save-graph-attrs-to-trace-on (verified at authoring; the harness judges each case within one knob position): trace contents only, never derived bounds — the default-false-exclude class.",
   "runtime_class": "smoke",
   "provenance": "spine case against docs/surface.md setting:save_graph_attributes_to_trace default-false-exclude",
   "surface_items": [
