@@ -205,13 +205,14 @@ def test_probe_expect_raise_missing_constructor_is_a_capture_failure():
 
 def test_interp_probe_kinds_partition_the_probe_surface():
     """proves: every probe kind is either interpretation-consuming or one of
-    the five standalone kinds — a new kind added to the dispatch without a
+    the six standalone kinds — a new kind added to the dispatch without a
     reason-block ruling reds here instead of mislabeling exits later."""
     from harness.capture import INTERP_PROBE_KINDS
 
     assert PROBE_KINDS == INTERP_PROBE_KINDS | {"get_time", "get_setting",
                                                 "expect_raise", "output_file",
-                                                "accessor_fingerprint"}
+                                                "accessor_fingerprint",
+                                                "apply_input"}
 
 
 def test_get_setting_probe_requires_a_pinned_knob_name():
@@ -629,3 +630,224 @@ def test_run_case_routes_graphml_path_through_load_graphml(monkeypatch):
     assert calls["graphml"] == [str(REPO / FIXTURE)]
     assert calls["graph"] == []
     assert artifact["probes"]["t"] == 0
+
+
+APPLY_OK = {"id": "p", "kind": "apply_input", "op": "add_rule_from_csv",
+            "args": {"missing_path": "harness/fixtures/no-such.csv"}}
+
+
+def test_apply_input_requires_a_known_op_and_args_object():
+    """proves: an apply_input probe with an unknown op or a non-object args is
+    an authoring fault caught before the engine runs, naming the op."""
+    assert "apply op" in validate_case({**VALID, "probes": [
+        {**APPLY_OK, "op": "add_rules_form_file"}]})
+    assert "'args'" in validate_case({**VALID, "probes": [
+        {"id": "p", "kind": "apply_input", "op": "add_rule_from_csv",
+         "args": "x"}]})
+
+
+def test_apply_input_path_spellings_declare_the_existence_state():
+    """proves: a file-taking apply op needs exactly one of path/missing_path,
+    a 'path' must name a committed file (a typo'd happy arm cannot bank
+    FileNotFoundError as engine behavior and pass self-proof), and a
+    'missing_path' must NOT exist (the case cannot claim a missing-file
+    observation while banking a load)."""
+    both = {**APPLY_OK, "args": {"path": FIXTURE, "missing_path": "x"}}
+    assert "exactly one" in validate_case({**VALID, "probes": [both]})
+    neither = {**APPLY_OK, "args": {}}
+    assert "exactly one" in validate_case({**VALID, "probes": [neither]})
+    typo = {**APPLY_OK, "args": {"path": "harness/fixtures/no-such.csv"}}
+    assert "no committed file" in validate_case({**VALID, "probes": [typo]})
+    present = {**APPLY_OK, "args": {"missing_path": FIXTURE}}
+    assert "existing file" in validate_case({**VALID, "probes": [present]})
+    ok_path = {**APPLY_OK, "args": {"path": FIXTURE}}
+    assert validate_case({**VALID, "probes": [ok_path]}) is None
+    assert validate_case({**VALID, "probes": [APPLY_OK]}) is None
+
+
+def test_apply_input_paths_stay_confined_to_the_repo():
+    """proves: an absolute, empty, non-string, or ..-escaping path is refused
+    in either spelling — applied inputs are committed fixtures, never files
+    outside the repo."""
+    for rel in ("/abs/f.csv", "", 3, "../elsewhere.csv"):
+        for key in ("path", "missing_path"):
+            bad = {**APPLY_OK, "args": {key: rel}}
+            fault = validate_case({**VALID, "probes": [bad]})
+            assert fault is not None, (key, rel)
+
+
+def test_apply_input_kwargs_are_whitelisted_per_op_and_boolean():
+    """proves: an apply op's keyword args are held to the pinned signature —
+    an unknown kwarg or a non-boolean value is an authoring fault, so a typo'd
+    kwarg cannot bank the engine's TypeError as behavior."""
+    unknown = {**APPLY_OK, "args": {"missing_path": "x.csv",
+                                    "infer_edges": True}}
+    assert "unknown arg" in validate_case({**VALID, "probes": [unknown]})
+    nonbool = {**APPLY_OK, "op": "add_rules_from_file",
+               "args": {"missing_path": "x.txt", "raise_errors": "yes"}}
+    assert "boolean" in validate_case({**VALID, "probes": [nonbool]})
+    ok = {**APPLY_OK, "op": "add_rules_from_file",
+          "args": {"missing_path": "x.txt", "raise_errors": True,
+                   "infer_edges": False}}
+    assert validate_case({**VALID, "probes": [ok]}) is None
+
+
+def test_apply_input_closed_world_takes_exactly_a_string_name():
+    """proves: add_closed_world_predicate applies with exactly a string
+    'name' — a non-string or path-shaped args dict is an authoring fault (the
+    non-string add is silent at the pin and its reason-time raise carries a
+    run-varying message, unbankable under exact compare)."""
+    base = {"id": "p", "kind": "apply_input",
+            "op": "add_closed_world_predicate"}
+    assert "string 'name'" in validate_case({**VALID, "probes": [
+        {**base, "args": {"name": 3}}]})
+    assert "string 'name'" in validate_case({**VALID, "probes": [
+        {**base, "args": {"path": FIXTURE}}]})
+    ok = {**base, "args": {"name": "suspicious"}}
+    assert validate_case({**VALID, "probes": [ok]}) is None
+
+
+def test_apply_input_refuses_allow_raise():
+    """proves: allow_raise on an apply_input probe is rejected — the probe
+    records raises itself, and the blanket catch would bank a missing-loader
+    binding fault as engine behavior."""
+    bad = {**APPLY_OK, "allow_raise": True}
+    assert "allow_raise" in validate_case({**VALID, "probes": [bad]})
+
+
+def test_apply_input_validates_as_a_step_op_too():
+    """proves: the apply ops are step ops with identical validation — the
+    same authoring faults exit 2 in the steps form, and a well-formed loader
+    step followed by a probed reason step clears the guard."""
+    bad = {**VALID_STEPS, "steps": [
+        {"id": "s", "op": "add_fact_from_csv",
+         "args": {"path": "harness/fixtures/no-such.csv"}}]}
+    assert "no committed file" in validate_case(bad)
+    ok = {**VALID_STEPS, "steps": [
+        {"id": "load", "op": "add_fact_from_csv",
+         "args": {"missing_path": "harness/fixtures/no-such.csv"}},
+        {"id": "run", "op": "reason",
+         "probes": [{"id": "t", "kind": "get_time"}]}]}
+    assert validate_case(ok) is None
+
+
+def test_apply_input_needs_no_reason_block():
+    """proves: apply_input probes validate without an inputs.reason block —
+    the malformed-loader arms' outcome records are themselves the compared
+    observations and never touch an interpretation."""
+    case = {"id": "c", "inputs": {}, "probes": [APPLY_OK]}
+    assert validate_case(case) is None
+
+
+def test_probe_apply_input_records_raise_and_acceptance():
+    """proves: the apply_input probe reduces a loader raise to the
+    module-qualified exception type + message and an acceptance to
+    {'raised': false}, resolving the path against the repo root and passing
+    the whitelisted kwargs through — the outcome is the observation either
+    way."""
+    from harness.capture import REPO, probe_apply_input
+
+    calls = []
+
+    def add_rules_from_file(path, **kwargs):
+        calls.append((path, kwargs))
+        if "missing" in path:
+            raise FileNotFoundError(f"[Errno 2] No such file: {path}")
+
+    pr = SimpleNamespace(add_rules_from_file=add_rules_from_file)
+    ok = probe_apply_input(pr, {
+        "op": "add_rules_from_file",
+        "args": {"path": "harness/fixtures/rules-multi.txt",
+                 "raise_errors": True}})
+    assert ok == {"raised": False}
+    assert calls[0] == (str(REPO / "harness/fixtures/rules-multi.txt"),
+                        {"raise_errors": True})
+    raised = probe_apply_input(pr, {
+        "op": "add_rules_from_file", "args": {"missing_path": "missing.txt"}})
+    assert raised == {"raised": True, "type": "builtins.FileNotFoundError",
+                      "message": f"[Errno 2] No such file: {REPO / 'missing.txt'}"}
+    cwa_calls = []
+    pr_cwa = SimpleNamespace(add_closed_world_predicate=cwa_calls.append)
+    assert probe_apply_input(pr_cwa, {
+        "op": "add_closed_world_predicate",
+        "args": {"name": "suspicious"}}) == {"raised": False}
+    assert cwa_calls == ["suspicious"]
+
+
+def test_probe_apply_input_missing_loader_is_a_capture_failure():
+    """proves: an engine without the loader binding fails the capture outright
+    instead of recording the AttributeError as engine behavior — in the probe
+    form and the step form alike (run_step resolves the callable outside its
+    outcome-recording try)."""
+    import pytest
+
+    from harness.capture import probe_apply_input
+
+    with pytest.raises(AttributeError):
+        probe_apply_input(SimpleNamespace(), {
+            "op": "add_rule_from_csv", "args": {"missing_path": "x.csv"}})
+    with pytest.raises(AttributeError):
+        run_step(SimpleNamespace(),
+                 {"id": "s", "op": "add_rule_from_csv",
+                  "args": {"missing_path": "x.csv"}}, None)
+
+
+def test_run_step_applies_loader_ops_and_records_their_outcome():
+    """proves: a loader step op drives the same executor as the probe form —
+    the engine callable gets the repo-resolved path, a raise banks as the
+    step's outcome record, and the interpretation is never advanced."""
+    from harness.capture import REPO
+
+    calls = []
+
+    def add_fact_from_csv(path, **kwargs):
+        calls.append((path, kwargs))
+        raise ValueError("Row 1: Missing required 'fact_text'")
+
+    pr = SimpleNamespace(add_fact_from_csv=add_fact_from_csv)
+    outcome, interp = run_step(pr, {
+        "id": "s", "op": "add_fact_from_csv",
+        "args": {"path": "harness/fixtures/chain-ab.graphml",
+                 "raise_errors": True}}, "old")
+    assert calls == [(str(REPO / "harness/fixtures/chain-ab.graphml"),
+                      {"raise_errors": True})]
+    assert outcome == {"raised": True, "type": "builtins.ValueError",
+                       "message": "Row 1: Missing required 'fact_text'"}
+    assert interp == "old"
+
+
+def test_canonicalize_peak_mb_is_gated_on_memory_profile():
+    """proves: the peak-MB canonicalization is a per-case opt-in that only a
+    memory_profile case may declare — anywhere else the flag could only mask
+    engine-authored text — and a non-boolean flag is an authoring fault."""
+    probe = {"id": "p", "kind": "output_file", "canonicalize_peak_mb": True}
+    bad = {**VALID, "probes": [probe]}
+    assert "memory_profile" in validate_case(bad)
+    nonbool = {**VALID, "inputs": {"settings": {"memory_profile": True}},
+               "probes": [{**probe, "canonicalize_peak_mb": "yes"}]}
+    assert "canonicalize_peak_mb" in validate_case(nonbool)
+    ok = {**VALID, "inputs": {"settings": {"memory_profile": True}},
+          "probes": [probe]}
+    assert validate_case(ok) is None
+
+
+def test_output_file_probe_canonicalizes_only_the_peak_mb_line(tmp_path, monkeypatch):
+    """proves: with canonicalize_peak_mb the run-varying peak number reduces
+    to '<peak-mb>' wherever the pinned line appears while every other
+    character survives verbatim — and without the flag the same content is
+    untouched, so the canonicalization can never leak into other cases."""
+    from harness.capture import run_probe
+
+    monkeypatch.chdir(tmp_path)
+    content = ("Timestep: 0\n"
+               "\nProgram used 103.203125 MB of memory\n"
+               "Program used memory\n")
+    (tmp_path / "pyreason_output_20260707-024738.txt").write_text(content)
+    flagged = run_probe(None, None, {"id": "p", "kind": "output_file",
+                                     "canonicalize_peak_mb": True})
+    assert flagged == [{"name": "pyreason_output_<timestamp>.txt",
+                        "content": ("Timestep: 0\n"
+                                    "\nProgram used <peak-mb> MB of memory\n"
+                                    "Program used memory\n")}]
+    plain = run_probe(None, None, {"id": "p", "kind": "output_file"})
+    assert plain[0]["content"] == content

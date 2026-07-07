@@ -28,7 +28,9 @@ harness-failure label instead of comparing as a divergence. An `output_file`
 probe reads back every .txt file the engine wrote into the capture's confined
 working directory (the surface `settings.output_to_file` redirects stdout
 into), timestamp-canonicalized — which is why that knob is only allowed in a
-case that carries this probe. An `accessor_fingerprint` probe renders one of
+case that carries this probe; a memory_profile case additionally declares
+`canonicalize_peak_mb` to reduce the run-varying peak-MB number to a
+placeholder (PEAK_MB_RE, rationale at the definition site). An `accessor_fingerprint` probe renders one of
 the get-family accessors' returns (`get_rules`, `get_logic_program`,
 `get_interpretation`) into canonical comparable data — None stays None, a
 rule list becomes per-rule parse-shaped dicts, and the program/interpretation
@@ -36,6 +38,13 @@ objects reduce to presence + identity-with-the-last-reason-return flags. A
 `save_rule_trace` probe calls the engine's save_rule_trace into the confined
 working directory (or a named subdirectory of it) and reads back the CSV
 files it wrote, timestamp-canonicalized like the output_file probe's .txt.
+An `apply_input` probe applies one loader-family input (a file-taking loader,
+or add_closed_world_predicate) and records the outcome either way — a raise
+as the module-qualified exception type + message, an acceptance as
+`{"raised": false}` with the loaded state observed by whatever probes follow —
+so a case can declare that applying a given input is expected to raise and
+compare the exception itself. The same ops join the multi-step form's step
+ops, for arms whose loaded state only shows through a later reason step.
 
 The artifact is self-describing: the case id, engine identity + environment
 fingerprint, each probe's canonical output, and a digest per probe. Exit codes:
@@ -60,13 +69,14 @@ REPO = Path(__file__).resolve().parent.parent
 PROBE_KINDS = {"filter_sort_nodes", "filter_sort_edges", "rule_trace_node",
                "rule_trace_edge", "get_time", "get_setting",
                "interpretation_dict", "expect_raise", "output_file",
-               "accessor_fingerprint", "save_rule_trace"}
+               "accessor_fingerprint", "save_rule_trace", "apply_input"}
 # Probe kinds that consume the interpretation reason() returns — a case using
 # any of them must carry an inputs.reason block (or a preceding reason step).
 # get_time and get_setting read module state, output_file reads the confined
-# working directory, expect_raise constructs in isolation, and
+# working directory, expect_raise constructs in isolation,
 # accessor_fingerprint reads the get-family accessors (whose before-any-reason
-# returns are themselves compared observations); all run without one.
+# returns are themselves compared observations), and apply_input mutates
+# module state without touching the interpretation; all run without one.
 # save_rule_trace consumes the interpretation like the trace-view probes do.
 INTERP_PROBE_KINDS = {"filter_sort_nodes", "filter_sort_edges",
                       "rule_trace_node", "rule_trace_edge",
@@ -76,12 +86,34 @@ EXPECT_RAISE_CONSTRUCTS = {"rule", "fact"}
 # fingerprint is the accessor's return reduced to canonical data (see
 # probe_accessor_fingerprint); an unknown name is an authoring fault (exit 2).
 FINGERPRINT_ACCESSORS = {"rules", "logic_program", "interpretation"}
+# The apply_input surface: the pinned loader-family functions a case can
+# apply mid-sequence with the outcome recorded as data. File-taking ops map
+# to their legal keyword args (all boolean at the pin);
+# add_closed_world_predicate takes a bare string. Each file op's args carry
+# exactly one of `path` (a committed repo-relative fixture, existence-checked
+# like graphml_path — a typo'd happy-arm path must never bank
+# FileNotFoundError as engine behavior and pass self-proof) or `missing_path`
+# (a repo-relative path checked NOT to exist — the missing-file behavior arm,
+# which would otherwise be impossible to declare without reopening that same
+# hazard). Both spellings stay confined to the repo.
+APPLY_FILE_OPS = {"add_rules_from_file": {"infer_edges", "raise_errors"},
+                  "add_rule_from_csv": {"raise_errors"},
+                  "add_rule_from_json": {"raise_errors"},
+                  "add_fact_from_json": {"raise_errors"},
+                  "add_fact_from_csv": {"raise_errors"},
+                  "load_inconsistent_predicate_list": set()}
+APPLY_OPS = set(APPLY_FILE_OPS) | {"add_closed_world_predicate"}
 # The multi-step ops: reason/add_fact consume an args dict; the reset family
 # takes none. add_fact exists because _reason clears the fact globals on exit,
 # so a resumed reason() with no fact added since raises — a resume case that
-# actually reasons must be able to add one between steps.
-STEP_OPS = {"reason", "add_fact", "reset", "reset_rules", "reset_settings"}
-ARG_STEP_OPS = {"reason", "add_fact"}
+# actually reasons must be able to add one between steps. The apply_input ops
+# double as step ops so a loader can run before a reason step (a fact loader's
+# only observable is the reasoning that consumes it); a step op that raises
+# already banks its outcome record, so the expecting-raise semantics are
+# identical in both surfaces.
+STEP_OPS = {"reason", "add_fact", "reset", "reset_rules",
+            "reset_settings"} | APPLY_OPS
+ARG_STEP_OPS = {"reason", "add_fact"} | APPLY_OPS
 # reason()'s keyword surface at the pin — an unknown key is an authoring typo
 # that would otherwise bank a TypeError as engine behavior and pass self-proof.
 # `queries` joins when the harness can construct Query objects from case JSON.
@@ -124,6 +156,69 @@ TRACE_TS_RE = re.compile(r"_\d{8}-\d{6}\.csv$")
 # and absolute paths are refused so an engine-written trace file can never
 # land outside the per-capture directory.
 TRACE_FOLDER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+# Under memory_profile the engine prints "\nProgram used {peak} MB of memory"
+# (pyreason.py:1520/:1526 at the pin), and under output_to_file that line
+# lands in the redirect file the output_file probe compares. The peak number
+# is run-varying measurement (103.20 vs 103.53 MB across identical fresh
+# processes at screening), not engine behavior — the same run-schedule
+# rationale as the timestamp canonicalizations, so an output_file probe
+# declaring `canonicalize_peak_mb` reduces exactly that number to '<peak-mb>'
+# and compares the line's fixed text and everything around it exactly. The
+# flag is per-case opt-in (AC-2's recorded-normalization contract) and legal
+# only when the case turns memory_profile on: nothing else at the pin writes
+# this line, so canonicalizing it anywhere else could only mask engine text.
+PEAK_MB_RE = re.compile(r"^Program used -?\d+(?:\.\d+)?(?:e[+-]?\d+)? "
+                        r"MB of memory$", re.M)
+PEAK_MB_CANON = "Program used <peak-mb> MB of memory"
+
+
+def _apply_fault(owner: str, op, args) -> str | None:
+    """Shared checks for one apply_input application — the probe kind and the
+    step-op spelling validate identically, so an authoring fault exits 2 in
+    both case forms."""
+    if op not in APPLY_OPS:
+        return (f"{owner}: unknown apply op {op!r} "
+                f"(one of {sorted(APPLY_OPS)})")
+    if not isinstance(args, dict):
+        return f"{owner}: 'args' must be an object"
+    if op == "add_closed_world_predicate":
+        if set(args) != {"name"} or not isinstance(args["name"], str):
+            return (f"{owner}: add_closed_world_predicate takes exactly a "
+                    f"string 'name' — the non-string add is silent at the pin "
+                    f"and its reason-time raise carries a run-varying message, "
+                    f"so it cannot bank under exact compare")
+        return None
+    path_keys = {"path", "missing_path"} & set(args)
+    if len(path_keys) != 1:
+        return (f"{owner}: a file-taking apply op needs exactly one of "
+                f"'path' (a committed fixture) or 'missing_path' (the "
+                f"missing-file arm), got {sorted(path_keys) or 'neither'}")
+    unknown = set(args) - path_keys - APPLY_FILE_OPS[op]
+    if unknown:
+        return (f"{owner}: unknown arg(s) {sorted(unknown)} for {op} "
+                f"(known: {sorted(APPLY_FILE_OPS[op])})")
+    for key in APPLY_FILE_OPS[op] & set(args):
+        if not isinstance(args[key], bool):
+            return f"{owner}: '{key}' must be a boolean"
+    key = next(iter(path_keys))
+    rel = args[key]
+    if not isinstance(rel, str) or not rel:
+        return f"{owner}: '{key}' must be a non-empty string"
+    if Path(rel).is_absolute():
+        return f"{owner}: '{key}' must be repo-relative, got {rel!r}"
+    if not (REPO / rel).resolve().is_relative_to(REPO):
+        return (f"{owner}: '{key}' resolves outside the repo: {rel!r} — "
+                f"applied inputs stay confined to committed paths")
+    if key == "path" and not (REPO / rel).is_file():
+        return (f"{owner}: 'path' names no committed file: {rel!r} — a "
+                f"mistyped fixture would bank FileNotFoundError as engine "
+                f"behavior and pass self-proof; a deliberate missing-file "
+                f"arm declares 'missing_path'")
+    if key == "missing_path" and (REPO / rel).exists():
+        return (f"{owner}: 'missing_path' names an existing file: {rel!r} — "
+                f"the case would claim a missing-file observation while "
+                f"banking a load")
+    return None
 
 
 def _probe_list_fault(probes: list, owner: str) -> str | None:
@@ -150,6 +245,20 @@ def _probe_list_fault(probes: list, owner: str) -> str | None:
                     f"it reads the capture's own confined output directory, so "
                     f"a read fault there is a harness failure, never a "
                     f"comparable engine observation")
+        if p.get("kind") == "output_file" \
+                and not isinstance(p.get("canonicalize_peak_mb", False), bool):
+            return (f"output_file probe {p['id']!r}: 'canonicalize_peak_mb' "
+                    f"must be a boolean")
+        if p.get("kind") == "apply_input":
+            if p.get("allow_raise"):
+                return (f"apply_input probe {p['id']!r} cannot carry "
+                        f"allow_raise — it records raises itself, and the "
+                        f"blanket catch would bank a missing-loader binding "
+                        f"fault as engine behavior")
+            fault = _apply_fault(f"apply_input probe {p['id']!r}",
+                                 p.get("op"), p.get("args"))
+            if fault:
+                return fault
         if p.get("kind") == "accessor_fingerprint" \
                 and p.get("accessor") not in FINGERPRINT_ACCESSORS:
             return (f"accessor_fingerprint probe {p['id']!r}: 'accessor' must "
@@ -202,6 +311,10 @@ def _steps_fault(case: dict, steps) -> str | None:
         if op == "reason" and not set(args) <= REASON_ARGS:
             return (f"step {step['id']!r}: unknown reason arg(s) "
                     f"{sorted(set(args) - REASON_ARGS)} (known: {sorted(REASON_ARGS)})")
+        if op in APPLY_OPS:
+            fault = _apply_fault(f"step {step['id']!r}", op, args)
+            if fault:
+                return fault
         if op not in ARG_STEP_OPS and args:
             return f"step {step['id']!r}: op {op!r} takes no args"
         if not isinstance(step.get("outcome_only", False), bool):
@@ -308,6 +421,12 @@ def validate_case(case: dict) -> str | None:
         return ("settings.output_to_file=true requires an output_file probe — "
                 "the redirect file the engine writes must be a compared "
                 "observation, never an unread side effect")
+    if any(p.get("kind") == "output_file" and p.get("canonicalize_peak_mb")
+           for p in _all_probes(case)) \
+            and case["inputs"].get("settings", {}).get("memory_profile") is not True:
+        return ("canonicalize_peak_mb requires settings.memory_profile=true — "
+                "only the profiled branch writes the peak-MB line, so "
+                "canonicalizing it anywhere else could only mask engine text")
     if "graph" in case["inputs"]:
         return _graph_fault(case["inputs"]["graph"])
     return None
@@ -438,6 +557,37 @@ def probe_save_rule_trace(pr, interpretation, probe):
             for path in sorted(target.glob("*.csv"))]
 
 
+def call_apply_input(fn, op: str, args: dict) -> None:
+    """Apply one loader-family input through an already-resolved engine
+    callable. Both path spellings resolve against the repo root (validation
+    vouched for confinement and the declared existence state); raises
+    propagate to the caller, which records them as the compared outcome."""
+    if op == "add_closed_world_predicate":
+        fn(args["name"])
+        return
+    args = dict(args)
+    rel = args.pop("path", None)
+    if rel is None:
+        rel = args.pop("missing_path")
+    fn(str(REPO / rel), **args)
+
+
+def probe_apply_input(pr, probe):
+    """Apply the probe's input and record what happens — the expecting-raise
+    probe form. A raise is the observation (module-qualified type + message,
+    exact-compared unless the case records a canonicalization rationale); an
+    acceptance is `{"raised": false}`, with the loaded state observed by the
+    probes that follow. The getattr stays outside the try: an engine missing
+    the loader is a binding fault that must fail the capture, never a banked
+    engine observation — the expect_raise convention."""
+    fn = getattr(pr, probe["op"])
+    try:
+        call_apply_input(fn, probe["op"], probe["args"])
+    except Exception as exc:
+        return raise_record(exc)
+    return {"raised": False}
+
+
 def raise_record(exc: Exception) -> dict:
     """A raise reduced to comparable data: module-qualified type + message."""
     return {"raised": True,
@@ -473,6 +623,8 @@ def run_probe(pr, interpretation, probe):
     kind = probe["kind"]
     if kind == "expect_raise":
         return probe_expect_raise(pr, probe)
+    if kind == "apply_input":
+        return probe_apply_input(pr, probe)
     if kind == "accessor_fingerprint":
         return probe_accessor_fingerprint(pr, interpretation, probe)
     if kind == "save_rule_trace":
@@ -505,10 +657,15 @@ def run_probe(pr, interpretation, probe):
         # an empty list is the compared observation that no redirect file
         # was written. Probe order matters: sys.stdout stays redirected, so
         # authors place this probe after every probe whose output it should
-        # observe.
+        # observe. With canonicalize_peak_mb declared (memory_profile cases
+        # only — validation holds the pairing) the run-varying peak-MB
+        # number is reduced to '<peak-mb>' (PEAK_MB_RE rationale above);
+        # every other character still compares exactly.
         sys.stdout.flush()
+        canon = ((lambda text: PEAK_MB_RE.sub(PEAK_MB_CANON, text))
+                 if probe.get("canonicalize_peak_mb") else (lambda text: text))
         return [{"name": OUTPUT_TS_RE.sub("_<timestamp>.txt", path.name),
-                 "content": path.read_text()}
+                 "content": canon(path.read_text())}
                 for path in sorted(Path.cwd().glob("*.txt"))]
     raise ValueError(f"unknown probe kind: {kind}")
 
@@ -543,8 +700,13 @@ def run_step(pr, step: dict, interpretation):
     """
     args = step.get("args", {})
     op = step["op"]
+    # Resolved outside the try — an engine missing the loader binding is a
+    # capture failure, never a banked outcome (probe_apply_input parity).
+    apply_fn = getattr(pr, op) if op in APPLY_OPS else None
     try:
-        if op == "reason":
+        if op in APPLY_OPS:
+            call_apply_input(apply_fn, op, args)
+        elif op == "reason":
             interpretation = pr.reason(**args)
         elif op == "add_fact":
             add_fact_from_args(pr, args)
