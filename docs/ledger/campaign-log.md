@@ -140,3 +140,31 @@ and any same-engine irreproducibility it surfaces is a harness defect to
 root-cause, not a finding to absorb.
 
 **Resume prompt.** `/campaign`
+
+## Session 11 — 2026-07-07
+
+**What we knew going in.** The settings-knob phase was complete on paper —
+every knob row cased, corpus at 53 — but the phase's verdict-of-record was
+owed: the full-corpus sweep had been deliberately deferred session after
+session under the wall-clock rule, and until everything ran green in one
+sitting, "the corpus passes" was a stitched-together claim, not a banked
+one.
+
+**What we learned this session.** Everything passes together: 53/53 cases
+oracle-vs-oracle, zero divergences, zero irreproducibility, 22 minutes
+wall-clock, with the parallel branch running warm exactly as session 10's
+caching characterization predicted. The sweep also stress-tested the
+harness's honesty disciplines in miniature: a first guess about two fast
+timing outliers was checked against the banked artifacts and refuted, and
+the residual is recorded as cause-unproven rather than dressed up as
+explained. Nothing needed fixing, so the sweep banked directly — the first
+session since the harness landed with no review gate, by the rule made for
+exactly this case.
+
+**What we expect to learn next session.** The breadth phase opens on the
+accessor cluster: what the get-family accessors actually return at the pin
+(fingerprint probes), and whether save_rule_trace's written traces can
+ride the new file-output probe — the first test of that probe beyond the
+knob that bore it.
+
+**Resume prompt.** `/campaign`
