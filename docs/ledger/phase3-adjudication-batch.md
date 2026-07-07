@@ -11,6 +11,13 @@ plus an independent full-corpus enumeration pass reconciled against the author's
 sweep. Nothing found is omitted; borderline observations are listed in Part C rather
 than dropped.
 
+**Review addendum (session 24):** the independent review's own three-way enumeration
+sweep (ledgers 4–23, every review report including the pre-phase-3 harness reviews,
+board notes + ADRs + DIV records) surfaced five recorded observations the assembly
+sweep missed — two carried candidates (B33–B34) and three borderline observations
+(C6–C8), added below in this document's own format. Section numbering B1–B32/C1–C5
+is unchanged so existing cross-references stay valid.
+
 **The default stance every recommendation starts from (AC-6):** matching the pin is
 the default meaning of correct. Every Part-B item is a pinned behavior the rewrite
 *deliberately reproduces*, and every covering committed case passes
@@ -327,6 +334,43 @@ verbose gate — it lands on pre-reason process stdout, which the harness never
 compares (named unobserved on the board). Rewrite: reproduced. Evidence: slice-1
 author report; board `fn:add_fact_from_json`. *Keep.*
 
+### Added by the session-24 independent review (carried candidates the assembly sweep missed)
+
+**B33. The store-off accessor assert family — with the reused raise message.** Pin:
+with `store_interpretation_changes=False`, `reason()` completes and `get_time`
+answers, but every trace-backed accessor raises `AssertionError`; `get_rule_trace`'s
+single assert (pyreason.py:1666) precedes its node/edge split and reuses
+`save_rule_trace`'s own message text verbatim (:1652 — "store interpretation
+changes setting is off, turn on to **save rule trace**"), so both trace probes
+raise a message naming a different function.
+Session 5 tagged this family an oracle-bug-candidate *in the same sentence* as
+B15's atom_trace flip ("the store-off assert family and the atom_trace force-flip
+are … oracle-bug-candidates", session-5 ledger §Divergences); the batch carried the
+flip and dropped the family. Rewrite: reproduces all three assert sites and the
+reused message byte-for-byte. Case: `store-off-accessors` (four `allow_raise`
+probes over the three assert sites — the banked `trace-node-store-off` and
+`trace-edge-store-off` probes both carry the reused text) — PASS. Evidence:
+session-5 ledger; board `setting:store_interpretation_changes` notes;
+docs/reviews/2026-07-06-get-setting-raw.md. *Keep; the reused message is the
+sharpest one-line diagnostic improvement available if the operator ever wants one.*
+
+**B34. `output_to_file` rebinds `sys.stdout` and never restores, flushes, or closes
+it — and the re-open leaks the first handle.** Pin: `reason()` executes
+`sys.stdout = open(f'./{output_file_name}_{timestamp}.txt', 'a')`
+(pyreason.py:1513-1514) and `_reason` re-opens the same name (:1541-1542),
+abandoning the first handle; nothing ever restores the process's stdout — every
+print an embedder makes after `reason()` returns lands in the engine's file, for
+the life of the process. First recorded by the harness review
+(docs/reviews/2026-07-06-harness-reviewer-B.md F10); characterized session 10; the
+harness's `output_file` probe confines and flushes the file per capture, which is
+why the arm is bankable at all. Rewrite: reproduces the rebind-and-never-restore
+shape at the same seam. Cases: `output-to-file-default`, `output-to-file-on`,
+`output-file-name-custom`, `output-file-name-inert`, `memory-profile-output-on` —
+PASS. Evidence: board `setting:output_to_file` notes;
+docs/reviews/2026-07-07-parallel-and-file-output-cases.md. *Keep for the reference
+core; flag alongside B16 as an embedder-visible behavior an improve-decision could
+target post-adjudication (restore-on-exit is a one-line contract change).*
+
 ---
 
 ## Part C — borderline observations (recorded so nothing is silently dropped; no adjudication strictly required)
@@ -366,6 +410,41 @@ author report; board `fn:add_fact_from_json`. *Keep.*
 - **C5. Double-count guard.** The self-recursive-query SIGSEGV observation
   (board `type:Query`; session 14) is *subsumed by DIV-0001 (A1)* — it is the
   pin-side half of that record, not a separate carried candidate.
+- **C6. First-import side effects land inside the installed package — gated on
+  pytest's absence.** (Added session 24 by the review.) Pin: `pyreason/__init__.py`
+  points `NUMBA_CACHE_DIR` *inside the package directory*, runs a warmup `reason()`
+  on first import, rewrites `.cache_status.yaml` in the package guarded only by
+  `'pytest' not in sys.modules` (__init__.py:42), and prints the "Imported PyReason
+  for the first time…" banner — so import behavior differs under a test runner, and
+  the cache write lands in site-packages. Recorded by the harness review
+  (docs/reviews/2026-07-06-harness-reviewer-B.md F9), which is why the harness
+  pre-warms the cache and why the oracle env is a non-editable install. Outside the
+  compared surface (pre-reason process stdout is never compared; no committed case
+  observes import time), and the rewrite has no compile cache to warm — recorded so
+  the asymmetry is a documented scope edge, not a silent one.
+- **C7. The pin's no-caching belief about the parallel kernel is refuted at three
+  sites — plus a compile-time type-safety warning.** (Added session 24 by the
+  review.) Pin: the getter docstring (pyreason.py:204-205), the setter docstring
+  (:410-411), and the dispatch comment (program.py:41 "We cannot parallelize with
+  cache on") all assert the parallel kernel cannot cache, while the decorator is
+  `cache=True, parallel=True` and the compiled kernel demonstrably caches across
+  fresh processes (~174 s cold → ~3 s warm, session 10; corroborated by the
+  slice-7-era review docs/reviews/2026-07-07-parallel-and-file-output-cases.md F2).
+  The same kernel's compile emits `NumbaTypeSafetyWarning` (unsafe uint64→int64
+  cast, interpretation_parallel.py:572). Source-comment-level upstream defects with
+  no rewrite behavior arm to decide (the rewrite has no numba kernel); listed so the
+  refuted-belief record reaches the operator with the rest of the batch.
+- **C8. Dead and aliased knob observations beyond B12.** (Added session 24 by the
+  review.) Pin: (i) `reverse_digraph` is a split read — consulted at load time by
+  `load_graphml` only (`load_graph` never reads it, pyreason.py:589-599), while the
+  engine-side snapshot threaded into all three kernels is stored and never consumed
+  in any kernel body (board `setting:reverse_digraph`, "a dead snapshot, contra the
+  analysis note"; docs/reviews/2026-07-07-graphml-fixture-cases.md); (ii)
+  `canonical` is a pure alias of `persistent` — getter and setter share persistent's
+  field, last write wins, and the `__canonical` field written at init/reset is never
+  read (docs/reviews/2026-07-06-settings-only-knob-cases.md M1). Both cased where
+  observable (`reverse-digraph-*`, `canonical-*` — PASS) and reproduced; quirk-class
+  dead-surface observations in B12's family, no decision needed.
 
 ---
 
@@ -374,5 +453,6 @@ author report; board `fn:add_fact_from_json`. *Keep.*
 Phase 4 (execution layer) starts from the reference core these decisions freeze.
 The two DIV records decide actual rewrite behavior (A1, A2); B17, B19, and B25
 decide recorded direction; every other Part-B item is a bless-the-reproduction
-confirmation. Item count: **2 DIV records + 32 carried candidates + 5 recorded
-observations = 39 sections.**
+confirmation. Item count: **2 DIV records + 34 carried candidates + 8 recorded
+observations = 44 sections** (39 assembled by the author; B33–B34 and C6–C8 added
+by the session-24 independent review).
