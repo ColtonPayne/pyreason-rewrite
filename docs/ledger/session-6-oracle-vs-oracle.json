@@ -1,0 +1,119 @@
+{
+  "engine_a": "oracle-env/bin/python",
+  "engine_b": "oracle-env/bin/python",
+  "hashseed": "0",
+  "verdicts": [
+    {
+      "status": "pass",
+      "case_id": "allow-ground-rules-off"
+    },
+    {
+      "status": "pass",
+      "case_id": "allow-ground-rules-on"
+    },
+    {
+      "status": "pass",
+      "case_id": "conv-delta-bound"
+    },
+    {
+      "status": "pass",
+      "case_id": "conv-delta-interp"
+    },
+    {
+      "status": "pass",
+      "case_id": "conv-perfect"
+    },
+    {
+      "status": "pass",
+      "case_id": "edge-rule-frames"
+    },
+    {
+      "status": "pass",
+      "case_id": "fact-text-malformed"
+    },
+    {
+      "status": "pass",
+      "case_id": "fp-version-on"
+    },
+    {
+      "status": "pass",
+      "case_id": "hello-world"
+    },
+    {
+      "status": "pass",
+      "case_id": "inconsistency-ipl-override"
+    },
+    {
+      "status": "pass",
+      "case_id": "inconsistency-ipl-resolve"
+    },
+    {
+      "status": "pass",
+      "case_id": "persistent-off"
+    },
+    {
+      "status": "pass",
+      "case_id": "persistent-on"
+    },
+    {
+      "status": "pass",
+      "case_id": "reason-again-no-program"
+    },
+    {
+      "status": "pass",
+      "case_id": "reason-again-restart-false"
+    },
+    {
+      "status": "pass",
+      "case_id": "reason-again-restart-true"
+    },
+    {
+      "status": "pass",
+      "case_id": "reason-bare-again-no-facts"
+    },
+    {
+      "status": "pass",
+      "case_id": "reset-no-program"
+    },
+    {
+      "status": "pass",
+      "case_id": "reset-rules-no-program"
+    },
+    {
+      "status": "pass",
+      "case_id": "reset-rules-with-program"
+    },
+    {
+      "status": "pass",
+      "case_id": "reset-settings-restore"
+    },
+    {
+      "status": "pass",
+      "case_id": "reset-with-program"
+    },
+    {
+      "status": "pass",
+      "case_id": "rule-text-malformed"
+    },
+    {
+      "status": "pass",
+      "case_id": "store-off-accessors"
+    },
+    {
+      "status": "pass",
+      "case_id": "store-off-atom-trace-flip"
+    },
+    {
+      "status": "pass",
+      "case_id": "update-mode-default"
+    },
+    {
+      "status": "pass",
+      "case_id": "update-mode-junk-string"
+    },
+    {
+      "status": "pass",
+      "case_id": "update-mode-override"
+    }
+  ]
+}
