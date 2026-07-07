@@ -502,7 +502,7 @@ classes likewise.
 
 ## type:Interval
 - oracle anchor: oracle/pyreason/pyreason/scripts/numba_wrapper/numba_types/interval_type.py:13
-- status: cased
+- status: equivalent
 - cases: interval-ops
 - input classes:
   - closed-happy
@@ -519,7 +519,7 @@ classes likewise.
 
 ## type:Label
 - oracle anchor: oracle/pyreason/pyreason/scripts/numba_wrapper/numba_types/label_type.py:16
-- status: cased
+- status: equivalent
 - cases: label-ops
 - input classes:
   - construct
