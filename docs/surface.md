@@ -268,7 +268,7 @@ classes likewise.
 
 ## fn:reset
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:487
-- status: cased
+- status: equivalent
 - cases: reset-no-program, reset-with-program
 - input classes:
   - no-program
@@ -288,7 +288,7 @@ classes likewise.
 
 ## fn:reset_settings
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:561
-- status: cased
+- status: equivalent
 - cases: reset-settings-restore
 - input classes:
   - always
@@ -308,7 +308,7 @@ classes likewise.
 
 ## fn:get_logic_program
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:529
-- status: cased
+- status: equivalent
 - cases: accessors-fresh-state, accessors-lifecycle
 - input classes:
   - before-reason
@@ -319,7 +319,7 @@ classes likewise.
 
 ## fn:get_interpretation
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:538
-- status: cased
+- status: equivalent
 - cases: accessors-fresh-state, accessors-lifecycle
 - input classes:
   - happy
@@ -748,7 +748,7 @@ classes likewise.
 
 ## setting:canonical
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:161
-- status: cased
+- status: equivalent
 - cases: canonical-on, canonical-last-write
 - input classes:
   - alias-of-persistent
