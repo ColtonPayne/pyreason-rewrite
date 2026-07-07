@@ -236,3 +236,42 @@ full-corpus sweep, and Phase 3 (the pure-Python reference core) opens with
 the networkx dependency ask.
 
 **Resume prompt.** `/campaign`
+
+## Session 14 — 2026-07-07
+
+**What we knew going in.** The board stood at 46/52 after the loader
+packet, with six rows left: the four public types (Query, Threshold,
+Interval, Label) and the two functions that register Python callables —
+the awkward tail of the breadth grind, because callables can't ride the
+JSON case format and two of the types aren't reachable through any other
+public call.
+
+**What we learned this session.** The breadth grind is done: **52 of 52
+public-surface rows are cased.** The named-function registry solved the
+callable problem (committed reference functions selected by name, compiled
+at resolve time), queries now ride `reason(queries=…)`, and the two
+unreachable types got direct-construction probes. Eighteen new cases
+(corpus 94) banked some of the campaign's most rewrite-relevant contracts
+yet: number thresholds gate at the clause level, not per head; the
+unregistered-name asymmetry (annotation functions fail loudly, head
+functions silently ground nothing); the Interval proxy and its jitted twin
+disagree about where `intersection` seeds prev-bounds from; and two
+behaviors the harness correctly refuses to bank — a query matching a
+self-recursive rule crashes the pinned process outright, and non-compiled
+registrands poison `reason()` with machine-path-bearing errors. The review
+gate caught the third evidence-discrimination finding in three sessions
+(a true clause-level claim whose cases couldn't discriminate it — fixed
+with a discriminating case) and re-scoped a runtime hazard the author had
+underestimated: every registrand capture was silently re-poisoning and
+growing the oracle environment's compiled-kernel cache; the capture now
+confines it with a snapshot/restore.
+
+**What we expect to learn next session.** The phase boundary is here.
+Next session is the dedicated full-corpus sweep — all 94 cases
+oracle-vs-oracle in one run — which either banks the green
+verdict-of-record that closes the harness-building phase, or surfaces
+interaction defects the per-packet targeted runs couldn't see. After it
+banks, Phase 3 (the pure-Python reference core) opens, starting with the
+campaign's first rewrite dependency ask: networkx.
+
+**Resume prompt.** `/campaign`
