@@ -1,0 +1,45 @@
+{
+  "id": "output-file-name-inert",
+  "purpose": "settings.output_file_name='campaign_redirect' with output_to_file left at its default False: the name knob reads back as set, but reason() never consults it outside the redirect branch (its only consumption sites are the guarded opens at pyreason.py:1514/:1542) — the output_file probe reads the confined directory back empty, so a set name with the redirect off writes nothing anywhere. The inert-when-output-false class (setting:output_file_name); reasoning probe digests matched output-to-file-default's at authoring.",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md setting:output_file_name inert-when-output-false; hello-world program, name knob set, output knob left default",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason",
+    "fn:filter_and_sort_nodes", "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:output_to_file", "setting:output_file_name",
+    "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"atom_trace": true, "output_file_name": "campaign_redirect"},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 2}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "nodes-popular", "kind": "filter_sort_nodes", "labels": ["popular"]},
+    {"id": "trace-node", "kind": "rule_trace_node"},
+    {"id": "trace-edge", "kind": "rule_trace_edge"},
+    {"id": "time", "kind": "get_time"},
+    {"id": "out-knob", "kind": "get_setting", "knob": "output_to_file"},
+    {"id": "name-knob", "kind": "get_setting", "knob": "output_file_name"},
+    {"id": "output-files", "kind": "output_file"}
+  ],
+  "comparison": {"probes": {}}
+}

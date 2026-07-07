@@ -1,0 +1,45 @@
+{
+  "id": "output-to-file-default",
+  "purpose": "settings.output_to_file and output_file_name both left unset on the hello-world program: the knob readbacks pin the defaults False (pyreason.py:67) and 'pyreason_output' (pyreason.py:68), reason() skips the stdout rebind (the pyreason.py:1513/:1541 branches are not taken), and the output_file probe reads the capture's confined working directory back empty — no redirect file exists, verbose reasoning prints stayed on process stdout. The default-false-stdout class (setting:output_to_file) and the default-name class (setting:output_file_name); the baseline twin whose reasoning probe digests output-to-file-on matched at authoring (the harness judges each case within one knob position).",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md setting:output_to_file default-false-stdout and setting:output_file_name default-name; hello-world program with both knob readbacks and the no-file observation",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason",
+    "fn:filter_and_sort_nodes", "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:output_to_file", "setting:output_file_name",
+    "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"atom_trace": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 2}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "nodes-popular", "kind": "filter_sort_nodes", "labels": ["popular"]},
+    {"id": "trace-node", "kind": "rule_trace_node"},
+    {"id": "trace-edge", "kind": "rule_trace_edge"},
+    {"id": "time", "kind": "get_time"},
+    {"id": "out-knob", "kind": "get_setting", "knob": "output_to_file"},
+    {"id": "name-knob", "kind": "get_setting", "knob": "output_file_name"},
+    {"id": "output-files", "kind": "output_file"}
+  ],
+  "comparison": {"probes": {}}
+}

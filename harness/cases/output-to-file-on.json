@@ -1,0 +1,45 @@
+{
+  "id": "output-to-file-on",
+  "purpose": "settings.output_to_file=true on the exact output-to-file-default program: reason() rebinds the process's stdout to ./pyreason_output_<wall-clock>.txt opened for append (pyreason.py:1513-1514, re-opened onto the same name at :1541-1542) and never restores or flushes it. The output_file probe flushes and reads the file back from the capture's confined directory: name canonicalized to pyreason_output_<timestamp>.txt (the stamp at pyreason.py:1511 is run schedule, not engine behavior — recorded canonicalization), contents exact — the verbose reason-time prints (Filtering/Optimizing lines, Timestep 0-2, the convergence line, Fixed Point iterations) that the default twin left on process stdout. The nondefault-true-redirect class (setting:output_to_file) plus the default name 'pyreason_output' interpolated into the redirect path; reasoning probe digests matched output-to-file-default's at authoring (the redirect moves prints, never reasoning).",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md setting:output_to_file nondefault-true-redirect; hello-world program with the knob set true and the redirect file compared",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason",
+    "fn:filter_and_sort_nodes", "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:output_to_file", "setting:output_file_name",
+    "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"atom_trace": true, "output_to_file": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 2}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "nodes-popular", "kind": "filter_sort_nodes", "labels": ["popular"]},
+    {"id": "trace-node", "kind": "rule_trace_node"},
+    {"id": "trace-edge", "kind": "rule_trace_edge"},
+    {"id": "time", "kind": "get_time"},
+    {"id": "out-knob", "kind": "get_setting", "knob": "output_to_file"},
+    {"id": "name-knob", "kind": "get_setting", "knob": "output_file_name"},
+    {"id": "output-files", "kind": "output_file"}
+  ],
+  "comparison": {"probes": {}}
+}
