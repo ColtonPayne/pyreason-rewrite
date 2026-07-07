@@ -203,7 +203,7 @@ no per-case comparison policy changed.
   Both are legitimate non-registrand specializations — exactly what the on-disk
   cache is for (the session-14 repair deleted the six poisoned kernels' full
   cache sets, so this sweep was the first to re-pay those two compiles; they are
-  now cached for future sweeps). The registrand captures (06:34–06:49) left zero
+  now cached for future sweeps). The registrand captures (06:38–06:50 by artifact mtimes) left zero
   surviving `.nbc` additions; the rewritten indexes' 06:44/06:49 mtimes are the
   restore writing prior bytes back.
 - **Repo:** `git status` clean (run artifacts confined to the gitignored
