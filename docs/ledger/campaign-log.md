@@ -79,3 +79,34 @@ rule while load_graph ignores it — plus load_graphml's happy-path behavior,
 the first step into its malformed-attribute hazard cluster.
 
 **Resume prompt.** `/campaign`
+
+## Session 9 — 2026-07-07
+
+**What we knew going in.** The corpus stood at 40 cases, 30 of 52 rows
+cased, and every case's graph was inline — nothing exercised pyreason's
+graphml file loader directly, and the reverse_digraph knob (believed a
+load-time-only reversal that load_graph ignores) needed a committed fixture
+to case. The board called load_graphml's attribute coercions a hazard
+cluster of unknown loudness.
+
+**What we learned this session.** The harness now takes committed graphml
+fixtures as first-class case inputs, and the loader behaved as the pin
+promised: reverse_digraph flips which node derives under a
+direction-sensitive rule, the graphml path grounds byte-identically to the
+inline path on the same graph, and an empty graph reasons cleanly. Two
+sharper facts landed: the reverse-graph flag the engine kernels receive is
+dead — passed into all three, read by none — and the whole
+malformed-attribute cluster is silent coercion, never a raise; the nastiest
+edge is that an attribute value of 0 (or a "0,1" pair) becomes a vacuous
+fact that leaves no observable trace at all. Six new cases (corpus 46),
+two rows flipped (board 32/52), review fixed one wrong analysis-doc claim
+and one path-containment gap. The settings-knob phase is one packet from
+its boundary.
+
+**What we expect to learn next session.** Whether the parallel-computing
+kernel runs laptop-local and reasons digest-identically to the serial one,
+and what the output-to-file pair looks like once the harness grows a
+file-output probe — the last two knob surfaces before the owed full-corpus
+sweep at the phase boundary.
+
+**Resume prompt.** `/campaign`
