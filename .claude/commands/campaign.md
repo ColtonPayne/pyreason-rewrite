@@ -2,7 +2,7 @@
 description: Run a pyreason-reimagining campaign session as an orchestrator of Fable-level subagents, then bank the plain-English wrap-up in the campaign log
 ---
 
-Continue the pyreason reimagining campaign, acting as an **orchestrator**: you do the reading, decomposition, verification, and banking yourself; you delegate the substantive work to Fable-level subagents.
+Continue the pyreason reimagining campaign, acting as an **orchestrator**: you do the reading, decomposition, and banking yourself; you delegate the substantive work — including verification — to Fable-level subagents.
 
 ## Setup (do this inline, never via subagents)
 
@@ -10,14 +10,25 @@ Continue the pyreason reimagining campaign, acting as an **orchestrator**: you d
 2. Run the preflight doctor (`uv run python tools/hive_preflight.py`). If it is red, stop and report — no campaign work on a red preflight.
 3. Take the session file's **NEXT** and decompose it into work packets. Prefer a few meaty, independent packets over many tiny ones.
 
+## Session shape — two agents (operator-set, 2026-07-06)
+
+The ordinary session runs exactly two sequential `campaign-worker` agents:
+
+1. **Agent 1 — author.** Does the packet's substantive work: authors the cases/code, writes the tests, runs the fast tier plus **only the e2e runs its own packet just added or changed**, commits at green, returns verdict + report path.
+2. **Agent 2 — reviewer-fixer.** Independent (no shared context with agent 1): reviews agent 1's commits against the pinned source and the packet spec, **applies the fixes itself**, reruns the fast tier plus the same new/changed e2e runs, commits the fixes and the review report under `docs/reviews/`, returns verdict + report path.
+
+**Do not verify twice.** The independent review *is* the verification — the orchestrator does not rerun tests, re-diff files, or re-execute measurements that agent 2 already verified. The orchestrator reads the two returned reports, checks they answer the packet spec, and banks.
+
+**Full e2e corpus wall-clock rule (operator-set, 2026-07-06, supersedes the once-per-session form):** the full corpus/e2e sweep does **not** run every session. It runs only at a **phase boundary** — when the ledger's NEXT moves to a new phase of work — as a dedicated session of its own: run everything, spot-fix what surfaces, bank the verdict-of-record. Between boundaries, each session's evidence is the fast tier plus its own new/changed e2e runs, and the deferred sweep is named in the ledger so no boundary passes silently.
+
 ## Orchestration rules
 
 - Dispatch each packet with the Agent tool using `subagent_type: "campaign-worker"` (pinned to Fable at **effort: high** in `.claude/agents/campaign-worker.md` — do not override its model or effort downward). Operator note, 2026-07-06: the operator authorized Fable-tier subagents for `/campaign` sessions, superseding the charter's Opus cap; the charter's **12-concurrent cap still holds** — a larger fan-out is an ask, every time.
 - Subagents share none of your context, so every prompt must be self-contained: the absolute repo path, the relevant charter/ledger excerpts pasted in (not referenced), the exact acceptance criteria, where to write the full report, and precisely what to return (verdict + report path + reproduction commands).
 - Restate the repo's hard rules in **every** subagent prompt: `oracle/pyreason/` is read-only and never modified or rebuilt; the oracle pin never moves without operator adjudication; no installs or dependency changes; fast-tier tests must stay green.
 - Run independent packets in parallel (one message, multiple Agent calls); sequence dependent ones. Use SendMessage to continue an existing subagent rather than respawning when iterating on its packet.
-- **Verify before you bank.** Do not accept a subagent's claims on trust: rerun the tests it cites, diff the files it says it changed, re-execute the measurement that forces its verdict. Only verified results go in the ledger.
-- **Test-tier discipline (wall-clock rule, operator-set 2026-07-06):** the full `e2e` suite runs **at most once per session, after review fixes are in** — never as a pre-work baseline and never as pre-review evidence. For a review, the fast tier green plus the packet's **new/changed tests passing** is sufficient evidence. Restate this in every subagent prompt: workers run the gate's fast tier and the specific tests their packet adds or touches, nothing broader. When the session's verdict needs the full-e2e run, dispatch it as its own dedicated `campaign-worker` packet after review fixes land — **you never run it yourself**; the worker banks the run's report to a file and returns verdict + path, which you verify by reading the report before banking.
+- **Verification is agent 2's job, once.** Do not re-verify what the reviewer-fixer verified (Session shape, above) — the orchestrator banks from the two reports. What the orchestrator still owns: reading both reports, confirming the packet spec's acceptance criteria are each answered, and refusing to bank a report that crossed a gate or skipped a criterion (that packet is failed and redone, not patched by you).
+- **Test-tier discipline:** every subagent prompt restates the wall-clock rule from Session shape — workers run the gate's fast tier and only the e2e runs their packet adds or touches; the full corpus sweep is a phase-boundary session, never a per-session step.
 
 ## Context discipline — files, not chat
 
