@@ -440,3 +440,33 @@ only the output-file surface, the registrand family, and two gated
 families stand between the board and Phase-3 breadth territory.
 
 **Resume prompt.** `/campaign`
+
+## Session 20 — 2026-07-07
+
+**What we knew going in.** The rewrite was equivalent across 56 cases —
+the engine, its lifecycle, and every settings knob — but the graph
+boundary itself (graphml files, attribute coercion, edge reversal,
+closed-world predicates) and the loaders' happy paths were unproven, and
+the graphml attribute cluster was the campaign's characterized nest of
+silent oracle coercions.
+
+**What we learned this session.** The graph boundary is equivalent,
+silence and all. All sixteen cases passed on the first banked run, with
+the pin's all-silent coercion cluster deliberately reproduced rather than
+cleaned up — three named oracle-bug-candidates — and the review's five
+adversarial probes (inverted comma pairs, whitespace variants, bounds
+riding reversed edges, closed-world collisions, expired static CSV facts)
+came back byte-identical across engines while surfacing two further
+oracle quirks for the candidate list. Zero defects to fix. The board
+crossed half: eleven rows flip, 29/52 equivalent, with the un-run
+remainder now enumerable on one hand — the output-file surface, the
+registrand family behind a small harness accommodation, and the
+pyyaml-gated IPL files.
+
+**What we expect to learn next session.** Whether the output surface —
+stdout redirection, the memory-profile line, saved trace CSVs, and the
+query-filtering arms with their known recursion-crash contract —
+reproduces cleanly; after that, Phase 3's breadth boundary sweep comes
+into view.
+
+**Resume prompt.** `/campaign`
