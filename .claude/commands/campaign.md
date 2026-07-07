@@ -2,13 +2,23 @@
 description: Run a pyreason-reimagining campaign session as an orchestrator of Fable-level subagents, then bank the plain-English wrap-up in the campaign log
 ---
 
-Continue the pyreason reimagining campaign, acting as an **orchestrator**: you do the reading, decomposition, and banking yourself; you delegate the substantive work — including verification — to Fable-level subagents.
+Continue the pyreason reimagining campaign, acting as an **orchestrator**: you do the reading, decomposition, and banking yourself; you delegate the substantive work — including verification — to Fable-level subagents. One `/campaign` invocation runs **sessions in a loop** (Session loop, below), not a single session.
 
 ## Setup (do this inline, never via subagents)
 
 1. Read this repo's CLAUDE.md, the charter it points to, and the newest `docs/ledger/session-<N>.md`.
 2. Run the preflight doctor (`uv run python tools/hive_preflight.py`). If it is red, stop and report — no campaign work on a red preflight.
 3. Take the session file's **NEXT** and decompose it into work packets. Prefer a few meaty, independent packets over many tiny ones.
+
+## Session loop (operator-set, 2026-07-06)
+
+A `/campaign` invocation does not stop after banking one session. After each session's wrap-up is banked and committed, **immediately begin the next session** from the just-banked NEXT: rerun the preflight (step 2), decompose the new NEXT (step 3), dispatch the two agents, bank. Repeat until one of these stops the loop:
+
+- **An ask gate blocks the campaign** (Ask gates, below) — raise it interactively and wait; the loop ends with that session's wrap-up banked and the ask queued in its ledger.
+- **The operator interrupts** — bank the in-flight session's wrap-up (even if it stalls mid-packet) before stopping.
+- **Nothing unblocked remains** — every NEXT candidate is gated; bank the wrap-up naming the gates and stop.
+
+Do not stop merely because a session completed cleanly, because the conversation is long (context is summarized and work continues), or because a phase boundary arrived — the phase-boundary sweep is itself the next session, not a stopping point. Between chained sessions, emit the three-line end-of-session message (Session wrap-up, below), then continue without waiting for a reply.
 
 ## Session shape — two agents (operator-set, 2026-07-06)
 
@@ -63,4 +73,4 @@ Gate discipline under orchestration:
    - **What we expect to learn next session** — what NEXT should reveal.
    - **Resume prompt** — a one-line copy-paste prompt for a fresh session (normally `/campaign`, or a plain-prose line if the command isn't available).
 2. Append that wrap-up verbatim to `docs/ledger/campaign-log.md` under a `## Session <N+1> — YYYY-MM-DD` heading. If the file doesn't exist, create it with a one-paragraph header explaining it's the running plain-English narrative of the campaign, one entry per session, newest last. Commit it alongside the session's ledger file.
-3. Final chat message: exactly three lines — the session's one-line verdict, the campaign-log path, and the one-line resume prompt (per the context discipline above, the wrap-up prose lives only in the file).
+3. End-of-session chat message: exactly three lines — the session's one-line verdict, the campaign-log path, and the one-line resume prompt (per the context discipline above, the wrap-up prose lives only in the file). Then, per the Session loop, continue straight into the next session unless a stop condition holds; the resume prompt line matters most on the loop's final message, where it is what a fresh instance copy-pastes.
