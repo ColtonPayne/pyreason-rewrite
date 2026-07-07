@@ -1,6 +1,6 @@
 {
   "id": "fp-version-on",
-  "purpose": "settings.fp_version=true routes reason() through interpretation_fp (the fixed-point engine, selected only when parallel_computing is off): hello-world inputs pin the fp engine's own node frames and traces — which differ from the optimized engine's on identical inputs (fp-counter values, event order, duplicated atom-trace groundings; same final bounds) — plus the knob's live value. First capture in a fresh env pays the fp path's one-time numba compile (~60s on this machine; ~7s warm).",
+  "purpose": "settings.fp_version=true routes reason() through interpretation_fp (the fixed-point engine, selected only when parallel_computing is off): hello-world inputs pin the fp engine's own node frames and traces — which differ from the optimized engine's on identical inputs (fp-counter values, event order, duplicated atom-trace groundings; same final bounds — verified against the banked hello-world artifacts at authoring; the harness itself judges this case fp-vs-fp only) — plus the knob's live value. First capture in a fresh env pays the fp path's one-time numba compile (~60s on this machine; ~7s warm).",
   "runtime_class": "standard",
   "provenance": "spine case against docs/surface.md setting:fp_version nondefault-true-fp; hello-world inputs, knob flipped",
   "surface_items": [
