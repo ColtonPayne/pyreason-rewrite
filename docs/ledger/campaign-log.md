@@ -342,3 +342,35 @@ semantics (interval updates, rule grounding, convergence) start being
 meaning-for-meaning reproductions rather than parser equivalence.
 
 **Resume prompt.** `/campaign`
+
+## Session 17 — 2026-07-07
+
+**What we knew going in.** The rewrite existed but could not yet reason:
+session 16 had landed the package skeleton, the value types, the four
+constructors' parsers, and the loader malformed arms — everything around
+the engine, none of the engine. The reasoning core itself, the campaign's
+hardest piece, was untouched.
+
+**What we learned this session.** The rewrite reasons, and it reasons
+equivalently. The default-path spine — grounding, clause evaluation with
+the full threshold-gating matrix, interval updates, the fixed-point
+temporal loop with all four convergence modes, and the atom trace — landed
+as pure functions over explicit state and passed all 13 of its cases
+against the oracle, every probe digest byte-equal to the banked sweep. The
+strongest signal came from the review: ten adversarially chosen probe
+programs — threshold boundary arithmetic, delta-0 re-entry, inconsistency
+arms, expiring facts, trace-ordering ties, even registered annotation and
+head functions driven outside the harness — matched the oracle ten for
+ten, with zero code fixes needed. Two structural facts surfaced: registrand
+cases can't cross the harness into the numba-less rewrite env until
+reference_fns gets a conditional-njit accommodation (queued), and the
+board's Threshold row is the third to flip equivalent (3/52).
+
+**What we expect to learn next session.** Whether the module-global
+facade's cross-run state semantics — the reset family, reason(again),
+persistence and canonicalization — reproduce the oracle's characterized
+state-contamination behavior. That is where the explicit-state design
+either pays off cleanly or meets the oracle's global-state quirks head-on:
+fourteen lifecycle cases will say.
+
+**Resume prompt.** `/campaign`
