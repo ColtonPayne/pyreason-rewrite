@@ -267,7 +267,8 @@ def _reason(state: EngineState, timesteps, convergence_threshold,
         settings.atom_trace, settings.save_graph_attributes_to_trace,
         settings.persistent, settings.inconsistency_check,
         settings.store_interpretation_changes, settings.update_mode,
-        settings.allow_ground_rules)
+        settings.allow_ground_rules, settings.parallel_computing,
+        settings.fp_version)
     state.program.specific_node_labels = specific_node_labels
     state.program.specific_edge_labels = specific_edge_labels
     state.program.closed_world_predicates = [Label(p) for p in state.closed_world_predicates]
