@@ -14,12 +14,18 @@ plain-python registrand passes the registration-time arity gate but fails
 numba argument typing when reason() first dispatches — screened live
 2026-07-07, not banked: the TypingError message embeds engine-environment
 paths), so `resolve()` applies the `numba.njit` decoration inside the engine
-environment rather than at import. The `numba` module global below exists for
-the same reason: a head function must *return* `numba.typed.List` (the pinned
+environment rather than at import — but only where numba imports (the
+conditional-njit accommodation, slice-2 review finding L1): an engine
+environment without numba is by construction not running the pinned engine,
+and handing it an njit dispatcher is impossible anyway, so resolve() there
+returns the committed function plain, exactly as a plain-python engine
+consumes callables. The `numba` module global below exists for the pinned
+return contract: a head function must *return* `numba.typed.List` (the pinned
 `_call_head_function` unboxes its objmode result to
 `types.ListType(types.unicode_type)`, interpretation.py:2316-2338), and njit
 compilation resolves that name as a module global at first call — after
-resolve() has bound it.
+resolve() has bound it. On the plain arm resolve() binds the same global to
+`_PLAIN_NUMBA`, under which that contract reduces to the builtin list.
 
 Registered names are matched by the engine against the callable's `__name__`
 (annotate/interpretation.py:1920, _call_head_function/interpretation.py:2334),
@@ -32,6 +38,17 @@ across fresh processes.
 """
 
 numba = None  # bound by resolve() inside the engine environment
+
+
+class _PLAIN_NUMBA:
+    """What the module-global `numba` means in an engine environment without
+    numba (see resolve()): the head-registrand return contract's
+    `numba.typed.List([...])` reduces to the builtin list, which is the shape
+    a plain-python engine's head-function caller consumes. Nothing else is
+    provided on purpose — a reference function reaching for any other numba
+    surface should fail loudly in the plain arm, not limp."""
+    class typed:
+        List = list
 
 
 def clause_lower_mean(annotations, weights):
@@ -88,10 +105,24 @@ REGISTRY = {fn.__name__: fn for fn in (
 
 
 def resolve(name: str):
-    """Resolve a registry name to the njit-wrapped callable the case
-    registers. Engine-environment only (imports numba); validation vouched
-    for the name, so a KeyError here is a harness fault, never engine data."""
+    """Resolve a registry name to the callable the case registers, in the
+    form THIS engine environment consumes — the conditional-njit
+    accommodation (slice-2 review L1). Where numba imports (the pinned
+    engine's environment — its kernels require njit-dispatcher registrands),
+    the function is njit-wrapped exactly as the pin's own callers wrap
+    theirs; where numba is ABSENT, the committed function is returned plain
+    and the module-global `numba` is bound to the builtin-list stand-in, so
+    a numba-less engine consumes the same committed source as a plain
+    callable. Only ModuleNotFoundError selects the plain arm: a numba that
+    is present but broken is an engine-environment fault and must fail the
+    capture loudly, never silently downgrade the oracle side to plain
+    registrands. Validation vouched for the name, so a KeyError here is a
+    harness fault, never engine data."""
     global numba
-    import numba as _numba
+    try:
+        import numba as _numba
+    except ModuleNotFoundError:
+        numba = _PLAIN_NUMBA
+        return REGISTRY[name]
     numba = _numba
     return _numba.njit(REGISTRY[name])

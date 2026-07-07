@@ -1142,6 +1142,70 @@ def test_registry_module_is_stdlib_only_and_names_match():
     assert reference_fns.star_args_stub.__code__.co_argcount == 0
 
 
+def test_resolve_plain_arm_hands_over_the_committed_function_unwrapped(monkeypatch):
+    """proves: in an engine environment without numba (this campaign env —
+    asserted, never assumed), resolve() returns exactly the committed registry
+    function, identity-preserved with its __name__ intact (the engine matches
+    registrands by __name__), and binds the module-global `numba` to the
+    builtin-list stand-in — the accommodation's plain arm, exercised for real
+    at the import seam, no mocks."""
+    import importlib.util
+
+    from harness import reference_fns
+
+    assert importlib.util.find_spec("numba") is None  # the env invariant
+    monkeypatch.setattr(reference_fns, "numba", None)  # restore after
+    fn = reference_fns.resolve("clause_lower_mean")
+    assert fn is reference_fns.REGISTRY["clause_lower_mean"]
+    assert fn.__name__ == "clause_lower_mean"
+    assert reference_fns.numba is reference_fns._PLAIN_NUMBA
+
+
+def test_resolve_numba_arm_njit_wraps_via_the_import_seam(monkeypatch):
+    """proves: where `import numba` succeeds inside resolve(), the returned
+    callable is exactly njit(committed function) and the module-global `numba`
+    is bound to the imported module — the oracle env consumes registrands as
+    the pin does. Simulated per the fast-tier constraint (this env carries no
+    numba): a stand-in module is planted in sys.modules, which is precisely
+    the seam resolve()'s `import numba` consumes, so the arm decision and the
+    wrap both run for real."""
+    import sys
+    from types import ModuleType
+
+    from harness import reference_fns
+
+    fake = ModuleType("numba")
+    wrapped = []
+
+    def njit(fn):
+        wrapped.append(fn)
+        return ("dispatcher", fn)
+
+    fake.njit = njit
+    monkeypatch.setitem(sys.modules, "numba", fake)
+    monkeypatch.setattr(reference_fns, "numba", None)  # restore after
+    out = reference_fns.resolve("first_clause_first_grounding")
+    assert wrapped == [reference_fns.REGISTRY["first_clause_first_grounding"]]
+    assert out == ("dispatcher",
+                   reference_fns.REGISTRY["first_clause_first_grounding"])
+    assert reference_fns.numba is fake
+
+
+def test_head_registrand_plain_arm_returns_a_builtin_list(monkeypatch):
+    """proves: after the plain-arm resolve(), the head reference function's
+    pinned return contract (`numba.typed.List` of grounding strings,
+    interpretation.py:2316-2338) reduces to the builtin list a plain-python
+    engine's head-function caller consumes — the one registrand that touches
+    the `numba` module global works end-to-end without numba."""
+    from harness import reference_fns
+
+    monkeypatch.setattr(reference_fns, "numba", None)  # restore after
+    fn = reference_fns.resolve("first_clause_first_grounding")
+    result = fn([["A", "B"], ["B"]])
+    assert type(result) is list
+    assert result == ["A"]
+
+
 def test_registry_step_op_hands_the_resolved_callable_to_the_engine(monkeypatch):
     """proves: a registry step op resolves the named reference function
     outside the outcome-recording try (a resolution fault fails the capture)
