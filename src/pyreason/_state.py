@@ -146,6 +146,44 @@ def add_closed_world_predicate(state: EngineState, predicate_name: str) -> None:
     state.closed_world_predicates.add(predicate_name)
 
 
+def reset(state: EngineState) -> None:
+    """Clear the loaded facts, graph, and rules — the pinned PARTIAL clear
+    (oracle pyreason.py:487-507), not a fresh engine: settings, the IPL, the
+    clause maps, and the graph-parse products (graph facts + specific labels)
+    all survive, and a live program is left half-cleared — its interp and
+    graph nulled, the program object itself still handed out by
+    get_logic_program (which is why get_time raises AttributeError on
+    None.time after a with-program reset instead of answering 0)."""
+    # Facts
+    state.node_facts = None
+    state.edge_facts = None
+    state.facts_name_set.clear()
+    state.closed_world_predicates = set()
+    if state.program is not None:
+        state.program.reset_facts()
+
+    # Graph
+    state.graph = None
+    if state.program is not None:
+        state.program.reset_graph()
+
+    # Rules
+    reset_rules(state)
+
+
+def reset_rules(state: EngineState) -> None:
+    """Clear the rules AND the registered annotation/head functions together
+    (oracle pyreason.py:517-527); facts, graph, and settings stay loaded, and
+    a live program keeps its interpretation (the observable contrast with
+    reset(): get_time still answers afterwards)."""
+    state.rules = None
+    state.rules_name_set.clear()
+    state.annotation_functions = []
+    state.head_functions = []
+    if state.program is not None:
+        state.program.reset_rules()
+
+
 def reason(state: EngineState, timesteps: int = -1, convergence_threshold: int = -1,
            convergence_bound_threshold: float = -1, queries=None,
            again: bool = False, restart: bool = True):
@@ -250,6 +288,13 @@ def _reason_again(state: EngineState, timesteps, restart, convergence_threshold,
                   convergence_bound_threshold):
     assert state.program is not None, 'To run `reason_again` you need to have reasoned once before'
 
+    # _reason clears the fact lists to None on exit (and reset() does too),
+    # so a resume with no fact added since converts None — the pinned
+    # numba.typed.List(None) TypeError (oracle pyreason.py:1636), reproduced
+    # message-for-message: a bare `again` is this raise, never a silent
+    # zero-fact resume.
+    if state.node_facts is None or state.edge_facts is None:
+        raise TypeError('List() argument must be iterable')
     all_node_facts = list(state.node_facts)
     all_edge_facts = list(state.edge_facts)
 

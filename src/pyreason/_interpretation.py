@@ -142,6 +142,33 @@ class Interpretation:
             self.facts_to_be_applied_edge_trace, self.atom_trace)
         self._start_fp(rules, max_facts_time, verbose, again, restart)
 
+    def get_dict(self):
+        """The interpretation's dict view, {t: {component: {label: (l, u)}}},
+        rebuilt from the stored change trace (oracle interpretation.py:
+        707-740): only traced changes appear (everything else reads as the
+        empty per-component map); under persistent, each change also stamps
+        every LATER timestep up to self.time. The timestep axis is
+        range(self.time + 1), so a trace row whose t exceeds self.time — the
+        restart-true resume state, where the clock reset under an intact
+        trace — raises the pinned KeyError on that t."""
+        interpretations = {}
+        for t in range(self.time + 1):
+            interpretations[t] = {}
+            for node in self.nodes:
+                interpretations[t][node] = {}
+            for edge in self.edges:
+                interpretations[t][edge] = {}
+
+        for trace in (self.rule_trace_node, self.rule_trace_edge):
+            for change in trace:
+                time, comp, l, bnd = change[0], change[2], change[3], change[4]
+                interpretations[time][comp][l.get_value()] = (bnd.lower, bnd.upper)
+                if self.persistent:
+                    for t in range(time + 1, self.time + 1):
+                        interpretations[t][comp][l.get_value()] = (bnd.lower, bnd.upper)
+
+        return interpretations
+
     def _start_fp(self, rules, max_facts_time, verbose, again, restart):
         if again:
             self.num_ga.append(self.num_ga[-1])

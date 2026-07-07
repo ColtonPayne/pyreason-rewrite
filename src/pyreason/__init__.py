@@ -68,6 +68,24 @@ def get_time() -> int:
     return i.time + 1
 
 
+def reset() -> None:
+    """Clear the loaded facts, graph, and rules (the pinned partial clear:
+    settings, IPL, clause maps, and graph-parse products survive; a live
+    program is left with its interpretation nulled, not dropped)."""
+    _state.reset(_state_obj)
+
+
+def reset_rules() -> None:
+    """Clear the rules and the registered annotation/head functions; facts,
+    graph, settings, and any live interpretation stay."""
+    _state.reset_rules(_state_obj)
+
+
+def reset_settings() -> None:
+    """Restore every settings knob to its default."""
+    _state_obj.settings.reset()
+
+
 def add_rule(pr_rule: Rule) -> None:
     """Add a constructed Rule to the program."""
     _state.add_rule(_state_obj, pr_rule)
