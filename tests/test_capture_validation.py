@@ -6,10 +6,19 @@ prove authoring faults exit as usage, never wearing the engine-failure label.
 
 from types import SimpleNamespace
 
-from harness.capture import PROBE_KINDS, probe_expect_raise, validate_case
+from harness.capture import (PROBE_KINDS, probe_expect_raise,
+                             run_probe_recorded, run_step, validate_case)
 
 VALID = {"id": "c", "inputs": {"settings": {}},
          "probes": [{"id": "p", "kind": "get_time"}]}
+
+VALID_STEPS = {"id": "c", "inputs": {"settings": {}}, "steps": [
+    {"id": "s1", "op": "reason", "args": {"timesteps": 1},
+     "probes": [{"id": "p1", "kind": "get_time"},
+                {"id": "p2", "kind": "rule_trace_node"}]},
+    {"id": "s2", "op": "reset",
+     "probes": [{"id": "p3", "kind": "get_time", "allow_raise": True}]},
+]}
 
 
 def test_valid_case_passes_the_guard():
@@ -126,6 +135,115 @@ def test_interp_probe_kinds_partition_the_probe_surface():
     from harness.capture import INTERP_PROBE_KINDS
 
     assert PROBE_KINDS == INTERP_PROBE_KINDS | {"get_time", "expect_raise"}
+
+
+def test_valid_steps_case_passes_the_guard():
+    """proves: a well-formed multi-step case — reason with probes, then a reset
+    with an allow_raise probe — clears validation."""
+    assert validate_case(VALID_STEPS) is None
+
+
+def test_steps_exclude_top_level_probes_and_inputs_reason():
+    """proves: the two case forms cannot mix — a steps case smuggling top-level
+    probes or an inputs.reason block is an authoring fault, since ordering
+    between the two would be ambiguous."""
+    assert "top level" in validate_case({**VALID_STEPS, "probes": [
+        {"id": "x", "kind": "get_time"}]})
+    assert "mutually exclusive" in validate_case(
+        {**VALID_STEPS, "inputs": {"reason": {"timesteps": 1}}})
+
+
+def test_empty_or_malformed_steps_are_rejected():
+    """proves: an empty step list, an unknown op, and a step without a string
+    id are each named authoring faults."""
+    assert "non-empty" in validate_case({**VALID_STEPS, "steps": []})
+    assert "rest" in validate_case({**VALID_STEPS, "steps": [
+        {"id": "s", "op": "rest"}]})
+    assert "id" in validate_case({**VALID_STEPS, "steps": [{"op": "reset"}]})
+
+
+def test_reset_ops_take_no_args_and_add_fact_needs_text():
+    """proves: args ride only the ops that consume them — a reset op carrying
+    args and an add_fact without fact text are authoring faults, not silently
+    dropped inputs."""
+    assert "takes no args" in validate_case({**VALID_STEPS, "steps": [
+        {"id": "s", "op": "reset", "args": {"timesteps": 1}}]})
+    assert "text" in validate_case({**VALID_STEPS, "steps": [
+        {"id": "s", "op": "add_fact", "args": {"name": "f"}}]})
+
+
+def test_step_and_probe_ids_share_one_namespace():
+    """proves: a step id colliding with a probe id is rejected — outcomes and
+    probe outputs land in the artifact's single probe map, so a collision
+    would silently overwrite one observation with the other."""
+    assert "unique" in validate_case({**VALID_STEPS, "steps": [
+        {"id": "s1", "op": "reason",
+         "probes": [{"id": "s1", "kind": "get_time"}]}]})
+
+
+def test_interp_probe_before_first_reason_step_is_rejected():
+    """proves: an interpretation-consuming probe placed before any reason step
+    is caught statically — there is no interpretation for it to observe."""
+    bad = {**VALID_STEPS, "steps": [
+        {"id": "s1", "op": "reset",
+         "probes": [{"id": "p", "kind": "rule_trace_node"}]},
+        {"id": "s2", "op": "reason"}]}
+    assert "no reason step precedes" in validate_case(bad)
+
+
+def test_allow_raise_must_be_boolean():
+    """proves: a non-boolean allow_raise is an authoring fault — a truthy
+    string would silently widen the raise escape hatch."""
+    assert "allow_raise" in validate_case({**VALID, "probes": [
+        {"id": "p", "kind": "get_time", "allow_raise": "yes"}]})
+
+
+def test_run_step_records_a_raise_as_the_outcome():
+    """proves: a step op that raises banks the module-qualified exception as
+    data and leaves the interpretation untouched — a raising op is a compared
+    observation, never a capture failure."""
+
+    def reason(**kwargs):
+        raise TypeError("List() argument must be iterable")
+
+    outcome, interp = run_step(SimpleNamespace(reason=reason),
+                               {"id": "s", "op": "reason"}, "old")
+    assert outcome == {"raised": True, "type": "builtins.TypeError",
+                       "message": "List() argument must be iterable"}
+    assert interp == "old"
+
+
+def test_run_step_advances_interpretation_only_on_successful_reason():
+    """proves: a successful reason step swaps in its returned interpretation,
+    and a reset op leaves the caller's stale reference in place — matching
+    what a user holding the returned object sees after pr.reset()."""
+    pr = SimpleNamespace(reason=lambda **kw: "new", reset=lambda: None)
+    outcome, interp = run_step(pr, {"id": "s", "op": "reason"}, "old")
+    assert (outcome, interp) == ({"raised": False}, "new")
+    outcome, interp = run_step(pr, {"id": "s", "op": "reset"}, "new")
+    assert (outcome, interp) == ({"raised": False}, "new")
+
+
+def test_run_probe_recorded_gates_the_raise_escape_hatch():
+    """proves: without allow_raise a probe exception propagates as a capture
+    failure, and with it the raise (or the wrapped value) is recorded as
+    data — a typo'd probe cannot silently bank an exception as behavior."""
+    import pytest
+
+    def get_time():
+        raise AttributeError("'NoneType' object has no attribute 'time'")
+
+    pr_raising = SimpleNamespace(get_time=get_time)
+    probe = {"id": "p", "kind": "get_time"}
+    with pytest.raises(AttributeError):
+        run_probe_recorded(pr_raising, None, probe)
+    recorded = run_probe_recorded(pr_raising, None,
+                                  {**probe, "allow_raise": True})
+    assert recorded == {"raised": True, "type": "builtins.AttributeError",
+                        "message": "'NoneType' object has no attribute 'time'"}
+    pr_ok = SimpleNamespace(get_time=lambda: 3)
+    assert run_probe_recorded(pr_ok, None, {**probe, "allow_raise": True}) \
+        == {"raised": False, "value": 3}
 
 
 def test_probe_kinds_cover_the_capture_dispatch():
