@@ -21,14 +21,22 @@ row is padded with '' here, matching the pinned pandas read
 (keep_default_na=False reads missing trailing cells as '', not NaN —
 verified empirically: a short row missing its name cell autonames rule_<n>
 identically in both engines; session-16 review probe).
+
+The IPL YAML loader mirrors the pinned yaml_parser.parse_ipl
+(yaml_parser.py:187-196): safe_load only, no validation of its own — every
+malformed arm is the underlying operation's raise, banked by
+ipl-load-malformed.
 """
 
 import csv
 import json
 import warnings
 
+import yaml
+
 from ._state import EngineState, add_fact, add_rule
 from .fact import Fact
+from .label import Label
 from .rule import Rule
 from .threshold import Threshold
 
@@ -597,3 +605,29 @@ def add_fact_from_csv(state: EngineState, csv_path: str, raise_errors=True) -> N
         print(f"Loaded {loaded_count} facts from {csv_path}")
         if error_count > 0:
             print(f"Failed to load {error_count} facts due to errors")
+
+
+def load_inconsistent_predicate_list(state: EngineState, path: str) -> None:
+    """Load the IPL from a YAML file, REPLACING whatever pairs the state
+    holds (the pinned wholesale rebind, pyreason.py:611-618 — contrast
+    add_inconsistent_predicate's append).
+
+    Parse arms mirror the pinned yaml_parser.parse_ipl (yaml_parser.py:
+    187-196), which validates nothing itself: a missing file is open()'s
+    FileNotFoundError, unparseable YAML is safe_load's yaml.parser
+    .ParserError (its message embeds the stream path), a document without
+    the 'ipl' key is the subscript's KeyError, a pair shorter than two is
+    the [1] IndexError, and a null 'ipl:' value fails the `is not None`
+    guard and reduces to an empty list — loaded, not None, so a null file
+    still overwrites. The rebind happens only after a complete parse: any
+    raise above leaves the prior IPL untouched, exactly as the pin's
+    parse-then-assign shape does.
+    """
+    with open(path, 'r') as file:
+        ipl_yaml = yaml.safe_load(file)
+
+    ipl = []
+    if ipl_yaml['ipl'] is not None:
+        for labels in ipl_yaml['ipl']:
+            ipl.append((Label(labels[0]), Label(labels[1])))
+    state.ipl = ipl

@@ -16,11 +16,13 @@ from pathlib import Path
 
 import networkx as nx
 import pytest
+import yaml.parser
 
 import pyreason
 from pyreason import _loaders
 from pyreason._settings import Settings
-from pyreason._state import EngineState, add_rule
+from pyreason._state import EngineState, add_inconsistent_predicate, add_rule
+from pyreason.label import Label
 from pyreason.rule import Rule
 
 
@@ -506,3 +508,68 @@ def test_rules_from_file_happy_rules_reach_reasoning(monkeypatch):
     rows = [[list(r) for r in f.itertuples(index=False, name=None)] for f in frames]
     assert rows[1] == [["A", [1.0, 1.0], [0, 1]]]
     assert rows[2] == [["A", [1.0, 1.0], [1.0, 1.0]]]
+
+
+# --- load_inconsistent_predicate_list (the IPL YAML loader) ---
+# Behavior target: the pinned yaml_parser.parse_ipl (yaml_parser.py:187-196)
+# reached through pyreason.py:611-618's wholesale rebind; arms banked by
+# ipl-load-basic / ipl-load-null-overwrite / ipl-load-malformed.
+
+
+def test_ipl_yaml_happy_fixture_replaces_prior_pairs(state):
+    """proves: over the committed ipl.yaml the one [popular, unpopular]
+    pair loads as a Label pair, and the load REPLACES a pair added via
+    add_inconsistent_predicate rather than merging — the pinned wholesale
+    rebind (pyreason.py:616-617; contrast the add's append)."""
+    add_inconsistent_predicate(state, "sick", "healthy")
+    _loaders.load_inconsistent_predicate_list(state, str(FIXTURES / "ipl.yaml"))
+    assert state.ipl == [(Label("popular"), Label("unpopular"))]
+
+
+def test_ipl_yaml_null_value_loads_an_empty_list(state):
+    """proves: an 'ipl:' key holding null fails parse_ipl's `is not None`
+    guard and loads as an EMPTY list, not None — so a null file still
+    overwrites: the pair added beforehand is gone and reasoning would see
+    zero complement pairs (the ipl-load-null-overwrite semantics)."""
+    add_inconsistent_predicate(state, "popular", "unpopular")
+    _loaders.load_inconsistent_predicate_list(state, str(FIXTURES / "ipl-null.yaml"))
+    assert state.ipl == []
+
+
+def test_ipl_yaml_malformed_arms_raise_and_leave_prior_ipl(state):
+    """proves: the four malformed arms raise the pin's four DISTINCT
+    exception types — a missing file open()'s FileNotFoundError, a document
+    without the 'ipl' key the subscript KeyError (message is the quoted
+    key), a one-element pair the [1] IndexError, and unparseable YAML
+    yaml.parser.ParserError — and each raise leaves the previously-held IPL
+    untouched (the pin parses fully before rebinding)."""
+    add_inconsistent_predicate(state, "sick", "healthy")
+    prior = list(state.ipl)
+
+    with pytest.raises(FileNotFoundError):
+        _loaders.load_inconsistent_predicate_list(
+            state, str(FIXTURES / "no-such-ipl.yaml"))
+    _raises_msg(KeyError, "'ipl'",
+                lambda: _loaders.load_inconsistent_predicate_list(
+                    state, str(FIXTURES / "ipl-missing-key.yaml")))
+    _raises_msg(IndexError, "list index out of range",
+                lambda: _loaders.load_inconsistent_predicate_list(
+                    state, str(FIXTURES / "ipl-short-pair.yaml")))
+    with pytest.raises(yaml.parser.ParserError):
+        _loaders.load_inconsistent_predicate_list(
+            state, str(FIXTURES / "ipl-bad.yaml"))
+
+    assert state.ipl == prior
+
+
+def test_facade_ipl_loader_reads_through_the_public_api(monkeypatch):
+    """proves: pyreason.load_inconsistent_predicate_list is the I/O seam
+    the harness drives — a real committed YAML file read through the
+    module-global facade lands the Label pair in the module's one
+    EngineState."""
+    fresh = EngineState()
+    fresh.settings.verbose = False
+    monkeypatch.setattr(pyreason, "_state_obj", fresh)
+    monkeypatch.setattr(pyreason, "settings", fresh.settings)
+    pyreason.load_inconsistent_predicate_list(str(FIXTURES / "ipl.yaml"))
+    assert fresh.ipl == [(Label("popular"), Label("unpopular"))]

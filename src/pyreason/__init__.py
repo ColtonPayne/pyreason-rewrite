@@ -140,6 +140,13 @@ def load_graph(graph: nx.DiGraph) -> None:
     _graph.load_graph(_state_obj, graph)
 
 
+def load_inconsistent_predicate_list(path: str) -> None:
+    """Load an inconsistent-predicate list from a YAML file (safe-load),
+    replacing any pairs added so far — the pinned wholesale overwrite,
+    contrast add_inconsistent_predicate's append."""
+    _loaders.load_inconsistent_predicate_list(_state_obj, path)
+
+
 def add_inconsistent_predicate(pred1: str, pred2: str) -> None:
     """Add an inconsistent predicate pair to the IPL."""
     _state.add_inconsistent_predicate(_state_obj, pred1, pred2)
