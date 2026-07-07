@@ -58,6 +58,16 @@ class Interval:
     def is_static(self):
         return self._static
 
+    def set_static(self, static):
+        self._static = static
+
+    def copy(self):
+        """A full-state copy — bounds, static flag, AND previous bounds (the
+        pinned jitted copy, interval_type.py:104-108); trace rows bank copies
+        so later mutations of the live interval can't rewrite history."""
+        return Interval(self._lower, self._upper, self._static,
+                        self._prev_lower, self._prev_upper)
+
     def set_lower_upper(self, lower, upper):
         self._lower = float(lower)
         self._upper = float(upper)
@@ -102,3 +112,23 @@ def closed(lower, upper, static=False):
     """The public interval constructor: bounds coerced to float, previous
     bounds seeded from the current ones."""
     return Interval(lower, upper, static)
+
+
+def intersect_jitted(current, incoming):
+    """The engine-internal intersection — the pinned JITTED arm.
+
+    The pinned engine has two intersection implementations: the Python proxy
+    (interval.py:69, seeds the result's previous bounds from self's CURRENT
+    bounds — the arm `Interval.intersection` above reproduces, banked by
+    interval-ops) and the jitted overload the reasoning loop actually runs
+    (interval_type.py:56-63, seeds from self's PREVIOUS bounds). World.update
+    compiles against the jitted arm, so previous bounds ride through an
+    update unchanged — which is exactly what makes a re-derived bound count
+    zero toward delta-interpretation/delta-bound convergence. The
+    two-implementation divergence is on the campaign board; both arms are
+    deliberate."""
+    lower = max(current.lower, incoming.lower)
+    upper = min(current.upper, incoming.upper)
+    if lower > upper:
+        lower, upper = 0.0, 1.0
+    return Interval(lower, upper, False, current.prev_lower, current.prev_upper)

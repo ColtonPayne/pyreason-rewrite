@@ -1,4 +1,4 @@
-"""The explicit engine state and the pure add-functions over it.
+"""The explicit engine state and the pure functions over it.
 
 This is the no-hidden-state seam the charter requires: everything the pinned
 oracle keeps in module globals (oracle pyreason.py:459-484) lives on one
@@ -8,15 +8,27 @@ holds exactly one EngineState and delegates; tests and future embedders can
 hold as many as they like.
 
 Only the fields with a consumer in the current equivalence surface exist:
-rules and facts (with their duplicate-name warn sets), the program handle
-(None until reason() lands — the accessors' before-any-reason returns are
-banked observations), and the settings object. Graph, IPL, and registered-
-function state land with the packets whose cases consume them.
+rules and facts (with their duplicate-name warn sets), the loaded graph and
+its parsed attribute products, the IPL, the registered annotation/head/
+closed-world collections, the program handle (None until reason() builds
+one — the accessors' before-any-reason returns are banked observations),
+the clause maps the trace views consult, and the settings object.
+
+`reason()` here is the pinned dispatch (oracle pyreason.py:1497-1642):
+first-run (or no program) builds a fresh Program over merged user+graph
+facts — flipping atom_trace off when change storage is off, filtering the
+ruleset under queries, reordering clauses when the graph is edge-heavy —
+runs it, and clears the user fact lists so a later reason-again consumes
+only newly added facts; the again arm re-drives the existing program.
 """
 
 import warnings
 
+import networkx as nx
+
+from . import _graph, _program
 from ._settings import Settings
+from .label import Label
 
 
 class EngineState:
@@ -32,7 +44,22 @@ class EngineState:
         self.node_facts: list | None = None
         self.edge_facts: list | None = None
         self.facts_name_set: set = set()
-        self.program = None
+        self.program: "_program.Program | None" = None
+        # Graph state — None until load_graph/load_graphml
+        self.graph: "nx.DiGraph | None" = None
+        self.graph_facts_node: list | None = None
+        self.graph_facts_edge: list | None = None
+        self.specific_graph_node_labels: dict | None = None
+        self.specific_graph_edge_labels: dict | None = None
+        # Inconsistent-predicate pairs — None until the first add/load
+        self.ipl: list | None = None
+        # Registered callables and closed-world predicate names
+        self.annotation_functions: list = []
+        self.head_functions: list = []
+        self.closed_world_predicates: set = set()
+        # Per-rule {new clause index: original} maps from the last reason()'s
+        # clause reordering — the trace views render through them
+        self.clause_maps: dict | None = None
 
 
 def add_rule(state: EngineState, pr_rule) -> None:
@@ -79,3 +106,155 @@ def add_fact(state: EngineState, pyreason_fact) -> None:
         state.node_facts.append(pyreason_fact)
     else:
         state.edge_facts.append(pyreason_fact)
+
+
+def add_inconsistent_predicate(state: EngineState, pred1: str, pred2: str) -> None:
+    """Add one inconsistent predicate pair (oracle pyreason.py:620-629): the
+    list is created on first add; the pair is stored as Labels, in order."""
+    if state.ipl is None:
+        state.ipl = []
+    state.ipl.append((Label(pred1), Label(pred2)))
+
+
+def add_annotation_function(state: EngineState, function) -> None:
+    """Register an annotation function, gating arity at registration (oracle
+    pyreason.py:1415-1481): only the 2-arg (annotations, weights) and 6-arg
+    extended signatures are callable from the reasoning loop, so anything
+    else raises here with the pinned message."""
+    py_func = getattr(function, 'py_func', function)
+    nargs = py_func.__code__.co_argcount
+    if nargs != 2 and nargs != 6:
+        raise TypeError(
+            f"Annotation function {py_func.__name__!r} must accept exactly 2 positional "
+            f"args (annotations, weights) or exactly 6 positional args (annotations, "
+            f"weights, qualified_nodes, qualified_edges, clause_labels, clause_variables); "
+            f"got {nargs}."
+        )
+    state.annotation_functions.append(function)
+
+
+def add_head_function(state: EngineState, function) -> None:
+    """Register a head function — a silent append at the pin
+    (pyreason.py:1484-1494), no signature gate."""
+    state.head_functions.append(function)
+
+
+def add_closed_world_predicate(state: EngineState, predicate_name: str) -> None:
+    """Register a predicate as closed-world (oracle pyreason.py:1122-1130):
+    wherever its bound is absent or the vacuous [0,1], satisfaction checks
+    read it as [0,0]."""
+    state.closed_world_predicates.add(predicate_name)
+
+
+def reason(state: EngineState, timesteps: int = -1, convergence_threshold: int = -1,
+           convergence_bound_threshold: float = -1, queries=None,
+           again: bool = False, restart: bool = True):
+    """The reasoning entry point (oracle pyreason.py:1497-1531, default
+    knobs' arm): first-run (or no program yet) builds and runs a fresh
+    program; again re-drives the existing one over the facts added since."""
+    if not again or state.program is None:
+        interp = _reason(state, timesteps, convergence_threshold,
+                         convergence_bound_threshold, queries)
+    else:
+        interp = _reason_again(state, timesteps, restart, convergence_threshold,
+                               convergence_bound_threshold)
+    return interp
+
+
+def _reason(state: EngineState, timesteps, convergence_threshold,
+            convergence_bound_threshold, queries):
+    settings = state.settings
+
+    # A missing graph is an empty graph; missing rules are an error
+    if state.graph is None:
+        _graph.load_graph(state, nx.DiGraph())
+        if settings.verbose:
+            warnings.warn('Graph not loaded. Use `load_graph` to load the graphml file. Using empty graph')
+    if state.rules is None:
+        raise Exception('There are no rules, use `add_rule` or `add_rules_from_file`')
+
+    if state.node_facts is None:
+        state.node_facts = []
+    if state.edge_facts is None:
+        state.edge_facts = []
+    if state.ipl is None:
+        state.ipl = []
+
+    # Graph-parse products join (rather than replace) any specific labels
+    specific_node_labels = {}
+    specific_edge_labels = {}
+    for label_name, nodes in state.specific_graph_node_labels.items():
+        if label_name in specific_node_labels:
+            specific_node_labels[label_name].extend(nodes)
+        else:
+            specific_node_labels[label_name] = nodes
+    for label_name, edges in state.specific_graph_edge_labels.items():
+        if label_name in specific_edge_labels:
+            specific_edge_labels[label_name].extend(edges)
+        else:
+            specific_edge_labels[label_name] = edges
+
+    all_node_facts = list(state.node_facts) + list(state.graph_facts_node)
+    all_edge_facts = list(state.edge_facts) + list(state.graph_facts_edge)
+
+    # Atom trace cannot be on when change storage is off — the pinned engine
+    # force-flips the PUBLIC knob (pyreason.py:1584-1585)
+    if not settings.store_interpretation_changes:
+        settings.atom_trace = False
+
+    annotation_functions = tuple(state.annotation_functions)
+    head_functions = tuple(state.head_functions)
+
+    if settings.verbose:
+        print('Filtering rules based on queries')
+    if queries is not None:
+        state.rules = _program.filter_ruleset(queries, state.rules)
+
+    # Move node clauses ahead of edge clauses on edge-heavy graphs; the maps
+    # let the trace views render clause columns in the author's order
+    state.clause_maps = {r.get_rule_name(): {i: i for i in range(len(r.get_clauses()))}
+                         for r in state.rules}
+    if len(state.graph.edges) > len(state.graph.nodes):
+        if settings.verbose:
+            print('Optimizing rules by moving node clauses ahead of edge clauses')
+        rules_copy = list(state.rules)
+        state.rules = []
+        for r in rules_copy:
+            r, state.clause_maps[r.get_rule_name()] = _program.reorder_clauses(r)
+            state.rules.append(r)
+
+    state.program = _program.Program(
+        state.graph, all_node_facts, all_edge_facts, state.rules, state.ipl,
+        annotation_functions, head_functions, settings.reverse_digraph,
+        settings.atom_trace, settings.save_graph_attributes_to_trace,
+        settings.persistent, settings.inconsistency_check,
+        settings.store_interpretation_changes, settings.update_mode,
+        settings.allow_ground_rules)
+    state.program.specific_node_labels = specific_node_labels
+    state.program.specific_edge_labels = specific_edge_labels
+    state.program.closed_world_predicates = [Label(p) for p in state.closed_world_predicates]
+
+    interpretation = state.program.reason(timesteps, convergence_threshold,
+                                          convergence_bound_threshold,
+                                          settings.verbose)
+
+    # Clear the user fact lists so reasoning again consumes only facts added
+    # since (the pinned post-run clear, pyreason.py:1622-1624)
+    state.node_facts = None
+    state.edge_facts = None
+
+    return interpretation
+
+
+def _reason_again(state: EngineState, timesteps, restart, convergence_threshold,
+                  convergence_bound_threshold):
+    assert state.program is not None, 'To run `reason_again` you need to have reasoned once before'
+
+    all_node_facts = list(state.node_facts)
+    all_edge_facts = list(state.edge_facts)
+
+    interpretation = state.program.reason_again(
+        timesteps, restart, convergence_threshold, convergence_bound_threshold,
+        all_node_facts, all_edge_facts, state.settings.verbose)
+
+    return interpretation

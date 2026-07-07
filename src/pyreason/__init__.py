@@ -14,10 +14,14 @@ consume them. The value types (`interval.closed`, `label.Label`) are reached
 through their submodules, mirroring the pinned aliased-submodule imports.
 """
 
+from typing import List, Tuple
+
+import networkx as nx
+
 from . import interval, label
 from ._settings import Settings
 from ._state import EngineState
-from . import _loaders, _state
+from . import _graph, _loaders, _output, _state
 from .fact import Fact
 from .query import Query
 from .rule import Rule
@@ -103,3 +107,70 @@ def add_fact_from_csv(csv_path: str, raise_errors=True) -> None:
     """Load facts from a CSV file of `fact_text, name, start_time, end_time,
     static` rows; raise_errors=False warns and skips invalid rows."""
     _loaders.add_fact_from_csv(_state_obj, csv_path, raise_errors)
+
+
+def load_graph(graph: nx.DiGraph) -> None:
+    """Load a networkx DiGraph into the engine (copied; attributes parsed
+    into graph facts under the graph_attribute_parsing knob)."""
+    _graph.load_graph(_state_obj, graph)
+
+
+def add_inconsistent_predicate(pred1: str, pred2: str) -> None:
+    """Add an inconsistent predicate pair to the IPL."""
+    _state.add_inconsistent_predicate(_state_obj, pred1, pred2)
+
+
+def add_annotation_function(function) -> None:
+    """Register an annotation function rules can name in their heads; only
+    the 2-arg and 6-arg signatures are accepted (TypeError otherwise)."""
+    _state.add_annotation_function(_state_obj, function)
+
+
+def add_head_function(function) -> None:
+    """Register a head function rules can call around a head variable."""
+    _state.add_head_function(_state_obj, function)
+
+
+def add_closed_world_predicate(predicate_name: str) -> None:
+    """Treat the named predicate's unknown ([0,1] or absent) bounds as [0,0]
+    during rule satisfaction checks."""
+    _state.add_closed_world_predicate(_state_obj, predicate_name)
+
+
+def reason(timesteps: int = -1, convergence_threshold: int = -1,
+           convergence_bound_threshold: float = -1, queries: List[Query] = None,
+           again: bool = False, restart: bool = True):
+    """Run the reasoner over the loaded graph, rules, and facts; returns the
+    final interpretation. timesteps=-1 runs to convergence — perfect
+    convergence when both thresholds are defaulted, delta-interpretation
+    under convergence_threshold, delta-bound under
+    convergence_bound_threshold (which dominates)."""
+    return _state.reason(_state_obj, timesteps, convergence_threshold,
+                         convergence_bound_threshold, queries, again, restart)
+
+
+def get_rule_trace(interpretation) -> Tuple[_output.Frame, _output.Frame]:
+    """The change trace as (node frame, edge frame) — every stored change,
+    with per-clause ground atoms when atom_trace was on."""
+    assert settings.store_interpretation_changes, 'store interpretation changes setting is off, turn on to save rule trace'
+    return _output.get_rule_trace(interpretation, _state_obj.clause_maps)
+
+
+def filter_and_sort_nodes(interpretation, labels: List[str],
+                          bound: interval.Interval = None,
+                          sort_by: str = 'lower', descending: bool = True):
+    """Per-timestep frames of the node changes carrying the given labels,
+    filtered to `bound` and sorted by a bound endpoint."""
+    assert settings.store_interpretation_changes, 'store interpretation changes setting is off, turn on to filter and sort nodes'
+    return _output.filter_and_sort_nodes(interpretation, labels, bound,
+                                         sort_by, descending)
+
+
+def filter_and_sort_edges(interpretation, labels: List[str],
+                          bound: interval.Interval = None,
+                          sort_by: str = 'lower', descending: bool = True):
+    """Per-timestep frames of the edge changes carrying the given labels,
+    filtered to `bound` and sorted by a bound endpoint."""
+    assert settings.store_interpretation_changes, 'store interpretation changes setting is off, turn on to filter and sort edges'
+    return _output.filter_and_sort_edges(interpretation, labels, bound,
+                                         sort_by, descending)
