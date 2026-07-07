@@ -46,7 +46,7 @@ classes likewise.
 
 ## fn:load_graph
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:589
-- status: cased
+- status: equivalent
 - cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore, edge-rule-frames, store-off-accessors, store-off-atom-trace-flip, fp-version-on, update-mode-default, update-mode-override, update-mode-junk-string, allow-ground-rules-on, allow-ground-rules-off, graph-attr-parsing-on, graph-attr-parsing-off, static-graph-facts-on, static-graph-facts-off, save-graph-attrs-to-trace-on, save-graph-attrs-to-trace-off, canonical-on, canonical-last-write, abort-on-inconsistency-default, abort-on-inconsistency-on, memory-profile-default, memory-profile-on, output-to-file-default, output-to-file-on, output-file-name-custom, output-file-name-inert, parallel-computing-default, parallel-computing-on, parallel-fp-precedence
 - input classes:
   - happy-digraph
@@ -107,7 +107,7 @@ classes likewise.
 
 ## fn:add_fact
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1133
-- status: cased
+- status: equivalent
 - cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore, edge-rule-frames, store-off-accessors, store-off-atom-trace-flip, fp-version-on, update-mode-default, update-mode-override, update-mode-junk-string, allow-ground-rules-on, allow-ground-rules-off, canonical-on, canonical-last-write, abort-on-inconsistency-default, abort-on-inconsistency-on, memory-profile-default, memory-profile-on, output-to-file-default, output-to-file-on, output-file-name-custom, output-file-name-inert, parallel-computing-default, parallel-computing-on, parallel-fp-precedence
 - input classes:
   - happy-node
@@ -162,7 +162,7 @@ classes likewise.
 
 ## fn:add_rule
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:632
-- status: cased
+- status: equivalent
 - cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore, edge-rule-frames, store-off-accessors, store-off-atom-trace-flip, fp-version-on, update-mode-default, update-mode-override, update-mode-junk-string, allow-ground-rules-on, allow-ground-rules-off, graph-attr-parsing-on, graph-attr-parsing-off, static-graph-facts-on, static-graph-facts-off, save-graph-attrs-to-trace-on, save-graph-attrs-to-trace-off, canonical-on, canonical-last-write, abort-on-inconsistency-default, abort-on-inconsistency-on, memory-profile-default, memory-profile-on, reverse-digraph-default, reverse-digraph-on, load-graphml-basic, load-graphml-no-attr-parse, graphml-attr-coercions, graphml-empty, output-to-file-default, output-to-file-on, output-file-name-custom, output-file-name-inert, parallel-computing-default, parallel-computing-on, parallel-fp-precedence
 - input classes:
   - happy-basic
@@ -297,7 +297,7 @@ classes likewise.
 
 ## fn:get_rules
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:510
-- status: cased
+- status: equivalent
 - cases: accessors-fresh-state, accessors-lifecycle, save-rule-trace-clause-reorder, reason-queries-filter, reason-queries-no-match
 - input classes:
   - loaded
@@ -330,7 +330,7 @@ classes likewise.
 
 ## fn:get_time
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:549
-- status: cased
+- status: equivalent
 - cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore, edge-rule-frames, store-off-accessors, store-off-atom-trace-flip, fp-version-on, update-mode-default, update-mode-override, update-mode-junk-string, allow-ground-rules-on, allow-ground-rules-off, graph-attr-parsing-on, graph-attr-parsing-off, static-graph-facts-on, static-graph-facts-off, save-graph-attrs-to-trace-on, save-graph-attrs-to-trace-off, canonical-on, canonical-last-write, abort-on-inconsistency-default, abort-on-inconsistency-on, memory-profile-default, memory-profile-on, reverse-digraph-default, reverse-digraph-on, load-graphml-basic, load-graphml-no-attr-parse, graphml-attr-coercions, graphml-empty, output-to-file-default, output-to-file-on, output-file-name-custom, output-file-name-inert, parallel-computing-default, parallel-computing-on, parallel-fp-precedence
 - input classes:
   - happy
@@ -341,7 +341,7 @@ classes likewise.
 
 ## fn:reason
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1497
-- status: cased
+- status: equivalent
 - cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore, edge-rule-frames, store-off-accessors, store-off-atom-trace-flip, fp-version-on, update-mode-default, update-mode-override, update-mode-junk-string, allow-ground-rules-on, allow-ground-rules-off, graph-attr-parsing-on, graph-attr-parsing-off, static-graph-facts-on, static-graph-facts-off, save-graph-attrs-to-trace-on, save-graph-attrs-to-trace-off, canonical-on, canonical-last-write, abort-on-inconsistency-default, abort-on-inconsistency-on, memory-profile-default, memory-profile-on, reverse-digraph-default, reverse-digraph-on, load-graphml-basic, load-graphml-no-attr-parse, graphml-attr-coercions, graphml-empty, output-to-file-default, output-to-file-on, output-file-name-custom, output-file-name-inert, parallel-computing-default, parallel-computing-on, parallel-fp-precedence, reason-queries-filter, reason-queries-no-match
 - input classes:
   - happy-fresh
@@ -380,7 +380,7 @@ classes likewise.
 
 ## fn:get_rule_trace
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1658
-- status: cased
+- status: equivalent
 - cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reset-with-program, reset-rules-with-program, reset-settings-restore, edge-rule-frames, store-off-accessors, fp-version-on, update-mode-default, update-mode-override, update-mode-junk-string, allow-ground-rules-on, allow-ground-rules-off, graph-attr-parsing-on, graph-attr-parsing-off, static-graph-facts-on, static-graph-facts-off, save-graph-attrs-to-trace-on, save-graph-attrs-to-trace-off, canonical-on, canonical-last-write, abort-on-inconsistency-default, abort-on-inconsistency-on, memory-profile-default, memory-profile-on, reverse-digraph-default, reverse-digraph-on, load-graphml-basic, load-graphml-no-attr-parse, graphml-attr-coercions, output-to-file-default, output-to-file-on, output-file-name-custom, output-file-name-inert, parallel-computing-default, parallel-computing-on, parallel-fp-precedence
 - input classes:
   - happy
@@ -392,7 +392,7 @@ classes likewise.
 
 ## fn:filter_and_sort_nodes
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1672
-- status: cased
+- status: equivalent
 - cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, store-off-accessors, fp-version-on, update-mode-default, update-mode-override, update-mode-junk-string, allow-ground-rules-on, allow-ground-rules-off, graph-attr-parsing-on, graph-attr-parsing-off, static-graph-facts-on, static-graph-facts-off, save-graph-attrs-to-trace-on, save-graph-attrs-to-trace-off, canonical-on, canonical-last-write, abort-on-inconsistency-default, abort-on-inconsistency-on, memory-profile-default, memory-profile-on, reverse-digraph-default, reverse-digraph-on, load-graphml-basic, load-graphml-no-attr-parse, graphml-attr-coercions, output-to-file-default, output-to-file-on, output-file-name-custom, output-file-name-inert, parallel-computing-default, parallel-computing-on, parallel-fp-precedence
 - input classes:
   - happy
@@ -427,7 +427,7 @@ classes likewise.
 
 ## type:Rule
 - oracle anchor: oracle/pyreason/pyreason/scripts/rules/rule.py:4
-- status: cased
+- status: equivalent
 - cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, rule-text-malformed, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore, edge-rule-frames, store-off-accessors, store-off-atom-trace-flip, fp-version-on, update-mode-default, update-mode-override, update-mode-junk-string, allow-ground-rules-on, allow-ground-rules-off, graph-attr-parsing-on, graph-attr-parsing-off, static-graph-facts-on, static-graph-facts-off, save-graph-attrs-to-trace-on, save-graph-attrs-to-trace-off, canonical-on, canonical-last-write, abort-on-inconsistency-default, abort-on-inconsistency-on, memory-profile-default, memory-profile-on, reverse-digraph-default, reverse-digraph-on, load-graphml-basic, load-graphml-no-attr-parse, graphml-attr-coercions, graphml-empty, output-to-file-default, output-to-file-on, output-file-name-custom, output-file-name-inert, parallel-computing-default, parallel-computing-on, parallel-fp-precedence
 - input classes:
   - happy-text-only
@@ -441,7 +441,7 @@ classes likewise.
 
 ## type:Fact
 - oracle anchor: oracle/pyreason/pyreason/scripts/facts/fact.py:5
-- status: cased
+- status: equivalent
 - cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, fact-text-malformed, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore, edge-rule-frames, store-off-accessors, store-off-atom-trace-flip, fp-version-on, update-mode-default, update-mode-override, update-mode-junk-string, allow-ground-rules-on, allow-ground-rules-off, canonical-on, canonical-last-write, abort-on-inconsistency-default, abort-on-inconsistency-on, memory-profile-default, memory-profile-on, output-to-file-default, output-to-file-on, output-file-name-custom, output-file-name-inert, parallel-computing-default, parallel-computing-on, parallel-fp-precedence
 - input classes:
   - happy-node
@@ -469,7 +469,7 @@ classes likewise.
 
 ## type:Query
 - oracle anchor: oracle/pyreason/pyreason/scripts/query/query.py:4
-- status: cased
+- status: equivalent
 - cases: query-construct, reason-queries-filter, reason-queries-no-match
 - input classes:
   - node-default-bound
@@ -480,7 +480,7 @@ classes likewise.
   - malformed-no-paren
   - malformed-negated-with-bounds
   - malformed-bad-float
-- notes: all eight construction classes pinned by query-construct's parse fingerprints — the two silent misparses banked as data (no-paren truncates BOTH pred and component to pred_comp[:-1]/[0:-1]: 'popularMary' → pred 'popularMar'; '~pred(x):[l,u]' takes the ':' branch and keeps '~' in the predicate name, bounds [l,u] — the unreconciled-branches corner), bad-float the one raise (ValueError from float()). Consumption pinned by the reason(queries=...) pair: filtering matches by predicate ONLY (bounds/component ignored, filter_ruleset.py:17) and permanently narrows __rules (post-reason get_rules holds only the survivor); ZERO survivors leave __rules a plain empty list and reason() raises numba's ValueError 'cannot compute fingerprint of empty list' at kernel dispatch — the pinned engine cannot reason over a query-emptied ruleset. Unobserved facets, each screened 2026-07-07: a query matching a SELF-RECURSIVE rule's head crashes the process outright (unbounded recursion in filter_ruleset through the clause targets; SIGSEGV before Python's RecursionError — no artifact, so un-caseable; a rewrite divergence here is adjudication material); multi-survivor filter ORDER rides list(set(...)) (filter_ruleset.py:34) — screened stable across 4 fresh runs but address-derived by construction, so committed cases keep survivor sets ≤ 1; interpretation.query() (the Query-consuming method on the interpretation object) is not a module-level row and stays unobserved
+- notes: all eight construction classes pinned by query-construct's parse fingerprints — the two silent misparses banked as data (no-paren truncates BOTH pred and component to pred_comp[:-1]/[0:-1]: 'popularMary' → pred 'popularMar'; '~pred(x):[l,u]' takes the ':' branch and keeps '~' in the predicate name, bounds [l,u] — the unreconciled-branches corner), bad-float the one raise (ValueError from float()). Consumption pinned by the reason(queries=...) pair: filtering matches by predicate ONLY (bounds/component ignored, filter_ruleset.py:17) and permanently narrows __rules (post-reason get_rules holds only the survivor); ZERO survivors leave __rules a plain empty list and reason() raises numba's ValueError 'cannot compute fingerprint of empty list' at kernel dispatch — the pinned engine cannot reason over a query-emptied ruleset. Unobserved facets, each screened 2026-07-07: a query matching a SELF-RECURSIVE rule's head crashes the process outright (unbounded recursion in filter_ruleset through the clause targets; SIGSEGV before Python's RecursionError — no artifact, so un-caseable; a rewrite divergence here is adjudication material); multi-survivor filter ORDER rides list(set(...)) (filter_ruleset.py:34) — screened stable across 4 fresh runs but address-derived by construction, so committed cases keep survivor sets ≤ 1; interpretation.query() (the Query-consuming method on the interpretation object) is not a module-level row and stays unobserved. Rewrite decision (session 21, executing the ledger-14 guard-the-recursion contract): the rewrite's filter_ruleset expands each predicate at most once, so the self-recursive-match input TERMINATES and returns the reachable rule set instead of crashing — a deliberate divergence confined to that un-caseable input (the reachable-rule SET is identical on every acyclic ruleset, which is all any committed case can exercise), seam-tested at tests/test_rewrite_output_surface.py::test_filter_ruleset_terminates_on_self_recursive_rule
 - analysis: docs/analysis/surface/reason-and-state.md
 
 ## type:Threshold
@@ -532,7 +532,7 @@ classes likewise.
 
 ## dsl:rule-text
 - oracle anchor: oracle/pyreason/pyreason/scripts/utils/rule_parser.py:17
-- status: cased
+- status: equivalent
 - cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, rule-text-malformed, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore, edge-rule-frames, store-off-accessors, store-off-atom-trace-flip, fp-version-on, update-mode-default, update-mode-override, update-mode-junk-string, allow-ground-rules-on, allow-ground-rules-off, graph-attr-parsing-on, graph-attr-parsing-off, static-graph-facts-on, static-graph-facts-off, save-graph-attrs-to-trace-on, save-graph-attrs-to-trace-off, canonical-on, canonical-last-write, abort-on-inconsistency-default, abort-on-inconsistency-on, memory-profile-default, memory-profile-on, reverse-digraph-default, reverse-digraph-on, load-graphml-basic, load-graphml-no-attr-parse, graphml-attr-coercions, graphml-empty, output-to-file-default, output-to-file-on, output-file-name-custom, output-file-name-inert, parallel-computing-default, parallel-computing-on, parallel-fp-precedence
 - input classes:
   - happy-node-rule
@@ -602,7 +602,7 @@ classes likewise.
 
 ## dsl:fact-text
 - oracle anchor: oracle/pyreason/pyreason/scripts/utils/fact_parser.py:28
-- status: cased
+- status: equivalent
 - cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, fact-text-malformed, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore, edge-rule-frames, store-off-accessors, store-off-atom-trace-flip, fp-version-on, update-mode-default, update-mode-override, update-mode-junk-string, allow-ground-rules-on, allow-ground-rules-off, canonical-on, canonical-last-write, abort-on-inconsistency-default, abort-on-inconsistency-on, memory-profile-default, memory-profile-on, output-to-file-default, output-to-file-on, output-file-name-custom, output-file-name-inert, parallel-computing-default, parallel-computing-on, parallel-fp-precedence
 - input classes:
   - happy-node-default-true
@@ -639,7 +639,7 @@ classes likewise.
 
 ## setting:verbose
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:86
-- status: cased
+- status: equivalent
 - cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore, edge-rule-frames, store-off-accessors, store-off-atom-trace-flip, fp-version-on, update-mode-default, update-mode-override, update-mode-junk-string, allow-ground-rules-on, allow-ground-rules-off, graph-attr-parsing-on, graph-attr-parsing-off, static-graph-facts-on, static-graph-facts-off, save-graph-attrs-to-trace-on, save-graph-attrs-to-trace-off, canonical-on, canonical-last-write, abort-on-inconsistency-default, abort-on-inconsistency-on, memory-profile-default, memory-profile-on, reverse-digraph-default, reverse-digraph-on, load-graphml-basic, load-graphml-no-attr-parse, graphml-attr-coercions, graphml-empty, output-to-file-default, output-to-file-on, output-file-name-custom, output-file-name-inert, parallel-computing-default, parallel-computing-on, parallel-fp-precedence
 - input classes:
   - default-true-prints
@@ -651,7 +651,7 @@ classes likewise.
 
 ## setting:output_to_file
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:94
-- status: cased
+- status: equivalent
 - cases: output-to-file-default, output-to-file-on, output-file-name-custom, output-file-name-inert
 - input classes:
   - default-false-stdout
@@ -663,7 +663,7 @@ classes likewise.
 
 ## setting:output_file_name
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:102
-- status: cased
+- status: equivalent
 - cases: output-to-file-default, output-to-file-on, output-file-name-custom, output-file-name-inert
 - input classes:
   - default-name
@@ -698,7 +698,7 @@ classes likewise.
 
 ## setting:memory_profile
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:126
-- status: cased
+- status: equivalent
 - cases: memory-profile-default, memory-profile-on, memory-profile-output-on
 - input classes:
   - default-false-direct
@@ -723,7 +723,7 @@ classes likewise.
 
 ## setting:atom_trace
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:143
-- status: cased
+- status: equivalent
 - cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore, edge-rule-frames, store-off-atom-trace-flip, fp-version-on, update-mode-default, update-mode-override, update-mode-junk-string, allow-ground-rules-on, allow-ground-rules-off, graph-attr-parsing-on, graph-attr-parsing-off, static-graph-facts-on, static-graph-facts-off, save-graph-attrs-to-trace-on, save-graph-attrs-to-trace-off, canonical-on, canonical-last-write, abort-on-inconsistency-default, abort-on-inconsistency-on, memory-profile-default, memory-profile-on, reverse-digraph-default, reverse-digraph-on, load-graphml-basic, load-graphml-no-attr-parse, graphml-attr-coercions, output-to-file-default, output-to-file-on, output-file-name-custom, output-file-name-inert, parallel-computing-default, parallel-computing-on, parallel-fp-precedence
 - input classes:
   - default-false-notrace
