@@ -693,7 +693,7 @@ classes likewise.
 - input classes:
   - dead-knob
   - type-reject
-- notes: dead knob at the pin — the name appears only inside _Settings (pyreason.py:49/:70/:118-123/:284-294; zero hits under scripts/, grep-verified session 8); the twin pair's reasoning digests are equal on an inconsistency-triggering program, only the readback differs
+- notes: dead knob at the pin — in the engine package the name appears only inside _Settings (pyreason.py:49/:70/:118-123/:284-294; zero hits under scripts/, grep-verified session 8); the twin pair's reasoning digests are equal on an inconsistency-triggering program, only the readback differs
 - analysis: docs/analysis/surface/settings.md
 
 ## setting:memory_profile
