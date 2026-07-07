@@ -198,3 +198,41 @@ board's remaining gaps all wait on operator decisions, and the Phase-3
 fork (start writing the rewrite's reference core) is on the table.
 
 **Resume prompt.** `/campaign`
+
+## Session 13 — 2026-07-07
+
+**What we knew going in.** The board stood at 39/52 rows cased after the
+accessor/trace cluster, and the operator had adjudicated the three boundary
+asks: one more breadth session (the un-gated loader/semantic rows) before
+opening Phase 3, the raising-probe form approved as a packet, and the
+peak-MB text canonicalization approved with per-case rationale. The
+remaining un-gated rows were the five file loaders, the inconsistent-
+predicate-list loader, and the closed-world registration.
+
+**What we learned this session.** Both approved mechanisms landed and
+immediately paid for themselves: the `apply_input` raising form banked
+every loader's malformed-input arm (exception type + exact message, no
+canonicalization on that path), and the peak-MB canonicalization unlocked
+the memory-profile/output-file interaction case. Seventeen new cases (corpus
+59 → 76) flipped all seven rows — the board is at 46/52, with only the four
+type rows and the two callable-registering functions left. The review gate
+caught the same failure class as last session, on the other side of the
+same coin: the author generalized "a single-clause rule never shows the
+closed-world assumption" from a screen where the predicate happened to be
+stated; the reviewer's live screen showed that a wholly-unstated predicate
+grounds *all* nodes and the single-clause rule fires everywhere. Two
+sessions running, the sharpest finding is a scoped observation promoted to
+"never" — the two-agent shape is earning its cost. One arm stays
+deliberately un-cased and recorded: the closed-world non-string raise
+carries a run-varying pointer-like token in its message, un-bankable
+without a policy the operator hasn't approved (recommendation: leave it).
+
+**What we expect to learn next session.** Whether the last six breadth rows
+close — the four public types (constructor/DSL input classes) and the two
+callable-registering functions, which need a named-function registry design
+because Python callables can't ride the JSON case format. If they close,
+the breadth grind is done, the next session is the phase-boundary
+full-corpus sweep, and Phase 3 (the pure-Python reference core) opens with
+the networkx dependency ask.
+
+**Resume prompt.** `/campaign`
