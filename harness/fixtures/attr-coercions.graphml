@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="d7" for="edge" attr.name="w" attr.type="double" />
+  <key id="d6" for="node" attr.name="pair2" attr.type="string" />
+  <key id="d5" for="node" attr.name="word" attr.type="string" />
+  <key id="d4" for="node" attr.name="big" attr.type="double" />
+  <key id="d3" for="node" attr.name="fpair" attr.type="string" />
+  <key id="d2" for="node" attr.name="pair" attr.type="string" />
+  <key id="d1" for="node" attr.name="flag" attr.type="long" />
+  <key id="d0" for="node" attr.name="score" attr.type="double" />
+  <graph edgedefault="directed">
+    <node id="N1">
+      <data key="d0">0.4</data>
+    </node>
+    <node id="N2">
+      <data key="d1">0</data>
+    </node>
+    <node id="N3">
+      <data key="d1">1</data>
+    </node>
+    <node id="N4">
+      <data key="d2">0,1</data>
+    </node>
+    <node id="N5">
+      <data key="d3">0.3,0.7</data>
+    </node>
+    <node id="N6">
+      <data key="d4">1.5</data>
+    </node>
+    <node id="N7">
+      <data key="d5">abc</data>
+    </node>
+    <node id="N8">
+      <data key="d6">0,0</data>
+    </node>
+    <edge source="N1" target="N2">
+      <data key="d7">0.5</data>
+    </edge>
+  </graph>
+</graphml>

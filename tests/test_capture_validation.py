@@ -349,3 +349,61 @@ def test_probe_kinds_cover_the_capture_dispatch():
     dispatch_source = inspect.getsource(capture.run_probe)
     for kind in PROBE_KINDS:
         assert f'"{kind}"' in dispatch_source
+
+
+FIXTURE = "harness/fixtures/chain-ab.graphml"
+
+
+def test_graphml_path_fixture_case_passes_the_guard():
+    """proves: a case naming a committed repo-relative GraphML fixture clears
+    validation — and the fixture this session's cases lean on actually exists."""
+    case = {**VALID, "inputs": {"graph": {"graphml_path": FIXTURE}}}
+    assert validate_case(case) is None
+
+
+def test_graphml_path_rejects_the_authoring_faults():
+    """proves: an absolute path, a missing file, an empty/non-string path, and
+    a graphml_path mixed with inline graph keys are each refused before the
+    engine runs — a mistyped fixture is exit-2 usage, never an engine finding."""
+    faults = [
+        ({"graphml_path": "/abs/elsewhere.graphml"}, "repo-relative"),
+        ({"graphml_path": "harness/fixtures/no-such.graphml"}, "no committed file"),
+        ({"graphml_path": ""}, "non-empty string"),
+        ({"graphml_path": 3}, "non-empty string"),
+        ({"graphml_path": FIXTURE, "nodes": ["A"]}, "exclusive forms"),
+    ]
+    for graph_spec, expected in faults:
+        fault = validate_case({**VALID, "inputs": {"graph": graph_spec}})
+        assert fault and expected in fault, (graph_spec, fault)
+
+
+def test_non_object_graph_input_is_rejected():
+    """proves: inputs.graph must be an object in either form — a bare string
+    path would otherwise reach build_graph and wear the engine-failure label."""
+    assert "object" in validate_case(
+        {**VALID, "inputs": {"graph": FIXTURE}})
+
+
+def test_run_case_routes_graphml_path_through_load_graphml(monkeypatch):
+    """proves: a graphml_path case drives the engine's load_graphml with the
+    fixture resolved against the repo root (never the caller's cwd), and the
+    inline load_graph path stays untouched."""
+    import sys
+    from types import ModuleType
+
+    from harness.capture import REPO, run_case
+
+    fake = ModuleType("pyreason")
+    calls = {"graphml": [], "graph": []}
+    fake.settings = SimpleNamespace()
+    fake.load_graphml = lambda path: calls["graphml"].append(path)
+    fake.load_graph = lambda graph: calls["graph"].append(graph)
+    fake.get_time = lambda: 0
+    monkeypatch.setitem(sys.modules, "pyreason", fake)
+
+    case = {"id": "c", "inputs": {"graph": {"graphml_path": FIXTURE}},
+            "probes": [{"id": "t", "kind": "get_time"}]}
+    artifact = run_case(case)
+    assert calls["graphml"] == [str(REPO / FIXTURE)]
+    assert calls["graph"] == []
+    assert artifact["probes"]["t"] == 0

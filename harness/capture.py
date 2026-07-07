@@ -42,6 +42,8 @@ from pathlib import Path
 
 from harness.compare import canonical, digest
 
+REPO = Path(__file__).resolve().parent.parent
+
 PROBE_KINDS = {"filter_sort_nodes", "filter_sort_edges", "rule_trace_node",
                "rule_trace_edge", "get_time", "get_setting",
                "interpretation_dict", "expect_raise"}
@@ -170,6 +172,35 @@ def _steps_fault(case: dict, steps) -> str | None:
     return None
 
 
+def _graph_fault(graph_spec) -> str | None:
+    """Checks for inputs.graph — the inline form or a committed-fixture path.
+
+    A `graphml_path` names a GraphML file committed in this repo, resolved
+    against the repo root (never the caller's cwd), and is checked for
+    existence here: a mistyped or uncommitted fixture is an authoring fault
+    (exit 2), never an engine observation. That deliberately forecloses casing
+    load_graphml's missing-file behavior through this input — a raising loader
+    needs its own probe form, since inputs are applied before any probe runs
+    and a raise there fails the capture.
+    """
+    if not isinstance(graph_spec, dict):
+        return "inputs.graph must be an object"
+    if "graphml_path" not in graph_spec:
+        return None
+    path = graph_spec["graphml_path"]
+    if set(graph_spec) != {"graphml_path"}:
+        return ("inputs.graph mixes graphml_path with inline keys "
+                f"{sorted(set(graph_spec) - {'graphml_path'})} — the fixture "
+                f"file and an inline spec are exclusive forms")
+    if not isinstance(path, str) or not path:
+        return "graphml_path must be a non-empty string"
+    if Path(path).is_absolute():
+        return f"graphml_path must be repo-relative, got {path!r}"
+    if not (REPO / path).is_file():
+        return f"graphml_path names no committed file: {path!r}"
+    return None
+
+
 def validate_case(case: dict) -> str | None:
     """The case-schema guard: returns a one-line fault, or None when valid.
 
@@ -215,6 +246,8 @@ def validate_case(case: dict) -> str | None:
     forbidden = FORBIDDEN_SETTINGS & set(case["inputs"].get("settings", {}))
     if forbidden:
         return f"forbidden settings knob(s) in a case: {sorted(forbidden)}"
+    if "graph" in case["inputs"]:
+        return _graph_fault(case["inputs"]["graph"])
     return None
 
 
@@ -376,8 +409,10 @@ def run_case(case: dict) -> dict:
 
     graph_spec = inputs.get("graph")
     if graph_spec is not None:
-        if "graphml" in graph_spec:
-            pr.load_graphml(graph_spec["graphml"])
+        if "graphml_path" in graph_spec:
+            # Validation vouched the committed fixture exists; resolving against
+            # the repo root keeps the load independent of the caller's cwd.
+            pr.load_graphml(str(REPO / graph_spec["graphml_path"]))
         else:
             pr.load_graph(build_graph(graph_spec))
 
