@@ -1,0 +1,37 @@
+{
+  "id": "allow-ground-rules-on",
+  "purpose": "settings.allow_ground_rules=true grounds a rule constant naming a real graph node directly (_ground_rule short-circuits when the clause 'variable' is in the node set): with popular(Mary) and popular(Justin) both true, the clause popular(Mary) binds Mary alone, so Friends(x,Mary) yields only influenced(John) — the twin allow-ground-rules-off treats 'Mary' as a variable and also derives influenced(Cat).",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md setting:allow_ground_rules nondefault-true-ground",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason",
+    "fn:filter_and_sort_nodes", "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:allow_ground_rules", "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true, "allow_ground_rules": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Cat"],
+      "edges": [
+        ["John", "Mary", {"Friends": 1}],
+        ["Cat", "Justin", {"Friends": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "influenced(x) <-1 popular(Mary), Friends(x,Mary)", "name": "influenced_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_mary", "start": 0, "end": 0},
+      {"text": "popular(Justin)", "name": "popular_justin", "start": 0, "end": 0}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "nodes-popular-influenced", "kind": "filter_sort_nodes", "labels": ["popular", "influenced"]},
+    {"id": "trace-node", "kind": "rule_trace_node"},
+    {"id": "time", "kind": "get_time"},
+    {"id": "ground-knob", "kind": "get_setting", "knob": "allow_ground_rules"}
+  ],
+  "comparison": {"probes": {}}
+}

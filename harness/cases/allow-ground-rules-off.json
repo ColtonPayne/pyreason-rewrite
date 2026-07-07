@@ -1,0 +1,37 @@
+{
+  "id": "allow-ground-rules-off",
+  "purpose": "settings.allow_ground_rules left at its default false: the rule constant 'Mary' is an ordinary variable even though a node of that name exists, so popular(Mary) grounds over every popular node ({Mary, Justin}) and Friends(x,Mary) yields influenced(John) AND influenced(Cat) — the default-false-nonground class, observably different from allow-ground-rules-on's single influenced(John).",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md setting:allow_ground_rules default-false-nonground",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason",
+    "fn:filter_and_sort_nodes", "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:allow_ground_rules", "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Cat"],
+      "edges": [
+        ["John", "Mary", {"Friends": 1}],
+        ["Cat", "Justin", {"Friends": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "influenced(x) <-1 popular(Mary), Friends(x,Mary)", "name": "influenced_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_mary", "start": 0, "end": 0},
+      {"text": "popular(Justin)", "name": "popular_justin", "start": 0, "end": 0}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "nodes-popular-influenced", "kind": "filter_sort_nodes", "labels": ["popular", "influenced"]},
+    {"id": "trace-node", "kind": "rule_trace_node"},
+    {"id": "time", "kind": "get_time"},
+    {"id": "ground-knob", "kind": "get_setting", "knob": "allow_ground_rules"}
+  ],
+  "comparison": {"probes": {}}
+}
