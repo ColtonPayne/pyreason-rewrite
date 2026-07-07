@@ -500,3 +500,32 @@ family's five cases have been gated on — without disturbing any banked verdict
 and whether those five cases then prove equivalent end-to-end.
 
 **Resume prompt.** `/campaign`
+
+## Session 22 — 2026-07-07
+
+**What we knew going in.** The output surface had landed in session 21 (board
+47/52) and the last two gates were the registrand family — five cases blocked
+on a harness accommodation, because the harness njit-wrapped registered
+functions and the rewrite environment has no numba — and the IPL file family,
+already unblocked by the approved pyyaml.
+
+**What we learned this session.** The harness can be taught the difference: the
+resolve seam now njit-wraps registered annotation and head functions only where
+numba imports, so the oracle consumes them exactly as the pinned engine does
+while the rewrite consumes them plain. The change provably disturbed nothing —
+the reviewer recomputed every banked digest it could touch and found all
+byte-identical. The five registrand cases then proved equivalent end-to-end,
+and the review's probing caught one more real defect (the rewrite dressed up an
+exception the pinned engine raises bare on an ungrounded head-function
+argument), fixed in-review with a regression case banked. Eight of eight pass;
+the board sits at 50/52 with only the IPL pair un-run. Mid-session the operator
+set a binding boundary: the session loop stops when Phase 3 ends, and all
+queued oracle-bug candidates and divergences get adjudicated in one batch
+before Phase 4.
+
+**What we expect to learn next session.** Whether the YAML
+inconsistent-predicate-list path proves equivalent over its four cases — the
+last un-run gate — leaving only the Phase-3 breadth boundary sweep, after which
+the loop halts for the operator's adjudication batch.
+
+**Resume prompt.** `/campaign`
