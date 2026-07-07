@@ -1,0 +1,42 @@
+{
+  "id": "parallel-computing-default",
+  "purpose": "settings.parallel_computing left unset on the hello-world program: the knob readback pins the default False (pyreason.py:80) and Program.reason takes the serial optimized kernel — the dispatch at program.py:42-46 checks _parallel_computing first, then _fp_version, then falls through to Interpretation — the default-false-standard class; the baseline twin whose reasoning probe digests parallel-computing-on matched at authoring (the harness judges each case within one knob position).",
+  "runtime_class": "smoke",
+  "provenance": "spine case against docs/surface.md setting:parallel_computing default-false-standard; hello-world program with the knob readback",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason",
+    "fn:filter_and_sort_nodes", "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:parallel_computing", "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 2}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "nodes-popular", "kind": "filter_sort_nodes", "labels": ["popular"]},
+    {"id": "trace-node", "kind": "rule_trace_node"},
+    {"id": "trace-edge", "kind": "rule_trace_edge"},
+    {"id": "time", "kind": "get_time"},
+    {"id": "par-knob", "kind": "get_setting", "knob": "parallel_computing"}
+  ],
+  "comparison": {"probes": {}}
+}

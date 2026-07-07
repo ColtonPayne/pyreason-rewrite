@@ -1,0 +1,44 @@
+{
+  "id": "parallel-fp-precedence",
+  "purpose": "settings.parallel_computing=true AND fp_version=true on the exact parallel-computing-on program: the dispatch at program.py:42-46 checks _parallel_computing before _fp_version, so InterpretationParallel wins and the fp kernel is never constructed. Proven behaviorally, not just by readback: every reasoning probe digest matched parallel-computing-on's at authoring, while trace-node and nodes-popular did NOT match fp-version-on's banked artifacts (the fp kernel's fp-counter values, event order, duplicated atom-trace groundings, and last-step frame row order differ on identical inputs, per the fp-version-on case record; trace-edge and time match all engines vacuously — empty edge trace, get_time 3) — the interaction-fp-precedence class (setting:parallel_computing) and interaction-parallel-precedence class (setting:fp_version) in one case. Both knob readbacks return true: precedence is a dispatch fact, not a setting mutation.",
+  "runtime_class": "standard",
+  "provenance": "spine case against docs/surface.md setting:parallel_computing interaction-fp-precedence and setting:fp_version interaction-parallel-precedence; hello-world program with both engine-selection knobs set",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason",
+    "fn:filter_and_sort_nodes", "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:parallel_computing", "setting:fp_version",
+    "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true, "parallel_computing": true, "fp_version": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 2}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "nodes-popular", "kind": "filter_sort_nodes", "labels": ["popular"]},
+    {"id": "trace-node", "kind": "rule_trace_node"},
+    {"id": "trace-edge", "kind": "rule_trace_edge"},
+    {"id": "time", "kind": "get_time"},
+    {"id": "par-knob", "kind": "get_setting", "knob": "parallel_computing"},
+    {"id": "fp-knob", "kind": "get_setting", "knob": "fp_version"}
+  ],
+  "comparison": {"probes": {}}
+}

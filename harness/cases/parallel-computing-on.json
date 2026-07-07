@@ -1,0 +1,42 @@
+{
+  "id": "parallel-computing-on",
+  "purpose": "settings.parallel_computing=true on the exact parallel-computing-default program: Program.reason instantiates InterpretationParallel (program.py:42-43), whose entire diff from the serial optimized kernel is the decorator flip @numba.njit(cache=True, parallel=False -> True) on Interpretation.reason (interpretation_parallel.py:241) — the rules loop at :571 becomes a real prange. On this one-rule program the prange has width 1, so thread scheduling cannot reorder trace appends: every reasoning probe digest matched parallel-computing-default's at authoring (the kernels agree on this program) and only the knob readback differs — the nondefault-true-parallel class. Multi-rule prange scheduling is deliberately NOT exercised here (a wider program risks trace-order irreproducibility, which would be its own characterization case, not this pair's). Compile cost: the parallel kernel's numba compile took ~174s cold on this machine but CACHES across fresh processes (~3s warm) — the pinned docstring's claim that parallel disables caching (pyreason.py:204-205) is refuted on numba 0.59.1/darwin.",
+  "runtime_class": "standard",
+  "provenance": "spine case against docs/surface.md setting:parallel_computing nondefault-true-parallel; hello-world program with the knob set true",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason",
+    "fn:filter_and_sort_nodes", "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:parallel_computing", "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true, "parallel_computing": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 2}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "nodes-popular", "kind": "filter_sort_nodes", "labels": ["popular"]},
+    {"id": "trace-node", "kind": "rule_trace_node"},
+    {"id": "trace-edge", "kind": "rule_trace_edge"},
+    {"id": "time", "kind": "get_time"},
+    {"id": "par-knob", "kind": "get_setting", "knob": "parallel_computing"}
+  ],
+  "comparison": {"probes": {}}
+}
