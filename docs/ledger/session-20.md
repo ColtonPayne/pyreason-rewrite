@@ -84,14 +84,15 @@ None — the two-agent shape ran as specified.
 
 ## Asks queued
 
-- **pyyaml — raised interactively at this session boundary** (the loop
-  is stopping here, so the batched ask goes to the operator now).
-  Options: (a) **`uv add pyyaml`, unpinned within the resolver's range
-  (recommended** — same shape as the approved networkx ask; the rewrite
-  consumes only safe-load of small IPL files; the oracle env carries
-  its own pinned copy); (b) pin to the oracle env's exact version;
-  (c) defer — the IPL file family (4 cases) stays oracle-only and its
-  rows stay `cased`.
+- **pyyaml — raised interactively at this session boundary and
+  adjudicated by the operator (2026-07-07): approved, option (a),
+  unpinned within the resolver's range** (the recommended option; the
+  rewrite consumes only safe-load of small IPL files). Executed on
+  approval: `uv add pyyaml` → pyyaml 6.0.3 in the campaign env; the
+  oracle env untouched (it carries its own pinned copy). Original
+  options for the record: (a) unpinned — approved; (b) pinned to the
+  oracle env's exact version; (c) defer. The IPL file family (4 cases)
+  is now unblocked for a future slice.
 
 ## Divergences
 
