@@ -529,3 +529,30 @@ last un-run gate — leaving only the Phase-3 breadth boundary sweep, after whic
 the loop halts for the operator's adjudication batch.
 
 **Resume prompt.** `/campaign`
+
+## Session 23 — 2026-07-07
+
+**What we knew going in.** After the registrand gate fell in session 22 the
+board stood at 50/52 with exactly one gate left: the four IPL file cases,
+unblocked since the operator approved pyyaml. The operator had set the
+boundary: the loop stops when Phase 3 ends, with all oracle-bug candidates
+adjudicated in one batch before Phase 4.
+
+**What we learned this session.** The YAML inconsistent-predicate-list path is
+equivalent — four of four cases pass, and the loader transcribes the pinned
+parser faithfully down to raise order and null-overwrite semantics. The board
+now reads 52/52 with every row run, and the reviewer re-derived that number
+mechanically from the banked artifacts rather than trusting the reports. The
+review's probing also found one divergence no exact-compare case can bank:
+feeding the pin a non-string IPL entry raises an error whose message text
+changes from process to process (it embeds an address), so the harness itself
+scores the pin irreproducible on that input; the rewrite currently accepts the
+entry. That went in as DIV-0002 with a proposed guarded raise, joining DIV-0001
+in the operator's adjudication batch.
+
+**What we expect to learn next session.** Whether the whole committed corpus
+passes oracle-vs-rewrite in a single invocation — the Phase-3 boundary sweep
+and verdict-of-record, after which the loop halts and the operator adjudicates
+DIV-0001, DIV-0002, and the carried oracle-bug-candidate observations.
+
+**Resume prompt.** `/campaign`
