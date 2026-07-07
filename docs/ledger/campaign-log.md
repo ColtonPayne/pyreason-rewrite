@@ -407,3 +407,36 @@ surface, the registrand family, and the pyyaml-gated IPL files between the
 board and full-corpus territory.
 
 **Resume prompt.** `/campaign`
+
+## Session 19 — 2026-07-07
+
+**What we knew going in.** The rewrite reasoned equivalently through the
+default path and the full state lifecycle, but a third of the settings
+surface — inconsistency handling, update modes, storage-off, and the two
+knobs that in the oracle select among its three near-copy engines — was
+still unproven, and those variant knobs were where the one-engine design
+principle would face its first real test.
+
+**What we learned this session.** All seventeen knob-arm cases pass, and
+the one-engine principle survived contact: fp_version turned out to force
+only a different iteration *schedule*, not different semantics — ADR 0003
+records one semantics core under two pinned schedules, and the review
+confirmed structurally that the oracle's parallel variant is byte-identical
+to its default at the pin, so the rewrite's single core honestly serves all
+knob combinations. The session also produced the campaign's best
+demonstration yet of why the reviewer exists: among sixteen adversarial
+probes, one caught the rewrite being *better* than the oracle — the
+fp-mode dict view was silently correcting a pinned stale-edge defect — and
+equivalence discipline required fixing the rewrite to reproduce the defect,
+seam-tested. Six more oracle defects are named as bug-candidates. The
+author agent was interrupted by a server error mid-packet and resumed from
+its transcript without loss. Board: ten rows flip, 18/52.
+
+**What we expect to learn next session.** Whether the graph-boundary
+surface — graphml loading with its silent attribute-coercion hazard
+cluster, reverse-digraph, attribute-fact stamping, closed-world
+predicates, and the loader happy paths — reproduces cleanly; after that
+only the output-file surface, the registrand family, and two gated
+families stand between the board and Phase-3 breadth territory.
+
+**Resume prompt.** `/campaign`
