@@ -168,3 +168,33 @@ ride the new file-output probe — the first test of that probe beyond the
 knob that bore it.
 
 **Resume prompt.** `/campaign`
+
+## Session 12 — 2026-07-07
+
+**What we knew going in.** The settings-knob phase had closed with a clean
+53-case sweep, and the breadth phase opened on the accessor cluster: four
+uncovered rows covering what the get-family accessors return and what
+save_rule_trace writes — the first real test of the file-output machinery
+beyond the knob that bore it.
+
+**What we learned this session.** All four rows are cased (board 39/52,
+corpus 59): the accessors return live objects — the same objects the
+engine holds, pinned by identity so a copy-returning rewrite would fail —
+and reset_graph nulls the interpretation; the trace saver writes exact,
+comparable CSVs into the confined directory. The session's best lesson
+was a caught mistake: the author observed empty trace names with
+atom_trace off and generalized to "the CSV name fallback is dead code."
+The independent reviewer refuted that live — inconsistent-predicate
+complement rows bank names unconditionally, so the fallback fires exactly
+there — and rescoped the claim on the board, in the case purpose, and in
+the analysis doc. A rewrite that trusted the original claim would have
+diverged on any IPL-bearing program. That is the two-agent shape doing
+precisely what it exists for.
+
+**What we expect to learn next session.** The last un-gated breadth rows:
+the file-taking loaders (rules/facts from JSON, CSV, text file) and the
+inconsistent-predicate/closed-world semantic loaders — after which the
+board's remaining gaps all wait on operator decisions, and the Phase-3
+fork (start writing the rewrite's reference core) is on the table.
+
+**Resume prompt.** `/campaign`
