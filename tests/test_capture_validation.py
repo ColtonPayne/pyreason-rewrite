@@ -1206,6 +1206,48 @@ def test_head_registrand_plain_arm_returns_a_builtin_list(monkeypatch):
     assert result == ["A"]
 
 
+def test_resolve_broken_numba_propagates_not_downgrades(monkeypatch):
+    """proves: the discriminator's third arm — a numba that is PRESENT but
+    BROKEN (the import machinery finds it but exec raises a plain
+    ImportError, not ModuleNotFoundError) propagates out of resolve() and
+    fails the capture loudly; it does NOT select the plain arm and does NOT
+    bind the _PLAIN_NUMBA stand-in. This is the accommodation's
+    ModuleNotFoundError-only choice, exercised at the same import seam the
+    numba-arm test uses (slice-7 review probe)."""
+    import importlib.abc
+    import importlib.machinery
+    import sys
+
+    import pytest
+
+    from harness import reference_fns
+
+    class BrokenLoader(importlib.abc.Loader):
+        def create_module(self, spec):
+            return None
+
+        def exec_module(self, module):
+            raise ImportError("simulated broken numba: exec failed")
+
+    class BrokenFinder(importlib.abc.MetaPathFinder):
+        def find_spec(self, name, path=None, target=None):
+            if name == "numba":
+                return importlib.machinery.ModuleSpec("numba", BrokenLoader())
+            return None
+
+    finder = BrokenFinder()
+    sys.meta_path.insert(0, finder)
+    monkeypatch.setattr(reference_fns, "numba", None)  # restore after
+    try:
+        with pytest.raises(ImportError) as exc_info:
+            reference_fns.resolve("clause_lower_mean")
+        assert not isinstance(exc_info.value, ModuleNotFoundError)
+        assert reference_fns.numba is not reference_fns._PLAIN_NUMBA
+    finally:
+        sys.meta_path.remove(finder)
+        sys.modules.pop("numba", None)
+
+
 def test_registry_step_op_hands_the_resolved_callable_to_the_engine(monkeypatch):
     """proves: a registry step op resolves the named reference function
     outside the outcome-recording try (a resolution fault fails the capture)
