@@ -1,6 +1,6 @@
 {
   "id": "reason-again-no-program",
-  "purpose": "reason(again=True) as the process's first reasoning call: the `not again or __program is None` short-circuit silently degrades it to a fresh run instead of asserting — the again-but-no-program class, proven by outputs matching a fresh run's shape (one-step form).",
+  "purpose": "reason(again=True) as the process's first reasoning call: the `not again or __program is None` short-circuit silently degrades it to a fresh run instead of asserting — the again-but-no-program class. The case pins that this path completes and what it produces; that its outputs equal a literal again-less run is read off the source's shared _reason branch, not computed by the harness (one-step form).",
   "runtime_class": "smoke",
   "provenance": "spine case against docs/surface.md fn:reason again-but-no-program (pyreason.py:1516 short-circuit)",
   "surface_items": [

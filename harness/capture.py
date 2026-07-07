@@ -17,7 +17,10 @@ consuming probes read the object returned by the most recent successful
 `reason` step; after a `reset` that is deliberately the caller's stale
 reference (module state is observed through `get_time`). A probe carrying
 `allow_raise: true` likewise records a raise as data instead of failing the
-capture.
+capture; a probe *without* it that raises fails the capture, which the runner
+judges `error` — so an author declares allow_raise on every probe a candidate
+engine could plausibly make raise, or that engine's raise wears the
+harness-failure label instead of comparing as a divergence.
 
 The artifact is self-describing: the case id, engine identity + environment
 fingerprint, each probe's canonical output, and a digest per probe. Exit codes:
@@ -51,6 +54,11 @@ EXPECT_RAISE_CONSTRUCTS = {"rule", "fact"}
 # actually reasons must be able to add one between steps.
 STEP_OPS = {"reason", "add_fact", "reset", "reset_rules", "reset_settings"}
 ARG_STEP_OPS = {"reason", "add_fact"}
+# reason()'s keyword surface at the pin — an unknown key is an authoring typo
+# that would otherwise bank a TypeError as engine behavior and pass self-proof.
+# `queries` joins when the harness can construct Query objects from case JSON.
+REASON_ARGS = {"timesteps", "convergence_threshold",
+               "convergence_bound_threshold", "again", "restart"}
 # output_to_file rebinds the engine process's stdout and writes a
 # timestamp-named file the harness never compares — rejected until file output
 # becomes a first-class probe.
@@ -69,6 +77,10 @@ def _probe_list_fault(probes: list, owner: str) -> str | None:
             return f"probe {p['id']!r}: 'allow_raise' must be a boolean"
         if p.get("kind") != "expect_raise":
             continue
+        if p.get("allow_raise"):
+            return (f"expect_raise probe {p['id']!r} cannot carry allow_raise — "
+                    f"it records raises itself, and the blanket catch would bank "
+                    f"a missing-constructor binding fault as engine behavior")
         if p.get("construct") not in EXPECT_RAISE_CONSTRUCTS:
             return (f"expect_raise probe {p['id']!r} needs 'construct' in "
                     f"{sorted(EXPECT_RAISE_CONSTRUCTS)}")
@@ -100,11 +112,21 @@ def _steps_fault(case: dict, steps) -> str | None:
             return f"step {step['id']!r}: 'args' must be an object"
         if op == "add_fact" and "text" not in args:
             return f"step {step['id']!r}: add_fact needs an 'args' dict with 'text'"
+        if op == "reason" and not set(args) <= REASON_ARGS:
+            return (f"step {step['id']!r}: unknown reason arg(s) "
+                    f"{sorted(set(args) - REASON_ARGS)} (known: {sorted(REASON_ARGS)})")
         if op not in ARG_STEP_OPS and args:
             return f"step {step['id']!r}: op {op!r} takes no args"
+        if not isinstance(step.get("outcome_only", False), bool):
+            return f"step {step['id']!r}: 'outcome_only' must be a boolean"
         probes = step.get("probes", [])
         if not isinstance(probes, list):
             return f"step {step['id']!r}: 'probes' must be a list"
+        if op == "reason" and not probes and not step.get("outcome_only"):
+            return (f"step {step['id']!r}: a reason step with no probes banks "
+                    f"only {{'raised': false}} on success — declare probes that "
+                    f"observe its result, or mark it 'outcome_only': true when "
+                    f"the outcome record alone is the signal")
         fault = _probe_list_fault(probes, f"step {step['id']!r}")
         if fault:
             return fault
@@ -148,6 +170,11 @@ def validate_case(case: dict) -> str | None:
         if interp_probes and "reason" not in case["inputs"]:
             return (f"probe(s) {interp_probes} consume the interpretation but the "
                     f"case has no inputs.reason block")
+        reason_args = case["inputs"].get("reason", {})
+        if isinstance(reason_args, dict) and not set(reason_args) <= REASON_ARGS:
+            return (f"unknown reason arg(s) "
+                    f"{sorted(set(reason_args) - REASON_ARGS)} in inputs.reason "
+                    f"(known: {sorted(REASON_ARGS)})")
     ipl = case["inputs"].get("ipl", [])
     if not (isinstance(ipl, list) and all(
             isinstance(pair, list) and len(pair) == 2

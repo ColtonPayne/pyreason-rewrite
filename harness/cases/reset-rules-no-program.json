@@ -33,7 +33,8 @@
   "steps": [
     {"id": "reset-rules", "op": "reset_rules",
      "probes": [{"id": "time-after", "kind": "get_time"}]},
-    {"id": "reason-after", "op": "reason", "args": {"timesteps": 1}}
+    {"id": "reason-after", "op": "reason", "args": {"timesteps": 1},
+     "outcome_only": true}
   ],
   "comparison": {"probes": {}}
 }

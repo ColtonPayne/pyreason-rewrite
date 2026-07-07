@@ -157,7 +157,7 @@ def test_empty_or_malformed_steps_are_rejected():
     """proves: an empty step list, an unknown op, and a step without a string
     id are each named authoring faults."""
     assert "non-empty" in validate_case({**VALID_STEPS, "steps": []})
-    assert "rest" in validate_case({**VALID_STEPS, "steps": [
+    assert "'rest'" in validate_case({**VALID_STEPS, "steps": [
         {"id": "s", "op": "rest"}]})
     assert "id" in validate_case({**VALID_STEPS, "steps": [{"op": "reset"}]})
 
@@ -189,6 +189,38 @@ def test_interp_probe_before_first_reason_step_is_rejected():
          "probes": [{"id": "p", "kind": "rule_trace_node"}]},
         {"id": "s2", "op": "reason"}]}
     assert "no reason step precedes" in validate_case(bad)
+
+
+def test_unknown_reason_args_are_rejected_in_both_forms():
+    """proves: a typo'd reason kwarg is an authoring fault in the steps form
+    and the one-step form alike — otherwise the engine's TypeError would bank
+    as behavior and self-proof would pass while testing nothing."""
+    assert "restrat" in validate_case({**VALID_STEPS, "steps": [
+        {"id": "s", "op": "reason", "args": {"restrat": False},
+         "probes": [{"id": "p", "kind": "get_time"}]}]})
+    assert "restrat" in validate_case(
+        {**VALID, "inputs": {"reason": {"restrat": False}}})
+
+
+def test_probe_less_reason_step_needs_outcome_only():
+    """proves: a successful reason step that nothing observes cannot bank a
+    vacuous {'raised': false} — the author either probes its result or
+    declares outcome_only, making an unobserved reason an explicit choice."""
+    bad = {**VALID_STEPS, "steps": [{"id": "s", "op": "reason"}]}
+    assert "outcome_only" in validate_case(bad)
+    ok = {**VALID_STEPS, "steps": [
+        {"id": "s", "op": "reason", "outcome_only": True}]}
+    assert validate_case(ok) is None
+
+
+def test_expect_raise_probe_refuses_allow_raise():
+    """proves: allow_raise on an expect_raise probe is rejected — the probe
+    records raises itself, and the blanket catch would bank a missing-
+    constructor binding fault as engine behavior."""
+    bad = {**VALID, "probes": [
+        {"id": "p", "kind": "expect_raise", "construct": "rule",
+         "args": {"text": "x"}, "allow_raise": True}]}
+    assert "allow_raise" in validate_case(bad)
 
 
 def test_allow_raise_must_be_boolean():

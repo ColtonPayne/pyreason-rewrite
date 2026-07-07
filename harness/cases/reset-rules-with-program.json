@@ -38,7 +38,8 @@
        {"id": "time-after", "kind": "get_time"},
        {"id": "trace-after", "kind": "rule_trace_node"}
      ]},
-    {"id": "reason-after", "op": "reason", "args": {"timesteps": 1}}
+    {"id": "reason-after", "op": "reason", "args": {"timesteps": 1},
+     "outcome_only": true}
   ],
   "comparison": {"probes": {}}
 }

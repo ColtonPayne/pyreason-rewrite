@@ -38,9 +38,10 @@
        {"id": "time-after-reset", "kind": "get_time", "allow_raise": true},
        {"id": "trace-stale", "kind": "rule_trace_node"}
      ]},
-    {"id": "fresh-reason-after-reset", "op": "reason", "args": {"timesteps": 1}},
+    {"id": "fresh-reason-after-reset", "op": "reason", "args": {"timesteps": 1},
+     "outcome_only": true},
     {"id": "again-reason-after-reset", "op": "reason",
-     "args": {"timesteps": 1, "again": true}}
+     "args": {"timesteps": 1, "again": true}, "outcome_only": true}
   ],
   "comparison": {"probes": {}}
 }
