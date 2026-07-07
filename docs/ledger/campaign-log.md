@@ -46,3 +46,36 @@ wrapper. A dead knob confirmed differentially is a real finding — it tells
 the rewrite what it need not implement behaviorally.
 
 **Resume prompt.** `/campaign`
+
+## Session 8 — 2026-07-06
+
+**What we knew going in.** The harness stood at 34 cases with 27 of 52
+public-surface rows cased, all passing oracle-vs-oracle with repeats green.
+Session 7 had just reshaped the session protocol — two agents per session (an
+author, then an independent reviewer-fixer who applies its own fixes), no
+orchestrator re-verification, and the full-corpus sweep deferred to phase
+boundaries. Three settings knobs looked caseable with no capture surgery:
+canonical (believed a pure alias of persistent), abort_on_inconsistency
+(hypothesized dead — no consumption site in the engine), and memory_profile
+(believed an observational wrapper).
+
+**What we learned this session.** All three beliefs held, and are now
+evidence instead of hypotheses. Canonical is exactly persistent under a
+second name — setting one flips the other's readback, last write wins
+through either name, and the twins land digest-identical to the persistent
+pair's two sides. Abort_on_inconsistency is confirmed dead at the pin: the
+name never escapes the settings object, and an inconsistency-firing program
+reasons identically with the knob on or off. Memory_profile only wraps the
+reasoner in a peak-memory measurement and prints a line — every reasoning
+digest is unchanged. Six new cases (corpus now 40), three rows flipped
+(board now 30/52), review gate found one Medium and one Low wording defect
+in case purposes, both fixed in-session. The two-agent session shape ran
+end-to-end for the first time and worked as designed.
+
+**What we expect to learn next session.** Whether the capture extension for
+committed graphml fixtures is as small as believed, and whether
+reverse_digraph actually reverses derivations under a direction-sensitive
+rule while load_graph ignores it — plus load_graphml's happy-path behavior,
+the first step into its malformed-attribute hazard cluster.
+
+**Resume prompt.** `/campaign`
