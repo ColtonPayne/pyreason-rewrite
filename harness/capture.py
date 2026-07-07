@@ -15,7 +15,11 @@ probe list run after the op. Every step banks an outcome record under its id —
 raises is a compared observation, never a capture failure. Interpretation-
 consuming probes read the object returned by the most recent successful
 `reason` step; after a `reset` that is deliberately the caller's stale
-reference (module state is observed through `get_time`). A probe carrying
+reference (module state is observed through `get_time`). A `get_setting`
+probe reads one named knob off the engine's public settings object — the
+surface the engine itself mutates (reason() force-flips `atom_trace` when
+interpretation-change storage is off), so a knob's live value is a compared
+observation like any other. A probe carrying
 `allow_raise: true` likewise records a raise as data instead of failing the
 capture; a probe *without* it that raises fails the capture, which the runner
 judges `error` — so an author declares allow_raise on every probe a candidate
@@ -39,11 +43,11 @@ from pathlib import Path
 from harness.compare import canonical, digest
 
 PROBE_KINDS = {"filter_sort_nodes", "filter_sort_edges", "rule_trace_node",
-               "rule_trace_edge", "get_time", "interpretation_dict",
-               "expect_raise"}
+               "rule_trace_edge", "get_time", "get_setting",
+               "interpretation_dict", "expect_raise"}
 # Probe kinds that consume the interpretation reason() returns — a case using
-# any of them must carry an inputs.reason block. get_time reads module state
-# and expect_raise constructs in isolation; both run without one.
+# any of them must carry an inputs.reason block. get_time and get_setting read
+# module state and expect_raise constructs in isolation; all run without one.
 INTERP_PROBE_KINDS = {"filter_sort_nodes", "filter_sort_edges",
                       "rule_trace_node", "rule_trace_edge",
                       "interpretation_dict"}
@@ -75,6 +79,13 @@ def _probe_list_fault(probes: list, owner: str) -> str | None:
             return f"{owner}: probe ids must be present strings"
         if not isinstance(p.get("allow_raise", False), bool):
             return f"probe {p['id']!r}: 'allow_raise' must be a boolean"
+        if p.get("kind") == "get_setting":
+            if p.get("allow_raise"):
+                return (f"get_setting probe {p['id']!r} cannot carry allow_raise — "
+                        f"the blanket catch would bank the capture's own "
+                        f"unknown-knob refusal as engine behavior")
+            if not isinstance(p.get("knob"), str) or not p["knob"]:
+                return f"get_setting probe {p['id']!r} needs a 'knob' string"
         if p.get("kind") != "expect_raise":
             continue
         if p.get("allow_raise"):
@@ -258,10 +269,21 @@ def probe_expect_raise(pr, probe):
             "parse": parse_fingerprint(probe["construct"], obj)}
 
 
+def settings_knob_guard(pr, knob: str) -> None:
+    """Refuse a knob name the engine's settings object doesn't own — a typo
+    silently reading or setting the default is a false pass against the
+    case's intent."""
+    if not isinstance(getattr(type(pr.settings), knob, None), property):
+        raise ValueError(f"unknown settings knob: {knob!r}")
+
+
 def run_probe(pr, interpretation, probe):
     kind = probe["kind"]
     if kind == "expect_raise":
         return probe_expect_raise(pr, probe)
+    if kind == "get_setting":
+        settings_knob_guard(pr, probe["knob"])
+        return getattr(pr.settings, probe["knob"])
     if kind == "filter_sort_nodes":
         frames = pr.filter_and_sort_nodes(interpretation, probe["labels"])
         return [dataframe_to_plain(df) for df in frames]
@@ -326,11 +348,8 @@ def run_step(pr, step: dict, interpretation):
 
 
 def apply_settings(pr, settings: dict):
-    """Set each knob, refusing a name the engine's settings object doesn't own —
-    a typo silently testing the default is a false pass against the case's intent."""
     for knob, value in settings.items():
-        if not isinstance(getattr(type(pr.settings), knob, None), property):
-            raise ValueError(f"unknown settings knob: {knob!r}")
+        settings_knob_guard(pr, knob)
         setattr(pr.settings, knob, value)
 
 
