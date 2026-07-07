@@ -1,0 +1,5 @@
+[
+  {"fact_text": "popular(Mary)", "name": "json-popular", "start_time": 0, "end_time": 2},
+  {"fact_text": "special(John) : [0.7,1]", "start_time": 1, "end_time": 2},
+  {"fact_text": "special(Justin) : True", "name": "json-static", "static": true}
+]

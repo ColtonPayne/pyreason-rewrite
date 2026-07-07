@@ -1,0 +1,2 @@
+trendy(x) <-1 popular(x),same_name,,
+influencer(x) <-1 trendy(x),same_name,,

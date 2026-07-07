@@ -1,0 +1,4 @@
+rule_text,name,infer_edges,set_static
+"popular(x) <-1 popular(y) : [0.5,1]",csv_full,no,false
+trendy(x) <-1 popular(x),,,
+"team(x, y) <-1 Friends(x,y), popular(y)",csv_quoted,yes,1

@@ -1,0 +1,8 @@
+[
+  {"rule_text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "json_basic"},
+  {"rule_text": "trendy(x) <-1 popular(x)", "name": "json_thresh_list",
+   "custom_thresholds": [{"quantifier": "greater_equal", "quantifier_type": ["number", "total"], "thresh": 1}]},
+  {"rule_text": "cool(x) <-1 popular(x), trendy(x)", "name": "json_thresh_dict",
+   "custom_thresholds": {"1": {"quantifier": "greater_equal", "quantifier_type": ["percent", "total"], "thresh": 100}}},
+  {"rule_text": "seen(x) <-1 popular(x)", "name": "json_weights", "weights": [2.0]}
+]

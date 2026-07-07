@@ -1,0 +1,2 @@
+[{"rule_text": "trendy(x) <-1 popular(x)", "name": "t",
+  "custom_thresholds": [{"quantifier": "greater_equal", "quantifier_type": ["number", "total"]}]}]

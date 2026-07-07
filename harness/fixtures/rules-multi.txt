@@ -1,0 +1,4 @@
+# rules loaded from a text file — a first-character comment line, skipped
+trendy(x) <-1 popular(x)
+
+influencer(x) <-1 trendy(x)

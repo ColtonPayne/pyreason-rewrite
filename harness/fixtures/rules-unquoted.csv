@@ -1,0 +1,2 @@
+trendy(x) <-1 popular(x),ok_row,,
+popular(x) <-1 popular(y) : [0.5,1],unquoted_row,,

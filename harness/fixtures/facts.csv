@@ -1,0 +1,5 @@
+fact_text,name,start_time,end_time,static
+popular(Mary),csv-popular,0,2,false
+"Friends(John,Mary) : [0.9,1]",csv-edge,0,2,
+special(Justin) : True,,,,yes
+seen(Dog),csv-short
