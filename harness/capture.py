@@ -63,6 +63,21 @@ ARG_STEP_OPS = {"reason", "add_fact"}
 # `queries` joins when the harness can construct Query objects from case JSON.
 REASON_ARGS = {"timesteps", "convergence_threshold",
                "convergence_bound_threshold", "again", "restart"}
+# The settings-knob surface at the pin — the 18 public properties on _Settings.
+# Checked statically in validation like REASON_ARGS: a typo'd knob would
+# otherwise silently set or read an attribute the engine never consults,
+# testing the default and passing self-proof while pinning nothing. Static so
+# the capture never depends on how an engine's settings object stores a knob
+# (a property, a plain attribute — the compared thing is the public value);
+# the fast-tier gate asserts this set against the AST scan of the pinned
+# source, so a pin move cannot silently stale it.
+SETTINGS_KNOBS = {"verbose", "output_to_file", "output_file_name",
+                  "graph_attribute_parsing", "abort_on_inconsistency",
+                  "memory_profile", "reverse_digraph", "atom_trace",
+                  "save_graph_attributes_to_trace", "canonical", "persistent",
+                  "inconsistency_check", "static_graph_facts",
+                  "store_interpretation_changes", "parallel_computing",
+                  "update_mode", "allow_ground_rules", "fp_version"}
 # output_to_file rebinds the engine process's stdout and writes a
 # timestamp-named file the harness never compares — rejected until file output
 # becomes a first-class probe.
@@ -82,10 +97,12 @@ def _probe_list_fault(probes: list, owner: str) -> str | None:
         if p.get("kind") == "get_setting":
             if p.get("allow_raise"):
                 return (f"get_setting probe {p['id']!r} cannot carry allow_raise — "
-                        f"the blanket catch would bank the capture's own "
-                        f"unknown-knob refusal as engine behavior")
-            if not isinstance(p.get("knob"), str) or not p["knob"]:
-                return f"get_setting probe {p['id']!r} needs a 'knob' string"
+                        f"an engine whose settings object lacks the knob is a "
+                        f"missing-surface structural fault, never a comparable "
+                        f"observation")
+            if p.get("knob") not in SETTINGS_KNOBS:
+                return (f"get_setting probe {p['id']!r}: 'knob' must name one of "
+                        f"the pinned settings knobs, got {p.get('knob')!r}")
         if p.get("kind") != "expect_raise":
             continue
         if p.get("allow_raise"):
@@ -186,6 +203,10 @@ def validate_case(case: dict) -> str | None:
             return (f"unknown reason arg(s) "
                     f"{sorted(set(reason_args) - REASON_ARGS)} in inputs.reason "
                     f"(known: {sorted(REASON_ARGS)})")
+    unknown_knobs = set(case["inputs"].get("settings", {})) - SETTINGS_KNOBS
+    if unknown_knobs:
+        return (f"unknown settings knob(s) in a case: {sorted(unknown_knobs)} "
+                f"(the pinned surface has 18)")
     ipl = case["inputs"].get("ipl", [])
     if not (isinstance(ipl, list) and all(
             isinstance(pair, list) and len(pair) == 2
@@ -269,20 +290,13 @@ def probe_expect_raise(pr, probe):
             "parse": parse_fingerprint(probe["construct"], obj)}
 
 
-def settings_knob_guard(pr, knob: str) -> None:
-    """Refuse a knob name the engine's settings object doesn't own — a typo
-    silently reading or setting the default is a false pass against the
-    case's intent."""
-    if not isinstance(getattr(type(pr.settings), knob, None), property):
-        raise ValueError(f"unknown settings knob: {knob!r}")
-
-
 def run_probe(pr, interpretation, probe):
     kind = probe["kind"]
     if kind == "expect_raise":
         return probe_expect_raise(pr, probe)
     if kind == "get_setting":
-        settings_knob_guard(pr, probe["knob"])
+        # However the engine stores the knob — validation already vouched for
+        # the name; an engine actually missing it fails the capture.
         return getattr(pr.settings, probe["knob"])
     if kind == "filter_sort_nodes":
         frames = pr.filter_and_sort_nodes(interpretation, probe["labels"])
@@ -349,7 +363,6 @@ def run_step(pr, step: dict, interpretation):
 
 def apply_settings(pr, settings: dict):
     for knob, value in settings.items():
-        settings_knob_guard(pr, knob)
         setattr(pr.settings, knob, value)
 
 

@@ -138,11 +138,36 @@ def test_interp_probe_kinds_partition_the_probe_surface():
                                                 "expect_raise"}
 
 
-def test_get_setting_probe_requires_a_knob_string():
-    """proves: a get_setting probe without a named knob is an authoring fault
-    caught before the engine runs."""
-    bad = {**VALID, "probes": [{"id": "p", "kind": "get_setting"}]}
+def test_get_setting_probe_requires_a_pinned_knob_name():
+    """proves: a get_setting probe whose knob is missing, empty, non-string,
+    or off the pinned 18-knob surface is an authoring fault caught before the
+    engine runs — a typo'd knob cannot bank as engine behavior."""
+    for knob in (None, "", 123, "atom_trce"):
+        probe = {"id": "p", "kind": "get_setting"}
+        if knob is not None:
+            probe["knob"] = knob
+        assert "knob" in validate_case({**VALID, "probes": [probe]}), knob
+
+
+def test_get_setting_probe_validates_inside_steps_too():
+    """proves: the knob-name check covers a get_setting probe riding a step —
+    the shape the atom-trace-flip case uses — not only the top-level list."""
+    bad = {**VALID_STEPS, "steps": [
+        {"id": "s", "op": "add_fact", "args": {"text": "f(a)"},
+         "probes": [{"id": "p", "kind": "get_setting", "knob": "atom_trce"}]}]}
     assert "knob" in validate_case(bad)
+    ok = {**VALID_STEPS, "steps": [
+        {"id": "s", "op": "add_fact", "args": {"text": "f(a)"},
+         "probes": [{"id": "p", "kind": "get_setting", "knob": "atom_trace"}]}]}
+    assert validate_case(ok) is None
+
+
+def test_unknown_settings_knob_in_inputs_is_rejected():
+    """proves: a case whose inputs.settings names a knob off the pinned
+    surface is refused — setattr would otherwise silently create an attribute
+    the engine never consults, testing the default while pinning nothing."""
+    bad = {**VALID, "inputs": {"settings": {"atom_trce": True}}}
+    assert "atom_trce" in validate_case(bad)
 
 
 def test_get_setting_probe_refuses_allow_raise():
@@ -155,25 +180,22 @@ def test_get_setting_probe_refuses_allow_raise():
     assert "allow_raise" in validate_case(bad)
 
 
-def test_get_setting_probe_reads_the_knob_and_refuses_unknown():
-    """proves: the get_setting probe returns the live knob value, and a knob
-    name the engine's settings object doesn't own is a capture failure —
-    never a banked observation a typo could compare equal on."""
+def test_get_setting_probe_reads_the_knob_however_it_is_stored():
+    """proves: the get_setting probe returns the public knob value without
+    caring how the engine's settings object stores it (a plain attribute here,
+    a property in the oracle) — the compared thing is the value, so an engine
+    with different internals can never fail the probe structurally; one truly
+    missing the knob is a capture failure, never a banked observation."""
     import pytest
 
     from harness.capture import run_probe
 
-    class Settings:
-        @property
-        def atom_trace(self):
-            return False
-
-    pr = SimpleNamespace(settings=Settings())
+    pr = SimpleNamespace(settings=SimpleNamespace(atom_trace=False))
     assert run_probe(pr, None, {"id": "p", "kind": "get_setting",
                                 "knob": "atom_trace"}) is False
-    with pytest.raises(ValueError, match="atom_trce"):
+    with pytest.raises(AttributeError):
         run_probe(pr, None, {"id": "p", "kind": "get_setting",
-                             "knob": "atom_trce"})
+                             "knob": "persistent"})
 
 
 def test_valid_steps_case_passes_the_guard():

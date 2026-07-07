@@ -1,6 +1,6 @@
 {
   "id": "store-off-accessors",
-  "purpose": "store_interpretation_changes=False: reason() still runs and get_time still answers, but every trace-backed accessor — get_rule_trace (node and edge frames) and filter_and_sort_nodes/edges — raises the store-off AssertionError, pinned as data via allow_raise probes: the store-off-assert class across all four accessors.",
+  "purpose": "store_interpretation_changes=False: reason() still runs and get_time still answers, but every trace-backed accessor — get_rule_trace and filter_and_sort_nodes/edges — raises the store-off AssertionError, pinned as data via allow_raise probes: four probes over the three assert sites (get_rule_trace's single assert precedes the node/edge split, so both trace probes bank the identical record).",
   "runtime_class": "smoke",
   "provenance": "spine case against docs/surface.md setting:store_interpretation_changes nondefault-false-nostore + the accessor store-off-assert classes; friends graph from docs/hello-world.py",
   "surface_items": [

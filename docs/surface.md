@@ -422,7 +422,7 @@ classes likewise.
   - empty-timestep
   - multi-label
   - edge-component-shape
-- notes: empty vs non-empty frames have divergent column shapes (component tuple reconstruction) — both branches pinned in one probe by edge-rule-frames (t=0 empty, t≥1 tuple components); store-off assert pinned by store-off-accessors
+- notes: empty and non-empty frames take different reconstruction branches (component tuples rebuilt from a two-level index vs fabricated [component, *labels] columns) that normalize to the same column list — edge-rule-frames pins both branches in one probe (t=0 empty frame, t≥1 tuple components); store-off assert pinned by store-off-accessors
 - analysis: docs/analysis/surface/reason-and-state.md
 
 ## type:Rule
@@ -804,7 +804,7 @@ classes likewise.
   - nondefault-false-nostore
   - interaction-atom-trace
   - type-reject
-- notes: off breaks every post-run accessor by assert (all four pinned — get_rule_trace's assert reuses the "save rule trace" message); force-mutates atom_trace at reason start (pinned via get_setting probes: true before reason, false after, store itself unchanged)
+- notes: off breaks every post-run accessor by assert (pinned as four probes over three assert sites — get_rule_trace's single assert precedes the node/edge split and reuses the "save rule trace" message); force-mutates atom_trace at reason start (pinned via get_setting probes: true before reason, false after, store itself unchanged)
 - analysis: docs/analysis/surface/settings.md
 
 ## setting:parallel_computing

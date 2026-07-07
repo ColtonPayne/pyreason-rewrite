@@ -97,6 +97,19 @@ def test_knob_rows_match_pinned_settings():
     )
 
 
+def test_capture_settings_knobs_match_pinned_settings():
+    """proves: the capture's static SETTINGS_KNOBS allowlist equals the
+    `_Settings` @property names at the pin — a pin move that changes the knob
+    surface reds here instead of silently staling the validation."""
+    from harness.capture import SETTINGS_KNOBS
+
+    _, knobs, _, _ = scan_api()
+    assert SETTINGS_KNOBS == knobs, (
+        f"stale in capture: {sorted(SETTINGS_KNOBS - knobs)}; "
+        f"missing from capture: {sorted(knobs - SETTINGS_KNOBS)}"
+    )
+
+
 def test_type_rows_match_pinned_imports():
     """proves: the inventory carries exactly the six charter-set public types, each
     anchored to an import statement actually present in the pinned API module."""
