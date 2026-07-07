@@ -25,7 +25,7 @@ classes likewise.
 
 ## fn:load_graphml
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:569
-- status: cased
+- status: equivalent
 - cases: reverse-digraph-default, reverse-digraph-on, load-graphml-basic, load-graphml-no-attr-parse, graphml-attr-coercions, graphml-empty
 - input classes:
   - happy-basic
@@ -93,7 +93,7 @@ classes likewise.
 
 ## fn:add_closed_world_predicate
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1122
-- status: cased
+- status: equivalent
 - cases: closed-world-on, closed-world-off
 - input classes:
   - happy-basic
@@ -122,7 +122,7 @@ classes likewise.
 
 ## fn:add_fact_from_json
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1168
-- status: cased
+- status: equivalent
 - cases: fact-from-json-basic, fact-from-json-malformed
 - input classes:
   - happy-basic
@@ -142,7 +142,7 @@ classes likewise.
 
 ## fn:add_fact_from_csv
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1294
-- status: cased
+- status: equivalent
 - cases: fact-from-csv-basic, fact-from-csv-malformed
 - input classes:
   - happy-basic
@@ -176,7 +176,7 @@ classes likewise.
 
 ## fn:add_rules_from_file
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:652
-- status: cased
+- status: equivalent
 - cases: rules-from-file-basic, rules-from-file-malformed
 - input classes:
   - happy-multi-rule
@@ -194,7 +194,7 @@ classes likewise.
 
 ## fn:add_rule_from_csv
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:753
-- status: cased
+- status: equivalent
 - cases: rule-from-csv-basic, rule-from-csv-malformed
 - input classes:
   - happy-full-row
@@ -216,7 +216,7 @@ classes likewise.
 
 ## fn:add_rule_from_json
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:868
-- status: cased
+- status: equivalent
 - cases: rule-from-json-basic, rule-from-json-malformed
 - input classes:
   - happy-basic
@@ -409,7 +409,7 @@ classes likewise.
 
 ## fn:filter_and_sort_edges
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1688
-- status: cased
+- status: equivalent
 - cases: edge-rule-frames, store-off-accessors, graph-attr-parsing-on, graph-attr-parsing-off, static-graph-facts-on, static-graph-facts-off, save-graph-attrs-to-trace-on, save-graph-attrs-to-trace-off, reverse-digraph-default, reverse-digraph-on, load-graphml-basic, load-graphml-no-attr-parse, graphml-attr-coercions
 - input classes:
   - happy
@@ -675,7 +675,7 @@ classes likewise.
 
 ## setting:graph_attribute_parsing
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:110
-- status: cased
+- status: equivalent
 - cases: graph-attr-parsing-on, graph-attr-parsing-off, load-graphml-basic, load-graphml-no-attr-parse, graphml-attr-coercions
 - input classes:
   - default-true-parse
@@ -710,7 +710,7 @@ classes likewise.
 
 ## setting:reverse_digraph
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:134
-- status: cased
+- status: equivalent
 - cases: reverse-digraph-default, reverse-digraph-on
 - input classes:
   - default-false-asis
@@ -736,7 +736,7 @@ classes likewise.
 
 ## setting:save_graph_attributes_to_trace
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:152
-- status: cased
+- status: equivalent
 - cases: save-graph-attrs-to-trace-on, save-graph-attrs-to-trace-off, graphml-attr-coercions
 - input classes:
   - default-false-exclude
