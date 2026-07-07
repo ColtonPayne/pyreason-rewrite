@@ -1,0 +1,64 @@
+{
+  "id": "interval-ops",
+  "purpose": "Interval direct construction through the aliased public constructor (pyreason.interval.closed) over four bound classes: a mid overlap, an equal pair differing only in the static flag (equality/hash ignore static and prev), inverted bounds (l>u accepted unvalidated; intersection clamps the empty result to [0,1]), and a disjoint pair (same clamp). Each probe's fixed pipeline also pins the reset transition (prev := current, bounds := [0,1] \u2014 reset() itself ignores the static flag; the static guard lives at the engine call site) and the PROXY intersection's prev-bound seeding from self's CURRENT bounds (interval.py:69) via the post-reset intersection \u2014 the jitted overload seeds from self's PREV bounds (interval_type.py:63), a two-implementation divergence only reachable by compiling new jitted code, so the jitted arm stays unobserved here. All bound values are exact binary fractions.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md type:Interval closed-happy/closed-static/inverted-bounds/intersection-empty/reset-semantics/has-changed/contains/equality + the proxy arm of prev-seed-mismatch; interval.py:6-90, interval_type.py:143-145 at the pin; screened live 2026-07-07 (screen_types.py)",
+  "surface_items": [
+    "type:Interval"
+  ],
+  "inputs": {},
+  "probes": [
+    {
+      "id": "iv-mid",
+      "kind": "interval_probe",
+      "make": {
+        "lower": 0.25,
+        "upper": 0.75
+      },
+      "other": {
+        "lower": 0.5,
+        "upper": 1.0
+      }
+    },
+    {
+      "id": "iv-static-eq",
+      "kind": "interval_probe",
+      "make": {
+        "lower": 0.25,
+        "upper": 0.5,
+        "static": true
+      },
+      "other": {
+        "lower": 0.25,
+        "upper": 0.5
+      }
+    },
+    {
+      "id": "iv-inverted",
+      "kind": "interval_probe",
+      "make": {
+        "lower": 0.75,
+        "upper": 0.25
+      },
+      "other": {
+        "lower": 0.875,
+        "upper": 1.0
+      }
+    },
+    {
+      "id": "iv-disjoint",
+      "kind": "interval_probe",
+      "make": {
+        "lower": 0.0,
+        "upper": 0.25
+      },
+      "other": {
+        "lower": 0.75,
+        "upper": 1.0
+      }
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

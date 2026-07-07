@@ -1,0 +1,113 @@
+{
+  "id": "reason-queries-filter",
+  "purpose": "reason(queries=[cool(Mary)]) filters the two-rule set to the one rule targeting the query predicate (filtering is by predicate only \u2014 bounds and component play no part, filter_ruleset.py:17) and the narrowing is permanent: post-reason get_rules holds only cool_rule, and the trace carries cool derivations but no busy row even though owner(John) would have fired busy_rule. Non-recursive rules only: a query matching a self-recursive rule's head crashes the process at the pin (unbounded recursion through filter_ruleset, screened SIGSEGV 2026-07-07 \u2014 recorded on the board, not caseable).",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md type:Query + fn:get_rules post-reason-filtered + fn:reason queries-filter; pyreason.py:1591-1595, filter_ruleset.py:1-34 at the pin; screened live 2026-07-07 (screen_queries.py mode=one)",
+  "surface_items": [
+    "type:Query",
+    "fn:reason",
+    "fn:get_rules",
+    "fn:load_graph",
+    "fn:add_rule",
+    "fn:add_fact",
+    "fn:get_rule_trace",
+    "fn:get_time",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        "John",
+        "Mary",
+        "Justin"
+      ],
+      "edges": [
+        [
+          "John",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "John",
+          "Justin",
+          {
+            "Friends": 1
+          }
+        ]
+      ]
+    },
+    "rules": [
+      {
+        "text": "cool(x) <-1 popular(x)",
+        "name": "cool_rule"
+      },
+      {
+        "text": "busy(x) <-1 owner(x)",
+        "name": "busy_rule"
+      }
+    ],
+    "facts": [
+      {
+        "text": "popular(Mary)",
+        "name": "popular_fact",
+        "start": 0,
+        "end": 2
+      },
+      {
+        "text": "owner(John)",
+        "name": "owner_fact",
+        "start": 0,
+        "end": 2
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 2,
+        "queries": [
+          "cool(Mary)"
+        ]
+      },
+      "probes": [
+        {
+          "id": "rules-fp",
+          "kind": "accessor_fingerprint",
+          "accessor": "rules"
+        },
+        {
+          "id": "trace-node",
+          "kind": "rule_trace_node"
+        },
+        {
+          "id": "nodes-cool",
+          "kind": "filter_sort_nodes",
+          "labels": [
+            "cool",
+            "busy"
+          ]
+        },
+        {
+          "id": "time",
+          "kind": "get_time"
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

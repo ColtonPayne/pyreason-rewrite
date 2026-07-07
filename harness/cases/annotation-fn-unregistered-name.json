@@ -1,0 +1,65 @@
+{
+  "id": "annotation-fn-unregistered-name",
+  "purpose": "A rule head naming an annotation function nobody registered: reason() raises NameError(\"name 'annotation' is not defined\") \u2014 the pinned annotate()'s objmode block only assigns its output variable inside the name-match loop (interpretation.py:1918-1930), so a no-match leaves it unbound. The registration list is empty here; the same raise is what a cleared registry produces (annotation-fn-reset-clears).",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_annotation_function (unregistered-name arm, screened); interpretation.py:1914-1931 at the pin; screened live 2026-07-07 (screen_fnedge.py ann-unregistered)",
+  "surface_items": [
+    "fn:add_annotation_function",
+    "fn:reason",
+    "fn:add_rule",
+    "fn:load_graph",
+    "fn:add_fact",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        "A",
+        "B"
+      ],
+      "edges": []
+    },
+    "rules": [
+      {
+        "text": "combo(x) : clause_lower_mean <- p(x) : [0.125, 1]",
+        "name": "combo_rule"
+      }
+    ],
+    "facts": [
+      {
+        "text": "p(A) : [0.25, 1]",
+        "name": "f_p",
+        "start": 0,
+        "end": 0
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 1
+      },
+      "probes": [
+        {
+          "id": "time-after-raise",
+          "kind": "get_time",
+          "allow_raise": true
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

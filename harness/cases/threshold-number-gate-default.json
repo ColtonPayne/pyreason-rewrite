@@ -1,0 +1,88 @@
+{
+  "id": "threshold-number-gate-default",
+  "purpose": "The default-threshold twin of threshold-number-gate-two: same graph/fact/rule with no custom_thresholds \u2014 the popular(y) clause's single qualifying grounding (B) satisfies the default greater_equal/number/total 1, so trendy(A) derives at t=1. The pair pins that an accepted number threshold gates at the clause level (qualifying-grounding count across the whole clause, check_node_grounding_threshold_satisfaction interpretation.py:1364-1377), not per head grounding.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md type:Threshold happy-number-total (consumption side); rule_parser.py:156-179, interpretation.py:1364-1377/1475-1503 at the pin; screened live 2026-07-07 (screen_thresh2.py gate-default)",
+  "surface_items": [
+    "type:Threshold",
+    "fn:add_rule",
+    "fn:reason",
+    "fn:load_graph",
+    "fn:add_fact",
+    "fn:get_rule_trace",
+    "fn:filter_and_sort_nodes",
+    "fn:get_time",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "edges": [
+        [
+          "A",
+          "B",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "A",
+          "C",
+          {
+            "Friends": 1
+          }
+        ]
+      ]
+    },
+    "rules": [
+      {
+        "text": "trendy(x) <-1 Friends(x,y), popular(y)",
+        "name": "trendy_rule"
+      }
+    ],
+    "facts": [
+      {
+        "text": "popular(B)",
+        "name": "f_b",
+        "start": 0,
+        "end": 2
+      }
+    ],
+    "reason": {
+      "timesteps": 1
+    }
+  },
+  "probes": [
+    {
+      "id": "trace-node",
+      "kind": "rule_trace_node"
+    },
+    {
+      "id": "nodes-trendy",
+      "kind": "filter_sort_nodes",
+      "labels": [
+        "trendy"
+      ]
+    },
+    {
+      "id": "time",
+      "kind": "get_time"
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

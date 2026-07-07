@@ -1,0 +1,79 @@
+{
+  "id": "query-construct",
+  "purpose": "Query direct construction over the full parse surface: default [1,1] bound, negation to [0,0], explicit bounds, edge-vs-node components, whitespace stripping, the two silent misparses (no-paren truncates the predicate to pred_comp[:-1] with component pred_comp[0:-1]; '~pred(x):[l,u]' keeps the '~' in the predicate name because the ':' branch never strips it), and the one raising arm (non-numeric bound floats). Acceptance banks the four parsed fields + echoed text, so a misparse is itself the compared observation.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md type:Query all eight input classes; query.py:4-37, query_parser.py:5-34 at the pin; screened live 2026-07-07 (screen_types.py)",
+  "surface_items": [
+    "type:Query"
+  ],
+  "inputs": {},
+  "probes": [
+    {
+      "id": "q-node-default",
+      "kind": "expect_raise",
+      "construct": "query",
+      "args": {
+        "text": "popular(Mary)"
+      }
+    },
+    {
+      "id": "q-negated",
+      "kind": "expect_raise",
+      "construct": "query",
+      "args": {
+        "text": "~popular(Mary)"
+      }
+    },
+    {
+      "id": "q-explicit-bounds",
+      "kind": "expect_raise",
+      "construct": "query",
+      "args": {
+        "text": "popular(Mary) : [0.2, 0.7]"
+      }
+    },
+    {
+      "id": "q-edge",
+      "kind": "expect_raise",
+      "construct": "query",
+      "args": {
+        "text": "Friends(John,Mary)"
+      }
+    },
+    {
+      "id": "q-whitespace",
+      "kind": "expect_raise",
+      "construct": "query",
+      "args": {
+        "text": "popular( Mary ) : [0 , 1]"
+      }
+    },
+    {
+      "id": "q-no-paren-misparse",
+      "kind": "expect_raise",
+      "construct": "query",
+      "args": {
+        "text": "popularMary"
+      }
+    },
+    {
+      "id": "q-negated-with-bounds",
+      "kind": "expect_raise",
+      "construct": "query",
+      "args": {
+        "text": "~popular(Mary):[0.5,1]"
+      }
+    },
+    {
+      "id": "q-bad-float",
+      "kind": "expect_raise",
+      "construct": "query",
+      "args": {
+        "text": "popular(Mary):[a,b]"
+      }
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

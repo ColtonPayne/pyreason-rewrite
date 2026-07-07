@@ -1,0 +1,154 @@
+{
+  "id": "threshold-construct",
+  "purpose": "Threshold direct construction: all five quantifiers accepted; number/total and percent/available combinations accepted; unknown quantifier and unknown quantifier_type members raise ValueError('Invalid quantifier'/'Invalid quantifier type'); a bare-string quantifier_type fails the membership check on its characters (same 'Invalid quantifier type'); a length-1 quantifier_type raises IndexError at [1]; and thresh is stored with NO validation \u2014 negative and non-numeric values pass and to_tuple() returns them verbatim.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md type:Threshold all input classes except interacts-forall; threshold.py:14-41 at the pin; screened live 2026-07-07 (screen_types.py)",
+  "surface_items": [
+    "type:Threshold"
+  ],
+  "inputs": {},
+  "probes": [
+    {
+      "id": "t-number-total-ge",
+      "kind": "expect_raise",
+      "construct": "threshold",
+      "args": {
+        "quantifier": "greater_equal",
+        "quantifier_type": [
+          "number",
+          "total"
+        ],
+        "thresh": 1
+      }
+    },
+    {
+      "id": "t-percent-available-le",
+      "kind": "expect_raise",
+      "construct": "threshold",
+      "args": {
+        "quantifier": "less_equal",
+        "quantifier_type": [
+          "percent",
+          "available"
+        ],
+        "thresh": 100
+      }
+    },
+    {
+      "id": "t-greater",
+      "kind": "expect_raise",
+      "construct": "threshold",
+      "args": {
+        "quantifier": "greater",
+        "quantifier_type": [
+          "number",
+          "total"
+        ],
+        "thresh": 2
+      }
+    },
+    {
+      "id": "t-less",
+      "kind": "expect_raise",
+      "construct": "threshold",
+      "args": {
+        "quantifier": "less",
+        "quantifier_type": [
+          "number",
+          "available"
+        ],
+        "thresh": 2
+      }
+    },
+    {
+      "id": "t-equal",
+      "kind": "expect_raise",
+      "construct": "threshold",
+      "args": {
+        "quantifier": "equal",
+        "quantifier_type": [
+          "percent",
+          "total"
+        ],
+        "thresh": 50
+      }
+    },
+    {
+      "id": "t-bad-quantifier",
+      "kind": "expect_raise",
+      "construct": "threshold",
+      "args": {
+        "quantifier": "at_least",
+        "quantifier_type": [
+          "number",
+          "total"
+        ],
+        "thresh": 1
+      }
+    },
+    {
+      "id": "t-bad-quantifier-type",
+      "kind": "expect_raise",
+      "construct": "threshold",
+      "args": {
+        "quantifier": "greater_equal",
+        "quantifier_type": [
+          "number",
+          "every"
+        ],
+        "thresh": 1
+      }
+    },
+    {
+      "id": "t-quantifier-type-string",
+      "kind": "expect_raise",
+      "construct": "threshold",
+      "args": {
+        "quantifier": "greater_equal",
+        "quantifier_type": "number",
+        "thresh": 1
+      }
+    },
+    {
+      "id": "t-quantifier-type-short",
+      "kind": "expect_raise",
+      "construct": "threshold",
+      "args": {
+        "quantifier": "greater_equal",
+        "quantifier_type": [
+          "number"
+        ],
+        "thresh": 1
+      }
+    },
+    {
+      "id": "t-negative-thresh",
+      "kind": "expect_raise",
+      "construct": "threshold",
+      "args": {
+        "quantifier": "greater_equal",
+        "quantifier_type": [
+          "number",
+          "total"
+        ],
+        "thresh": -5
+      }
+    },
+    {
+      "id": "t-string-thresh",
+      "kind": "expect_raise",
+      "construct": "threshold",
+      "args": {
+        "quantifier": "greater_equal",
+        "quantifier_type": [
+          "percent",
+          "total"
+        ],
+        "thresh": "many"
+      }
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

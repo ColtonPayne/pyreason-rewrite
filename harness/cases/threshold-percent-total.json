@@ -1,0 +1,141 @@
+{
+  "id": "threshold-percent-total",
+  "purpose": "percent/total 100 threshold semantics, both arms in one program: social_rule requires 100% of the popular(y) clause's groundings to qualify \u2014 both friends (B, C) are popular, 2/2, social(A) derives \u2014 while overloaded_rule's identical threshold over busy(y) sees 1 of 2 qualify and never fires. Pins the percent branch of _satisfies_threshold (ratio against the clause grounding, interpretation.py:1489-1501) and thresh*0.01 scaling.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md type:Threshold happy-percent (consumption side); interpretation.py:1364-1377/1489-1501 at the pin; screened live 2026-07-07 (screen_thresh2.py percent)",
+  "surface_items": [
+    "type:Threshold",
+    "fn:add_rule",
+    "fn:reason",
+    "fn:load_graph",
+    "fn:add_fact",
+    "fn:get_rule_trace",
+    "fn:filter_and_sort_nodes",
+    "fn:get_time",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "edges": [
+        [
+          "A",
+          "B",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "A",
+          "C",
+          {
+            "Friends": 1
+          }
+        ]
+      ]
+    },
+    "rules": [
+      {
+        "text": "social(x) <-1 Friends(x,y), popular(y)",
+        "name": "social_rule",
+        "custom_thresholds": [
+          {
+            "quantifier": "greater_equal",
+            "quantifier_type": [
+              "number",
+              "total"
+            ],
+            "thresh": 1
+          },
+          {
+            "quantifier": "greater_equal",
+            "quantifier_type": [
+              "percent",
+              "total"
+            ],
+            "thresh": 100
+          }
+        ]
+      },
+      {
+        "text": "overloaded(x) <-1 Friends(x,y), busy(y)",
+        "name": "overloaded_rule",
+        "custom_thresholds": [
+          {
+            "quantifier": "greater_equal",
+            "quantifier_type": [
+              "number",
+              "total"
+            ],
+            "thresh": 1
+          },
+          {
+            "quantifier": "greater_equal",
+            "quantifier_type": [
+              "percent",
+              "total"
+            ],
+            "thresh": 100
+          }
+        ]
+      }
+    ],
+    "facts": [
+      {
+        "text": "popular(B)",
+        "name": "f_pop_b",
+        "start": 0,
+        "end": 2
+      },
+      {
+        "text": "popular(C)",
+        "name": "f_pop_c",
+        "start": 0,
+        "end": 2
+      },
+      {
+        "text": "busy(B)",
+        "name": "f_busy_b",
+        "start": 0,
+        "end": 2
+      }
+    ],
+    "reason": {
+      "timesteps": 1
+    }
+  },
+  "probes": [
+    {
+      "id": "trace-node",
+      "kind": "rule_trace_node"
+    },
+    {
+      "id": "nodes-social",
+      "kind": "filter_sort_nodes",
+      "labels": [
+        "social",
+        "overloaded"
+      ]
+    },
+    {
+      "id": "time",
+      "kind": "get_time"
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

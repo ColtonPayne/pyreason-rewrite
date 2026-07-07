@@ -1,0 +1,100 @@
+{
+  "id": "head-fn-grounding",
+  "purpose": "add_head_function end to end: the registrar validates NOTHING \u2014 a wrong-shape njit callable (star_args_stub) registers silently ({'raised': false}) and, unreferenced by any rule head, is inert \u2014 while first_clause_first_grounding, named in the rule head's f(X) form, grounds the head variable to its first argument's first grounding and Processed(A):[1,1] derives through reason(). The asymmetry with add_annotation_function's arity gate is the pinned contrast (the same star_args_stub that raises TypeError there registers silently here).",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_head_function happy-basic/bound-no-validation/interacts-head-fn-in-dsl (inert-unreferenced half); pyreason.py:1484-1494, interpretation.py:2231-2338 at the pin; reference fns harness/reference_fns.py; screened live 2026-07-07 (screen_fnedge2.py bogus-njit)",
+  "surface_items": [
+    "fn:add_head_function",
+    "fn:reason",
+    "fn:add_rule",
+    "fn:load_graph",
+    "fn:get_rule_trace",
+    "fn:filter_and_sort_nodes",
+    "fn:get_time",
+    "type:Rule",
+    "dsl:rule-text",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        [
+          "A",
+          {
+            "starter": 1
+          }
+        ],
+        [
+          "B",
+          {
+            "starter": 1
+          }
+        ]
+      ],
+      "edges": [
+        [
+          "A",
+          "B",
+          {
+            "connected": 1
+          }
+        ]
+      ]
+    },
+    "rules": [
+      {
+        "text": "Processed(first_clause_first_grounding(X)) <- starter(X), starter(Y), connected(X, Y)",
+        "name": "head_fn_rule"
+      }
+    ],
+    "facts": []
+  },
+  "steps": [
+    {
+      "id": "register-bogus",
+      "op": "add_head_function",
+      "args": {
+        "name": "star_args_stub"
+      }
+    },
+    {
+      "id": "register-grounder",
+      "op": "add_head_function",
+      "args": {
+        "name": "first_clause_first_grounding"
+      }
+    },
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 1
+      },
+      "probes": [
+        {
+          "id": "trace-node",
+          "kind": "rule_trace_node"
+        },
+        {
+          "id": "nodes-processed",
+          "kind": "filter_sort_nodes",
+          "labels": [
+            "Processed"
+          ]
+        },
+        {
+          "id": "time",
+          "kind": "get_time"
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

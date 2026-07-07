@@ -1,0 +1,27 @@
+{
+  "id": "label-ops",
+  "purpose": "Label direct construction through the aliased public value class (pyreason.label.Label): value/str/repr echo the string; equality and hash are by string value alone (same-text distinct objects compare and hash equal \u2014 the mechanism behind predicate-map and world lookups); equality against a plain string raises AttributeError('str' object has no attribute 'get_value') because the pinned __eq__ calls get_value() on its argument before its isinstance guard; and the empty-string label constructs and behaves identically.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md type:Label construct/equality/hash/get-value (Python-side arms); components/label.py:1-21 at the pin; screened live 2026-07-07 (screen_types.py)",
+  "surface_items": [
+    "type:Label"
+  ],
+  "inputs": {},
+  "probes": [
+    {
+      "id": "l-basic",
+      "kind": "label_probe",
+      "value": "popular",
+      "other": "unpopular"
+    },
+    {
+      "id": "l-empty",
+      "kind": "label_probe",
+      "value": "",
+      "other": "popular"
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

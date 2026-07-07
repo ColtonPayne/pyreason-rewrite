@@ -1,0 +1,95 @@
+{
+  "id": "reason-queries-no-match",
+  "purpose": "A query matching no rule's target filters the ruleset to empty, and reason() then raises numba's ValueError('cannot compute fingerprint of empty list') at kernel dispatch \u2014 the pinned engine cannot reason over a query-emptied ruleset. The filtering itself still happened and is permanent: post-raise get_rules returns the empty (plain, no longer numba-typed) list the filter assigned (pyreason.py:1595).",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md type:Query + fn:reason queries-filter (empty-survivor arm); pyreason.py:1594-1595, filter_ruleset.py:29-34 at the pin; screened live 2026-07-07 (screen_queries.py mode=none)",
+  "surface_items": [
+    "type:Query",
+    "fn:reason",
+    "fn:get_rules",
+    "fn:load_graph",
+    "fn:add_rule",
+    "fn:add_fact",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        "John",
+        "Mary",
+        "Justin"
+      ],
+      "edges": [
+        [
+          "John",
+          "Mary",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "John",
+          "Justin",
+          {
+            "Friends": 1
+          }
+        ]
+      ]
+    },
+    "rules": [
+      {
+        "text": "cool(x) <-1 popular(x)",
+        "name": "cool_rule"
+      },
+      {
+        "text": "busy(x) <-1 owner(x)",
+        "name": "busy_rule"
+      }
+    ],
+    "facts": [
+      {
+        "text": "popular(Mary)",
+        "name": "popular_fact",
+        "start": 0,
+        "end": 2
+      },
+      {
+        "text": "owner(John)",
+        "name": "owner_fact",
+        "start": 0,
+        "end": 2
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 2,
+        "queries": [
+          "famous(Mary)"
+        ]
+      },
+      "probes": [
+        {
+          "id": "rules-fp",
+          "kind": "accessor_fingerprint",
+          "accessor": "rules"
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

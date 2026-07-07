@@ -1,0 +1,98 @@
+{
+  "id": "annotation-fn-six-arg",
+  "purpose": "The 6-arg extended annotation signature through reason(): clause_zero_grounding_eighths derives its lower bound from len(qualified groundings of clause 0)/8 \u2014 metadata only the extended path carries (the per-rule extended_ann_fn flag routes _ground_rule's metadata collection, interpretation.py:227-231) \u2014 so crowd(A) = [0.25, 1] proves two qualified edge groundings of connected(x,y) reached the function. atom_trace stays OFF so the metadata flows through the extended-flag gate alone, not the atom-trace branch (the oracle test suite's discipline).",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_annotation_function happy-6arg; pyreason.py:1430-1446, interpretation.py:227-231/1002-1039 at the pin; reference fn harness/reference_fns.py; screened live 2026-07-07 (screen_registry.py)",
+  "surface_items": [
+    "fn:add_annotation_function",
+    "fn:reason",
+    "fn:add_rule",
+    "fn:load_graph",
+    "fn:add_fact",
+    "fn:get_rule_trace",
+    "fn:filter_and_sort_nodes",
+    "fn:get_time",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false
+    },
+    "graph": {
+      "nodes": [
+        [
+          "A",
+          {
+            "starter": 1
+          }
+        ],
+        [
+          "B",
+          {
+            "starter": 1
+          }
+        ],
+        "C"
+      ],
+      "edges": [
+        [
+          "A",
+          "B",
+          {
+            "connected": 1
+          }
+        ],
+        [
+          "A",
+          "C",
+          {
+            "connected": 1
+          }
+        ]
+      ]
+    },
+    "rules": [
+      {
+        "text": "crowd(x) : clause_zero_grounding_eighths <- connected(x,y) : [0.5,1], starter(x)",
+        "name": "crowd_rule"
+      }
+    ],
+    "facts": []
+  },
+  "steps": [
+    {
+      "id": "register-eighths",
+      "op": "add_annotation_function",
+      "args": {
+        "name": "clause_zero_grounding_eighths"
+      }
+    },
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 1
+      },
+      "probes": [
+        {
+          "id": "nodes-crowd",
+          "kind": "filter_sort_nodes",
+          "labels": [
+            "crowd"
+          ]
+        },
+        {
+          "id": "time",
+          "kind": "get_time"
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

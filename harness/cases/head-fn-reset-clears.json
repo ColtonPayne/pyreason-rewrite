@@ -1,0 +1,100 @@
+{
+  "id": "head-fn-reset-clears",
+  "purpose": "reset_rules clears the registered head functions along with the rules (pyreason.py:525): register first_clause_first_grounding, reset_rules, re-add the head-fn rule via the add_rule step, reason \u2014 the cleared registry produces the same silent empty grounding as the never-registered arm (zero rule rows), where head-fn-grounding (registration intact) derives Processed(A).",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_head_function interacts-reset; pyreason.py:517-527 at the pin; screened live 2026-07-07 (screen_fnedge2.py reset-then-readd)",
+  "surface_items": [
+    "fn:add_head_function",
+    "fn:reset_rules",
+    "fn:reason",
+    "fn:add_rule",
+    "fn:load_graph",
+    "fn:get_rule_trace",
+    "fn:filter_and_sort_nodes",
+    "fn:get_time",
+    "type:Rule",
+    "dsl:rule-text",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        [
+          "A",
+          {
+            "starter": 1
+          }
+        ],
+        [
+          "B",
+          {
+            "starter": 1
+          }
+        ]
+      ],
+      "edges": [
+        [
+          "A",
+          "B",
+          {
+            "connected": 1
+          }
+        ]
+      ]
+    },
+    "facts": []
+  },
+  "steps": [
+    {
+      "id": "register-grounder",
+      "op": "add_head_function",
+      "args": {
+        "name": "first_clause_first_grounding"
+      }
+    },
+    {
+      "id": "clear",
+      "op": "reset_rules"
+    },
+    {
+      "id": "re-add-rule",
+      "op": "add_rule",
+      "args": {
+        "text": "Processed(first_clause_first_grounding(X)) <- starter(X), starter(Y), connected(X, Y)",
+        "name": "head_fn_rule"
+      }
+    },
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 1
+      },
+      "probes": [
+        {
+          "id": "trace-node",
+          "kind": "rule_trace_node"
+        },
+        {
+          "id": "nodes-processed",
+          "kind": "filter_sort_nodes",
+          "labels": [
+            "Processed"
+          ]
+        },
+        {
+          "id": "time",
+          "kind": "get_time"
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

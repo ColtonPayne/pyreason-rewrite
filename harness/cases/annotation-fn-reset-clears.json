@@ -1,0 +1,79 @@
+{
+  "id": "annotation-fn-reset-clears",
+  "purpose": "reset_rules clears the registered annotation functions along with the rules (pyreason.py:524): register clause_lower_mean, reset_rules, re-add the same rule via the add_rule step, reason \u2014 and the cleared registry raises the same NameError the never-registered arm does, where annotation-fn-two-arg (registration intact) derives the bound. Facts ride inputs because reset_rules leaves facts untouched.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_annotation_function interacts-reset; pyreason.py:517-527 at the pin; screened live 2026-07-07 (screen_fnedge2.py ann-reset-then-readd)",
+  "surface_items": [
+    "fn:add_annotation_function",
+    "fn:reset_rules",
+    "fn:reason",
+    "fn:add_rule",
+    "fn:load_graph",
+    "fn:add_fact",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        "A",
+        "B"
+      ],
+      "edges": []
+    },
+    "facts": [
+      {
+        "text": "p(A) : [0.25, 1]",
+        "name": "f_p",
+        "start": 0,
+        "end": 0
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "register-mean",
+      "op": "add_annotation_function",
+      "args": {
+        "name": "clause_lower_mean"
+      }
+    },
+    {
+      "id": "clear",
+      "op": "reset_rules"
+    },
+    {
+      "id": "re-add-rule",
+      "op": "add_rule",
+      "args": {
+        "text": "combo(x) : clause_lower_mean <- p(x) : [0.125, 1]",
+        "name": "combo_rule"
+      }
+    },
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 1
+      },
+      "probes": [
+        {
+          "id": "time-after-raise",
+          "kind": "get_time",
+          "allow_raise": true
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

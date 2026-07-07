@@ -1,0 +1,80 @@
+{
+  "id": "head-fn-unregistered-name",
+  "purpose": "A rule head naming a head function nobody registered is SILENT at the pin: _call_head_function's objmode loop finds no __name__ match and returns the pre-seeded empty grounding list (interpretation.py:2330-2338), so the head grounds to nothing, the rule fires for no one, and reason() completes \u2014 the trace carries zero rule rows. The contrast with the annotation side's NameError is the pinned asymmetry.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_head_function (unregistered-name arm, screened); interpretation.py:2316-2338 at the pin; screened live 2026-07-07 (screen_fnedge.py head-unregistered)",
+  "surface_items": [
+    "fn:add_head_function",
+    "fn:reason",
+    "fn:add_rule",
+    "fn:load_graph",
+    "fn:get_rule_trace",
+    "fn:filter_and_sort_nodes",
+    "fn:get_time",
+    "type:Rule",
+    "dsl:rule-text",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        [
+          "A",
+          {
+            "starter": 1
+          }
+        ],
+        [
+          "B",
+          {
+            "starter": 1
+          }
+        ]
+      ],
+      "edges": [
+        [
+          "A",
+          "B",
+          {
+            "connected": 1
+          }
+        ]
+      ]
+    },
+    "rules": [
+      {
+        "text": "Processed(first_clause_first_grounding(X)) <- starter(X), starter(Y), connected(X, Y)",
+        "name": "head_fn_rule"
+      }
+    ],
+    "facts": [],
+    "reason": {
+      "timesteps": 1
+    }
+  },
+  "probes": [
+    {
+      "id": "trace-node",
+      "kind": "rule_trace_node"
+    },
+    {
+      "id": "nodes-processed",
+      "kind": "filter_sort_nodes",
+      "labels": [
+        "Processed"
+      ]
+    },
+    {
+      "id": "time",
+      "kind": "get_time"
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

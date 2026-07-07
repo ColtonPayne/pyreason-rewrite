@@ -1,0 +1,114 @@
+{
+  "id": "annotation-fn-two-arg",
+  "purpose": "add_annotation_function end to end: the two arity-reject arms first (3 positional args and a *args function both TypeError at registration \u2014 co_argcount ignores *args so it measures 0; the exact message pins the pinned gate's wording), then the 2-arg reference function clause_lower_mean registers and a rule head 'combo(x) : clause_lower_mean' computes the derived bound through reason(): combo(A) = [(0.25*1 + 0.75*1)/2, max(1,1)] = [0.5, 1] with default weights, and combo2's weights [0.5, 1.5] shift the same computation to [(0.125 + 1.125)/2, 1] = [0.625, 1] \u2014 the weights parameter's consumption pinned differentially inside one case. The effect is observed through the trace, not registration state.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_annotation_function happy-2arg/malformed-wrong-arity/bound-defaulted-or-varargs + type:Rule interacts-weights; pyreason.py:1415-1481, interpretation.py:1869-1931 at the pin; reference fns harness/reference_fns.py; screened live 2026-07-07 (screen_annfn.py, screen_registry.py)",
+  "surface_items": [
+    "fn:add_annotation_function",
+    "fn:reason",
+    "fn:add_rule",
+    "fn:load_graph",
+    "fn:add_fact",
+    "fn:get_rule_trace",
+    "fn:filter_and_sort_nodes",
+    "fn:get_time",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        "A",
+        "B"
+      ],
+      "edges": []
+    },
+    "rules": [
+      {
+        "text": "combo(x) : clause_lower_mean <- p(x) : [0.125, 1], q(x) : [0.125, 1]",
+        "name": "combo_rule"
+      },
+      {
+        "text": "combo2(x) : clause_lower_mean <- p(x) : [0.125, 1], q(x) : [0.125, 1]",
+        "name": "combo2_rule",
+        "weights": [
+          0.5,
+          1.5
+        ]
+      }
+    ],
+    "facts": [
+      {
+        "text": "p(A) : [0.25, 1]",
+        "name": "f_p",
+        "start": 0,
+        "end": 0
+      },
+      {
+        "text": "q(A) : [0.75, 1]",
+        "name": "f_q",
+        "start": 0,
+        "end": 0
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "reject-three-arg",
+      "op": "add_annotation_function",
+      "args": {
+        "name": "three_positional_stub"
+      }
+    },
+    {
+      "id": "reject-star-args",
+      "op": "add_annotation_function",
+      "args": {
+        "name": "star_args_stub"
+      }
+    },
+    {
+      "id": "register-mean",
+      "op": "add_annotation_function",
+      "args": {
+        "name": "clause_lower_mean"
+      }
+    },
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 1
+      },
+      "probes": [
+        {
+          "id": "trace-node",
+          "kind": "rule_trace_node"
+        },
+        {
+          "id": "nodes-combo",
+          "kind": "filter_sort_nodes",
+          "labels": [
+            "combo",
+            "combo2"
+          ]
+        },
+        {
+          "id": "time",
+          "kind": "get_time"
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "id": "threshold-dict-gate",
+  "purpose": "Dict-form custom_thresholds through pr.Rule ({clause-index 1: greater_equal number/total 2}, clause 0 defaulted to greater_equal number/total 1 by the parser, rule_parser.py:169-173): behaviorally identical to the full list form on the same program \u2014 no trendy row derives \u2014 pinning that the dict form's defaulting reaches the same consumed thresholds. Differential against threshold-number-gate-default's derivation.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md type:Threshold (dict-form consumption); rule_parser.py:161-173 at the pin; screened live 2026-07-07 (screen_thresh2.py gate-dict)",
+  "surface_items": [
+    "type:Threshold",
+    "fn:add_rule",
+    "fn:reason",
+    "fn:load_graph",
+    "fn:add_fact",
+    "fn:get_rule_trace",
+    "fn:filter_and_sort_nodes",
+    "fn:get_time",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "edges": [
+        [
+          "A",
+          "B",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "A",
+          "C",
+          {
+            "Friends": 1
+          }
+        ]
+      ]
+    },
+    "rules": [
+      {
+        "text": "trendy(x) <-1 Friends(x,y), popular(y)",
+        "name": "trendy_rule",
+        "custom_thresholds": {
+          "1": {
+            "quantifier": "greater_equal",
+            "quantifier_type": [
+              "number",
+              "total"
+            ],
+            "thresh": 2
+          }
+        }
+      }
+    ],
+    "facts": [
+      {
+        "text": "popular(B)",
+        "name": "f_b",
+        "start": 0,
+        "end": 2
+      }
+    ],
+    "reason": {
+      "timesteps": 1
+    }
+  },
+  "probes": [
+    {
+      "id": "trace-node",
+      "kind": "rule_trace_node"
+    },
+    {
+      "id": "nodes-trendy",
+      "kind": "filter_sort_nodes",
+      "labels": [
+        "trendy"
+      ]
+    },
+    {
+      "id": "time",
+      "kind": "get_time"
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}
