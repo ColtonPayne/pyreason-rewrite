@@ -64,7 +64,7 @@ classes likewise.
 
 ## fn:load_inconsistent_predicate_list
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:611
-- status: cased
+- status: equivalent
 - cases: ipl-load-basic, ipl-load-null-overwrite, ipl-load-malformed, ipl-atom-trace-off-trace
 - input classes:
   - happy-basic
@@ -368,7 +368,7 @@ classes likewise.
 
 ## fn:save_rule_trace
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1645
-- status: cased
+- status: equivalent
 - cases: save-rule-trace-basic, save-rule-trace-atom-trace-off, save-rule-trace-store-off, save-rule-trace-clause-reorder, ipl-atom-trace-off-trace
 - input classes:
   - happy
