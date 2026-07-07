@@ -174,6 +174,16 @@ def reason(timesteps: int = -1, convergence_threshold: int = -1,
                          convergence_bound_threshold, queries, again, restart)
 
 
+def save_rule_trace(interpretation, folder: str = './') -> None:
+    """Write the change trace as the pinned CSV pair —
+    rule_trace_{nodes,edges}_{timestamp}.csv under `folder`, stamped with
+    the last reason()'s wall-clock timestamp; asserts (the pinned guard and
+    message, pyreason.py:1652) when change storage is off."""
+    assert settings.store_interpretation_changes, 'store interpretation changes setting is off, turn on to save rule trace'
+    _output.save_rule_trace(interpretation, _state_obj.clause_maps,
+                            _state_obj.timestamp, folder)
+
+
 def get_rule_trace(interpretation) -> Tuple[_output.Frame, _output.Frame]:
     """The change trace as (node frame, edge frame) — every stored change,
     with per-clause ground atoms when atom_trace was on."""

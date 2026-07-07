@@ -61,6 +61,7 @@ class Program:
         # list IS stamped onto all variants (program.py:37-39).
         specific_node_labels = {} if fp_mode else self.specific_node_labels
         specific_edge_labels = {} if fp_mode else self.specific_edge_labels
+        rules_empty = self._rules is not None and len(self._rules) == 0
         self.interp = Interpretation(
             self._graph, self._ipl, self._annotation_functions,
             self._head_functions, self._reverse_graph, self._atom_trace,
@@ -69,6 +70,16 @@ class Program:
             self._update_mode, self._allow_ground_rules,
             specific_node_labels, specific_edge_labels,
             self.closed_world_predicates, fp_mode=fp_mode)
+        # The pinned engine cannot reason over an EMPTY ruleset: the plain
+        # empty list only filter_ruleset produces (loaded rulesets ride numba
+        # typed lists at the pin, and both engines' loaders leave a zero-rule
+        # load as None → the no-rules Exception upstream) fails numba's
+        # kernel-argument fingerprinting at dispatch. Reproduced verbatim at
+        # the same seam — after the Interpretation is constructed and
+        # assigned, so the post-raise program holds a live interp exactly as
+        # the pin's does (reason-queries-no-match banks the raise record).
+        if rules_empty:
+            raise ValueError('cannot compute fingerprint of empty list')
         self.interp.start_fp(self._tmax, self._facts_node, self._facts_edge,
                              self._rules, verbose, convergence_threshold,
                              convergence_bound_threshold)
@@ -130,21 +141,38 @@ def reorder_clauses(rule):
 
 def filter_ruleset(queries, rules):
     """Keep the rules that can support some query's predicate, transitively
-    through rule bodies (oracle scripts/utils/filter_ruleset.py) — including
-    the pinned de-duplication through an unordered set, which makes the
-    surviving rules' ORDER an unpinned behavior; the query-consuming cases
-    adjudicate it when they land."""
+    through rule bodies (oracle scripts/utils/filter_ruleset.py) — matching
+    by predicate ONLY (bounds and component play no part, the pin's :17),
+    including the pinned de-duplication through an unordered set, which
+    makes multi-survivor ORDER an unpinned behavior (committed cases keep
+    survivor sets <= 1).
 
-    def applicable_rules_from_query(query):
+    Deliberate divergence from the pin, on an un-caseable input: the pinned
+    recursion is unguarded, so a query matching a self-recursive rule's head
+    crashes the pinned process outright (unbounded recursion through the
+    clause targets, SIGSEGV before Python's RecursionError — screened
+    2026-07-07, banked on type:Query's board row as un-caseable: no artifact
+    exists to compare). Here each predicate expands at most once (`seen`),
+    which terminates on every cyclic ruleset and returns the identical
+    reachable-rule SET on every acyclic one — the recorded
+    guard-the-recursion contract (ledger session 14, idea seeds).
+    """
+
+    def applicable_rules_from_query(query, seen):
         applicable = []
         for rule in rules:
             if query == rule.get_target():
                 applicable.append(rule)
                 for clause in rule.get_clauses():
-                    applicable.extend(applicable_rules_from_query(clause[1]))
+                    target = clause[1]
+                    if target not in seen:
+                        seen.add(target)
+                        applicable.extend(
+                            applicable_rules_from_query(target, seen))
         return applicable
 
     filtered_rules = []
     for q in queries:
-        filtered_rules.extend(applicable_rules_from_query(q.get_predicate()))
+        filtered_rules.extend(
+            applicable_rules_from_query(q.get_predicate(), set()))
     return list(set(filtered_rules))

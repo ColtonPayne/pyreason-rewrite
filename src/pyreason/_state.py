@@ -22,6 +22,8 @@ runs it, and clears the user fact lists so a later reason-again consumes
 only newly added facts; the again arm re-drives the existing program.
 """
 
+import sys
+import time
 import warnings
 
 import networkx as nx
@@ -60,6 +62,10 @@ class EngineState:
         # Per-rule {new clause index: original} maps from the last reason()'s
         # clause reordering — the trace views render through them
         self.clause_maps: dict | None = None
+        # The last reason()'s wall-clock stamp (oracle pyreason.py:1511) —
+        # save_rule_trace and the stdout-redirect path embed it in their
+        # file names; '' until the first reason(), like the pinned global.
+        self.timestamp: str = ''
 
 
 def add_rule(state: EngineState, pr_rule) -> None:
@@ -184,24 +190,78 @@ def reset_rules(state: EngineState) -> None:
         state.program.reset_rules()
 
 
+def _peak_memory_mb() -> float:
+    """The process's peak RSS in MB — the stdlib stand-in for the pinned
+    memory_profiler backend (pyreason.py:1517-1526). Only the printed line's
+    fixed text and having-a-number shape are contractual: the number itself
+    is run-varying measurement in both engines and the harness canonicalizes
+    exactly it (PEAK_MB_RE, harness/capture.py). ru_maxrss is bytes on
+    darwin, KiB elsewhere."""
+    import resource
+    usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    divisor = 1024 * 1024 if sys.platform == 'darwin' else 1024
+    return usage / divisor
+
+
+def _redirect_stdout_to_output_file(state: EngineState) -> None:
+    """Rebind this process's stdout to ./{output_file_name}_{timestamp}.txt
+    opened for append — the pinned side effect verbatim (pyreason.py:
+    1513-1514, repeated at :1541-1542): cwd-relative, append mode, never
+    restored and never flushed here (the harness's output_file probe
+    flushes before reading)."""
+    sys.stdout = open(
+        f"./{state.settings.output_file_name}_{state.timestamp}.txt", "a")
+
+
 def reason(state: EngineState, timesteps: int = -1, convergence_threshold: int = -1,
            convergence_bound_threshold: float = -1, queries=None,
            again: bool = False, restart: bool = True):
-    """The reasoning entry point (oracle pyreason.py:1497-1531, default
-    knobs' arm): first-run (or no program yet) builds and runs a fresh
-    program; again re-drives the existing one over the facts added since."""
+    """The reasoning entry point (oracle pyreason.py:1497-1531): stamp the
+    file timestamp, rebind stdout when output_to_file is on, then dispatch —
+    first-run (or no program yet) builds and runs a fresh program, again
+    re-drives the existing one over the facts added since — each arm run
+    bare or inside the memory-profile observation wrapper, whose peak-MB
+    line prints AFTER the reasoning prints, onto whatever stdout then is."""
+    settings = state.settings
+
+    # Timestamp for saving files (pyreason.py:1511) — shared by the stdout
+    # redirect and save_rule_trace's CSV names.
+    state.timestamp = time.strftime('%Y%m%d-%H%M%S')
+
+    if settings.output_to_file:
+        _redirect_stdout_to_output_file(state)
+
     if not again or state.program is None:
-        interp = _reason(state, timesteps, convergence_threshold,
-                         convergence_bound_threshold, queries)
+        if settings.memory_profile:
+            start_mem = _peak_memory_mb()
+            interp = _reason(state, timesteps, convergence_threshold,
+                             convergence_bound_threshold, queries)
+            print(f"\nProgram used {_peak_memory_mb() - start_mem} MB of memory")
+        else:
+            interp = _reason(state, timesteps, convergence_threshold,
+                             convergence_bound_threshold, queries)
     else:
-        interp = _reason_again(state, timesteps, restart, convergence_threshold,
-                               convergence_bound_threshold)
+        if settings.memory_profile:
+            start_mem = _peak_memory_mb()
+            interp = _reason_again(state, timesteps, restart, convergence_threshold,
+                                   convergence_bound_threshold)
+            print(f"\nProgram used {_peak_memory_mb() - start_mem} MB of memory")
+        else:
+            interp = _reason_again(state, timesteps, restart, convergence_threshold,
+                                   convergence_bound_threshold)
     return interp
 
 
 def _reason(state: EngineState, timesteps, convergence_threshold,
             convergence_bound_threshold, queries):
     settings = state.settings
+
+    # The pinned _reason re-opens the SAME redirect file for append at its
+    # own top (pyreason.py:1541-1542) — a second rebind, so every verbose
+    # reasoning print below lands in the file. Reproduced including the
+    # double-open: the first file object took no writes in either engine.
+    if settings.output_to_file:
+        _redirect_stdout_to_output_file(state)
 
     # A missing graph is an empty graph; missing rules are an error
     if state.graph is None:

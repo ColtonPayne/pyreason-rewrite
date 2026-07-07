@@ -9,6 +9,9 @@ identical cell values, row order, and ragged-row None padding. Cell-for-cell
 equality with the pinned frames is what the banked artifacts compare.
 """
 
+import csv
+import os
+
 from . import interval
 
 
@@ -107,6 +110,29 @@ def get_rule_trace(interpretation, clause_map):
                               interpretation.atom_trace, _TRACE_HEADER_EDGE,
                               clause_map)
     return node_frame, edge_frame
+
+
+def save_rule_trace(interpretation, clause_map, timestamp, folder='./'):
+    """Write the trace frames as the pinned CSV pair (output.py:99-105):
+    `rule_trace_{nodes,edges}_{timestamp}.csv` under `folder` (joined the
+    same way — os.path.join on the caller's string, no validation, so a
+    nonexistent folder raises the open()'s own error like the pin's pandas
+    write does).
+
+    The byte target is the pinned `DataFrame.to_csv(path, index=False)`
+    output: comma-delimited, QUOTE_MINIMAL double-quote quoting, os.linesep
+    row ends, None/NaN cells empty, every other cell str()-rendered — which
+    is exactly the csv module's writer over the Frame's cells (csv.writer
+    str()s non-strings and writes None as ''), so the compared observation
+    is the file contents themselves, cell-for-cell with the pin's.
+    """
+    node_frame, edge_frame = get_rule_trace(interpretation, clause_map)
+    for kind, frame in (('nodes', node_frame), ('edges', edge_frame)):
+        path = os.path.join(folder, f'rule_trace_{kind}_{timestamp}.csv')
+        with open(path, 'w', newline='') as f:
+            writer = csv.writer(f, lineterminator=os.linesep)
+            writer.writerow(frame.columns)
+            writer.writerows(frame.itertuples(index=False, name=None))
 
 
 def _filter_and_sort(trace, tmax, labels, bound, sort_by, descending):
