@@ -1098,6 +1098,83 @@ def fresh_output_dir(out: Path) -> Path:
     return outdir
 
 
+def case_registers_functions(case: dict) -> bool:
+    """Whether the case applies a callable-registering op in either spelling —
+    the condition for main()'s kernel-cache snapshot/restore."""
+    ops = {step.get("op") for step in case.get("steps", [])}
+    ops |= {p.get("op") for p in _all_probes(case)
+            if p.get("kind") == "apply_input"}
+    return bool(ops & REGISTRY_OPS)
+
+
+def engine_kernel_cache_dir() -> Path | None:
+    """The engine env's bundled kernel-cache directory, located WITHOUT
+    importing (and thereby initializing) the engine — importlib.util.find_spec
+    reads packaging metadata only."""
+    import importlib.util
+    spec = importlib.util.find_spec("pyreason")
+    if spec is None or not spec.submodule_search_locations:
+        return None
+    return Path(list(spec.submodule_search_locations)[0]) / "cache"
+
+
+def snapshot_kernel_cache(cache_dir: Path | None):
+    """The bundled kernel cache's file set plus every index file's bytes.
+
+    A capture that registers reference functions specializes the engine's
+    disk-cached kernels on signatures that embed the njit dispatchers. Those
+    saves are pure loss, twice over: the pickled index keys reference
+    harness.reference_fns, so any later engine process WITHOUT the repo root
+    on sys.path fails the index load outright (ModuleNotFoundError at
+    numba's _load_index — reproduced live 2026-07-07: a plain-script screen
+    run from the repo root broke, because script invocation puts the
+    script's directory, not the cwd, on sys.path — and the fault is a hard
+    error, not self-healing); and the entries can never be hit again anyway
+    (a fresh process's resolve() creates new dispatcher objects, so the
+    pickled signature never matches — observed as a new multi-MB .nbc
+    overload appended per capture). Re-pointing NUMBA_CACHE_DIR cannot
+    prevent the saves: the engine package's __init__ re-points the variable
+    at its bundled directory before the kernels are decorated, cache
+    locators bake config.CACHE_DIR in at decoration time, and the compiler
+    re-reads the environment on every compilation (numba
+    core/compiler.py:400) — screened live: an early override left the
+    per-capture directory empty and the bundled cache poisoned. So main()
+    snapshots before the engine imports and restores after the capture:
+    files added during a registrand capture are removed and rewritten
+    indexes restored to their prior bytes, leaving the bundled cache exactly
+    as a registrand-free run would. Data files are add-only (each new
+    specialization gets a fresh counter-named .nbc), so index bytes — a few
+    KB each — are the only content that needs snapshotting."""
+    names: set = set()
+    indexes: dict = {}
+    if cache_dir is None or not cache_dir.is_dir():
+        return names, indexes
+    for p in cache_dir.rglob("*"):
+        if p.is_file():
+            rel = p.relative_to(cache_dir)
+            names.add(rel)
+            if p.suffix == ".nbi":
+                indexes[rel] = p.read_bytes()
+    return names, indexes
+
+
+def restore_kernel_cache(cache_dir: Path | None, names: set, indexes: dict) -> None:
+    """Undo this capture's kernel-cache writes (see snapshot_kernel_cache):
+    delete files that were not present at snapshot time and restore any
+    index whose bytes changed. Touches only the engine env's cache
+    directory — rebuildable runtime state, never the pinned oracle tree."""
+    if cache_dir is None or not cache_dir.is_dir():
+        return
+    for p in cache_dir.rglob("*"):
+        if p.is_file() and p.relative_to(cache_dir) not in names:
+            p.unlink()
+    for rel, data in indexes.items():
+        target = cache_dir / rel
+        if not target.exists() or target.read_bytes() != data:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(data)
+
+
 def run_case(case: dict) -> dict:
     t0 = time.perf_counter()
     import pyreason as pr
@@ -1191,6 +1268,11 @@ def main(argv=None) -> int:
         print(f"invalid case: {fault}", file=sys.stderr)
         return 2
 
+    registrand_case = case_registers_functions(case)
+    cache_dir, cache_names, cache_indexes = None, set(), {}
+    if registrand_case:
+        cache_dir = engine_kernel_cache_dir()
+        cache_names, cache_indexes = snapshot_kernel_cache(cache_dir)
     if case_wants_output_dir(case):
         # The pinned redirect path is cwd-relative ("./..." at
         # pyreason.py:1514) — chdir into a fresh per-capture directory so an
@@ -1205,6 +1287,9 @@ def main(argv=None) -> int:
                                   "error": repr(exc)})
         print(f"capture failed: {exc!r}", file=sys.stderr)
         return 1
+    finally:
+        if registrand_case:
+            restore_kernel_cache(cache_dir, cache_names, cache_indexes)
     write_artifact(args.out, artifact)
     return 0
 

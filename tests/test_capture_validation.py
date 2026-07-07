@@ -1256,3 +1256,52 @@ def test_rule_specs_validate_in_inputs_and_step_form():
         {"text": "t(x) <-1 f(x)", "custom_thresholds": [good_t],
          "weights": [1.5]}]}}
     assert validate_case(ok) is None
+
+
+def test_registrand_cases_snapshot_and_restore_the_kernel_cache(tmp_path):
+    """proves: a case that registers a reference function — in the step or the
+    probe spelling — is flagged for kernel-cache restoration while every other
+    case is not, and the snapshot/restore pair returns the engine env's
+    bundled cache to its pre-capture state: files the capture added are
+    removed and rewritten index files get their prior bytes back, while
+    untouched files survive byte-identical — the bundled cache must never
+    accumulate dispatcher-bearing entries (their pickled index keys reference
+    harness.reference_fns, loadable only with the repo root on sys.path, and
+    a fresh process's dispatchers never match them anyway)."""
+    from harness.capture import (case_registers_functions,
+                                 restore_kernel_cache, snapshot_kernel_cache)
+
+    step_case = {**VALID_STEPS, "steps": [
+        {"id": "s", "op": "add_annotation_function",
+         "args": {"name": "clause_lower_mean"}}]}
+    probe_case = {**VALID, "probes": [
+        {"id": "p", "kind": "apply_input", "op": "add_head_function",
+         "args": {"name": "first_clause_first_grounding"}}]}
+    assert case_registers_functions(step_case)
+    assert case_registers_functions(probe_case)
+    assert not case_registers_functions(VALID)
+    assert not case_registers_functions(VALID_STEPS)
+
+    # a synthetic bundled cache: one kernel dir with an index + a data file
+    kernel = tmp_path / "interpretation_abc"
+    kernel.mkdir()
+    (kernel / "reason.nbi").write_bytes(b"clean-index")
+    (kernel / "reason.1.nbc").write_bytes(b"warm-kernel")
+    names, indexes = snapshot_kernel_cache(tmp_path)
+
+    # the capture appends a dispatcher-bearing overload and rewrites the index
+    (kernel / "reason.2.nbc").write_bytes(b"dispatcher-specialization")
+    (kernel / "reason.nbi").write_bytes(b"index-naming-harness.reference_fns")
+    (kernel / "annotate.nbi").write_bytes(b"new-index")
+
+    restore_kernel_cache(tmp_path, names, indexes)
+    assert sorted(p.name for p in kernel.iterdir()) \
+        == ["reason.1.nbc", "reason.nbi"]
+    assert (kernel / "reason.nbi").read_bytes() == b"clean-index"
+    assert (kernel / "reason.1.nbc").read_bytes() == b"warm-kernel"
+
+    # both directions are total on a missing/absent cache dir
+    empty_names, empty_indexes = snapshot_kernel_cache(None)
+    assert (empty_names, empty_indexes) == (set(), {})
+    restore_kernel_cache(None, empty_names, empty_indexes)
+    restore_kernel_cache(tmp_path / "no-such-dir", set(), {})
