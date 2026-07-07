@@ -1,0 +1,113 @@
+{
+  "id": "threshold-number-gate-clause-level",
+  "purpose": "The discriminator for WHERE a number threshold counts: two disconnected Friends pairs (A-B, C-D) with popular(B) and popular(D) and greater_equal number/total 2 on the popular(y) clause. Each head's own neighborhood holds exactly ONE qualifying grounding (1 < 2), yet trendy(A) and trendy(C) both derive because the threshold consumes the clause's whole-graph qualifying count (2 >= 2) — the pinned gate sits in _ground_rule's per-clause satisfaction check over the clause grounding (interpretation.py:1364-1377), before head candidates are enumerated. The -two/-default twins alone cannot tell clause-level from per-head gating (their lone head also saw the lone qualifier); this case can.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md type:Threshold happy-number-total (consumption side, clause-vs-head discrimination); interpretation.py:1364-1377/1475-1503 at the pin; screened live 2026-07-07 (review screen_clause_gate.py)",
+  "surface_items": [
+    "type:Threshold",
+    "fn:add_rule",
+    "fn:reason",
+    "fn:load_graph",
+    "fn:add_fact",
+    "fn:get_rule_trace",
+    "fn:filter_and_sort_nodes",
+    "fn:get_time",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "edges": [
+        [
+          "A",
+          "B",
+          {
+            "Friends": 1
+          }
+        ],
+        [
+          "C",
+          "D",
+          {
+            "Friends": 1
+          }
+        ]
+      ]
+    },
+    "rules": [
+      {
+        "text": "trendy(x) <-1 Friends(x,y), popular(y)",
+        "name": "trendy_rule",
+        "custom_thresholds": [
+          {
+            "quantifier": "greater_equal",
+            "quantifier_type": [
+              "number",
+              "total"
+            ],
+            "thresh": 1
+          },
+          {
+            "quantifier": "greater_equal",
+            "quantifier_type": [
+              "number",
+              "total"
+            ],
+            "thresh": 2
+          }
+        ]
+      }
+    ],
+    "facts": [
+      {
+        "text": "popular(B)",
+        "name": "f_b",
+        "start": 0,
+        "end": 2
+      },
+      {
+        "text": "popular(D)",
+        "name": "f_d",
+        "start": 0,
+        "end": 2
+      }
+    ],
+    "reason": {
+      "timesteps": 1
+    }
+  },
+  "probes": [
+    {
+      "id": "trace-node",
+      "kind": "rule_trace_node"
+    },
+    {
+      "id": "nodes-trendy",
+      "kind": "filter_sort_nodes",
+      "labels": [
+        "trendy"
+      ]
+    },
+    {
+      "id": "time",
+      "kind": "get_time"
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}
