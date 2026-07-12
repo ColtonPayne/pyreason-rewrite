@@ -618,3 +618,32 @@ noise band, which is the baseline every later execution-layer claim will be
 measured against.
 
 **Resume prompt.** `/campaign`
+
+## Session 26 — 2026-07-12
+
+**What we knew going in.** The adjudication was fully recorded and Phase 4 was
+unblocked, with one standing hazard: the pinned fp schedule hangs forever on
+run-to-convergence, so any performance workload had to design around it.
+
+**What we learned this session.** The campaign now has its measuring stick.
+Three workload rungs — small, medium, large — are committed as ordinary
+harness cases, so the same inputs that prove equivalence also carry the
+performance story (all three pass oracle-vs-rewrite). The oracle's numbers on
+this machine are banked with noise bands: roughly three seconds to reason the
+small and medium rungs, eighteen for the large one, a four-and-a-half-second
+cold start, and a two-and-a-half-minute one-time compile-cache build that is
+recorded as context, never as the bar. The surprise of the session, from the
+screening runs: the pure-Python reference core — built for meaning, expected
+to be slow — beat the oracle outright on the small and medium rungs and
+matched it on the large one, because the oracle pays a fixed overhead of
+nearly three seconds on every call before any real work starts. That is a
+single-run observation, not yet a confirmed claim; confirming it is exactly
+the next measurement.
+
+**What we expect to learn next session.** First, whether the committed repo
+alone is enough for a cold agent to pick up the campaign — the owed pickup
+drill. Then the rewrite's own confirmed baselines and the first real
+profiles: where the time actually goes in each engine, which names the
+kernels any acceleration spike should target.
+
+**Resume prompt.** `/campaign`
