@@ -53,5 +53,19 @@ prompt. What it executed, all green from committed state alone:
 ## Re-drill
 
 Per AC-7.4, gaps are fixed and re-drilled before the campaign proceeds.
-The re-drill's actual result is appended below by the banking session
-after it runs.
+
+## Re-drill result (same day, after commit 652863b)
+
+**RE-DRILL PASSED — "no substantive gaps."** A second cold Opus agent,
+starting from the front door, reported: the README's account now matches
+the ledger exactly (52/52 rows, the 116/116 sweep, ADR 0004, AC-5 5/5);
+the oracle-env rebuild recipe matches the environment actually present
+(Python 3.10.20); the e2e runtime warning was seen in advance and the
+agent chose the fast oracle gate deliberately. Its own runs: preflight
+10/10, fast tier 330 passed / 6 deselected, oracle live gate PASSED
+(import 1.40 s, reason 3.06 s). It independently recognized the one dirty
+working-tree file as the ledger-documented operator-side edit and left it
+alone. Its two observations for the record (the prior drill's self-repair
+being visible at HEAD; a stale harness-side git snapshot) are properties
+of the drill mechanism and the session harness, not of the committed
+state.

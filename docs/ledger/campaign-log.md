@@ -861,3 +861,31 @@ campaign's state and prove the resume path works. Whatever it misreads is a
 defect in the committed state itself.
 
 **Resume prompt.** `/campaign`
+
+## Session 34 — 2026-07-12
+
+**What we knew going in.** Every acceptance criterion was closed or cleared
+except the last mechanized one: proving a stranger could pick the campaign
+up cold from nothing but the committed repo. The charter treats any
+misreading in that drill as a defect in the committed state itself.
+
+**What we learned this session.** The resume path holds — a cold agent
+reconstructed the campaign's condition correctly and re-proved the health
+checks, the fast tier, and the live oracle gate from the committed state
+alone. The drill earned its keep by finding three places the repo would
+mislead a newcomer: a front-page status still claiming the campaign hadn't
+begun, a rebuild recipe naming the wrong Python for the oracle environment,
+and an acceptance command that silently runs twenty minutes. All three were
+fixed, and a second cold agent — starting from the front door — found no
+substantive gaps left. With that, every criterion stands closed or
+externally gated, and this session's ledger entry is the window-close
+verdict-of-record: the equivalence board full, the boundary sweep perfect,
+the execution layer signed, the maintainability bars green, every
+divergence adjudicated, and the pickup contract proven twice.
+
+**What we expect to learn next session.** Only the gated threads remain:
+the operator's publication parameters, and the lab box's overnight results
+— the scaling bands that finalize the Pokec report and the two-release run
+that confirms (or revises) which upstream commit broke the paper's scaling.
+
+**Resume prompt.** `/campaign`
