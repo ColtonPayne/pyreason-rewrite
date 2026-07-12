@@ -108,10 +108,51 @@ same-config spread (1.346 s) and the two series' bands overlap.
   decomposition is banked in the Phase-4 profile report
   (`docs/perf/profile-phase4.md`).
 
+## Post-spike baselines (session 28, 2026-07-12) — after the algorithmic spike
+
+The numbers above remain the session-27 pre-spike record. This section
+banks the same measurement (same machine class, same method, same
+runner, n = 7 per rung via `scripts/bench-ladder`, `PYTHONHASHSEED=0`)
+after the four kept spike candidates of session 28 (commits `c56d238`
+memoized node-arm per-head clause re-check, `c218f45` cached Label
+hash, `958523a` hoisted qualified-grounding scans, `ca600a3` loader
+label canonicalization). Equivalence evidence for the kept set: fast
+tier 288 passed, ladder-3 oracle-vs-rewrite ALL PASS, plus a 16-case
+stratified grounding-heavy sample ALL PASS (author report,
+`docs/reviews/2026-07-12-phase4-spike-author.md`).
+
+| rung | import | setup | reason() | cold-start (import + first reason) | peak RSS |
+|---|---|---|---|---|---|
+| **small** | 0.064 (0.063…0.064) [0.001] | 0.0021 (0.0021…0.0021) [0.0001] | **0.0028** (0.0028…0.0028) [0.0000] | **0.067** (0.066…0.067) [0.001] | **39.6** (39.6…39.8) [0.2] |
+| **medium** | 0.065 (0.063…0.065) [0.002] | 0.020 (0.019…0.020) [0.0004] | **0.151** (0.151…0.153) [0.002] | 0.216 (0.215…0.217) [0.002] | **45.8** (45.6…46.0) [0.4] |
+| **large** | 0.066 (0.064…0.083) [0.019] | 0.048 (0.048…0.049) [0.001] | **1.226** (1.224…1.240) [0.017] | 1.294 (1.288…1.315) [0.027] | **67.1** (66.6…68.7) [2.1] |
+
+Versus the pre-spike record and the oracle bands (verdicts by the same
+tie rule):
+
+| metric | post-spike (band) | pre-spike (band) | oracle (band) | verdict |
+|---|---|---|---|---|
+| small reason() | 0.0028 (0.0028…0.0028) | 0.0041 (0.0041…0.0041) | 2.992 (2.922…3.053) | **1.46× vs pre-spike** (bands disjoint); ~1070× vs oracle |
+| medium reason() | 0.151 (0.151…0.153) | 0.655 (0.654…0.656) | 3.611 (3.529…3.625) | **4.3× vs pre-spike** (bands disjoint); ~24× vs oracle |
+| large reason() | 1.226 (1.224…1.240) | 18.792 (18.124…18.940) | 17.977 (17.178…18.524) | **15.3× vs pre-spike, 14.7× vs oracle** (all three bands disjoint — the session-27 tie becomes a win) |
+| cold-start (small) | 0.067 (0.066…0.067) | 0.068 (0.067…0.069) | 4.376 (4.267…4.477) | tie vs pre-spike (import dominates; bands touch); ~65× vs oracle |
+| large peak RSS (MiB) | 67.1 (66.6…68.7) | 68.8 (68.2…69.0) | 328.6 (327.9…329.9) | tie vs pre-spike (bands overlap); ~4.9× smaller than oracle |
+
+The large rung's post-spike series is far more stable than the
+pre-spike one (spread 0.017 s = 1.4% of median, vs 0.816 s = 4.3%):
+the run is now too short for the sustained-load drift the pre-spike
+series showed. The post-spike per-function profile is banked in
+`results-phase4-profile/rewrite-postspike-2026-07-12/` and summarized
+in the session-28 author report; the pre-spike profile report
+([profile-phase4.md](profile-phase4.md)) remains the record of the
+pre-spike distribution.
+
 ## Reproduction
 
 ```
-# confirmation series (the numbers above) — one command, one report:
+# post-spike confirmation series (the session-28 numbers):
+scripts/bench-ladder scripts/rewrite-python rewrite-postspike-2026-07-12 7
+# pre-spike confirmation series (the session-27 numbers of record):
 scripts/bench-ladder scripts/rewrite-python rewrite-baselines-2026-07-12 7
 # per-rung smoke screen (single repeat, one rung):
 PYTHONHASHSEED=0 uv run python -m harness.bench \
