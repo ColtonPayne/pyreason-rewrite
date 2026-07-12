@@ -490,6 +490,38 @@ def test_annotation_fn_interval_return_raises_pinned_unbox_typeerror(pr):
     assert str(exc_info.value) == "bad argument type for built-in operation"
 
 
+def test_annotation_fn_list_return_raises_pinned_bad_argument_any_size(pr):
+    """proves: a 2-arg annotation function returning a LIST — size 2 or
+    size 3 alike — raises TypeError('bad argument type for built-in
+    operation') at reason time: the pinned unbox (numba boxing.py
+    unbox_tuple) walks the value with PyTuple_GetItem, which is TUPLE-ONLY,
+    so a non-tuple never reaches the size check (screened byte-stable on
+    the pinned engine 2026-07-12, 2 fresh processes per size — the
+    session-29 review's correction of the len()-based coercion, which
+    accepted a size-2 list the pin rejects and raised the size-mismatch
+    ValueError for a size-3 list where the pin raises this TypeError)."""
+    def make_listret(ret):
+        def listret(annotations, weights):
+            return ret
+        return listret
+
+    for ret in ([0.25, 0.75], [0.25, 0.75, 0.5]):
+        listret = make_listret(ret)
+
+        pr.reset()
+        pr.reset_rules()
+        g = nx.DiGraph()
+        g.add_nodes_from(["A"])
+        pr.load_graph(g)
+        pr.add_annotation_function(listret)
+        pr.add_rule(Rule("combo(x) : listret <- p(x) : [0.125, 1]",
+                         "combo_rule"))
+        pr.add_fact(Fact("p(A) : [0.25, 1]", "fp", 0, 0))
+        with pytest.raises(TypeError) as exc_info:
+            pr.reason(timesteps=1)
+        assert str(exc_info.value) == "bad argument type for built-in operation"
+
+
 def test_head_fn_bare_string_return_raises_pinned_unbox_typeerror(pr):
     """proves: a head function returning a bare grounding string instead of
     a list of grounding strings raises TypeError("can't unbox a <class

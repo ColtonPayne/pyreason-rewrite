@@ -1490,25 +1490,30 @@ def _coerce_annotation_pair(value):
     """The pinned annotate() objmode block declares its output as
     Tuple((float64, float64)) (interpretation.py:1918), so numba unboxes
     every registrand return at the block's exit; this port reproduces that
-    coercion's observable arms at the same decision point, with the messages
-    screened byte-stable on the pinned engine (2026-07-12, 2 fresh processes
-    per arm): a value with no length — an Interval, any non-sequence — is
-    rejected the way the unbox rejects it (TypeError('bad argument type for
-    built-in operation')); a wrong-size sequence raises the pinned
-    size-mismatch ValueError; a size-2 value passes through unchanged (the
-    pinned float64 conversion is observation-invisible for the numeric
-    returns the reference-function contract produces — the compare layer
-    reduces ints and integral floats to one form). The unbox's element-level
-    conversion faults (e.g. a size-2 sequence of non-numbers) are NOT
-    modeled: no committed reference function returns one, and banking that
-    arm would need its own pin screen first."""
-    try:
-        n = len(value)
-    except TypeError:
-        raise TypeError("bad argument type for built-in operation") from None
-    if n != 2:
+    coercion's observable arms at the same decision point. The pinned unbox
+    (numba core/boxing.py unbox_tuple) is TUPLE-ONLY: it sizes and walks the
+    value with PyTuple_Size/PyTuple_GetItem, so any non-tuple return — an
+    Interval, a LIST of any size, any other object — fails the element
+    fetch and surfaces TypeError('bad argument type for built-in
+    operation'); only a real tuple (subclasses included) reaches the size
+    check, where a wrong length raises the pinned size-mismatch ValueError
+    and a 2-tuple passes through unchanged (the pinned float64 conversion is
+    observation-invisible for the numeric returns the reference-function
+    contract produces — the compare layer reduces ints and integral floats
+    to one form). Every modeled arm is screened byte-stable on the pinned
+    engine, 2 fresh processes each: 3-tuple and Interval 2026-07-12
+    (session 29), size-2 and size-3 list returns 2026-07-12 (session-29
+    review — the review corrected an earlier len()-based model here that
+    accepted a size-2 list the pin rejects). The unbox's element-level
+    conversion faults (e.g. a 2-tuple of non-numbers) are NOT modeled: no
+    committed reference function returns one, and banking that arm would
+    need its own pin screen first."""
+    if not isinstance(value, tuple):
+        raise TypeError("bad argument type for built-in operation")
+    if len(value) != 2:
         raise ValueError(
-            f"size mismatch for tuple, expected 2 element(s) but got {n}")
+            f"size mismatch for tuple, expected 2 element(s) but got "
+            f"{len(value)}")
     return value
 
 
@@ -1841,7 +1846,7 @@ def _add_edge(interp, source, target, l, t, interpretations_node,
             # an edge inferred (or graph-present) at an earlier point has no
             # world entry when an infer_edges rule re-derives it at timestep
             # t — the pin crashes at this same lookup with numba's
-            # payload-less KeyError() (interpretation_fp.py:2245); the
+            # payload-less KeyError() (interpretation_fp.py:2244); the
             # adjudicated shape is the same type at the same seam with an
             # honest, stable message.
             raise KeyError(
