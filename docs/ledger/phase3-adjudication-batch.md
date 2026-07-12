@@ -456,3 +456,39 @@ decide recorded direction; every other Part-B item is a bless-the-reproduction
 confirmation. Item count: **2 DIV records + 34 carried candidates + 8 recorded
 observations = 44 sections** (39 assembled by the author; B33–B34 and C6–C8 added
 by the session-24 independent review).
+
+---
+
+## Adjudication record
+
+Operator verdict received 2026-07-11 — **all recommendations accepted as
+written.** Recorded by session 25.
+
+State-changing decisions:
+
+- **A1 / DIV-0001** — option (a): the guarded query-filter expansion stands as
+  documented, tested intentional behavior per AC-6. Record flipped to
+  `adjudicated` (docs/divergences/DIV-0001.md).
+- **A2 / DIV-0002** — option (a): guard the loader — raise `builtins.ValueError`
+  on non-string IPL entries at the append seam, same type and seam as the pin,
+  with a stable, honest message (the pin's own message is address-derived and
+  unreproducible even pin-vs-pin; that fact lives in the DIV record).
+  Implemented this session; record flipped to `adjudicated`
+  (docs/divergences/DIV-0002.md).
+
+Direction decisions:
+
+- **B17** — recorded direction for the fp+`infer_edges` KeyError payload:
+  DIV-0002's shape (same seam, same type, honest stable message) whenever that
+  arm is ever cased.
+- **B19** — ADR 0003 (one semantics core under two pinned iteration schedules)
+  confirmed as the recorded answer to the session-6 fp-trace-asymmetry
+  question; that carried item is closed.
+- **B25** — the proxy-arm choice for Interval `intersection` prev-seeding is
+  blessed (prev seeded from self's current bounds — the publicly observable
+  arm).
+
+All other Part-B items (B1–B34) keep matching the pin, as recommended. **B16**
+stays KEEP for equivalence and remains the flagged Phase-4 hazard: the workload
+ladder must never combine `fp_version=True` with `timesteps=-1`. Part C
+(C1–C8): recorded observations — no decisions needed, none taken.
