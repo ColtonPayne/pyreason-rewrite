@@ -118,7 +118,7 @@ statement is
 The lab-compute Pokec replication
 ([the report](pokec-scaling-report.md)) adds two facts. (1) At real
 diffusion-workload scale the rewrite is **~101× faster than the pinned
-oracle on identical inputs** (10k rung: 26.7 s vs 2,589–2,701 s), with
+oracle on identical inputs** (10k rung: 26.7 s vs 2,620–2,701 s), with
 equivalence PASS — the session-28 win widens off the synthetic ladder,
 and the pinned oracle cannot reach large real workloads at all. (2)
 The paper-era engine (pyreason 1.2.4) beats both via

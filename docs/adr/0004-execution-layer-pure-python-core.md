@@ -42,7 +42,7 @@ re-measurement.
 The memo's Pokec addendum ([pokec-scaling-report.md](../perf/pokec-scaling-report.md))
 added the real-scale point: on the 10k rung of a real diffusion workload the
 rewrite is **~101× faster than the pinned oracle on identical inputs** (26.7 s
-vs 2,589–2,701 s, equivalence PASS), and the paper-era engine's
+vs 2,620–2,701 s, equivalence PASS), and the paper-era engine's
 neighborhood-scoped grounding (measured scaling exponent 0.98 vs the modern
 global grounder's ~1.87) names a further *algorithmic, zero-dependency*
 headroom class — bounding Option C's appeal from the other side.
