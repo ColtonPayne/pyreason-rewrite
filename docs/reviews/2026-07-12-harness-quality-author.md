@@ -5,7 +5,7 @@
   carried harness-quality seeds, all local, no dependency changes)
 - scope: (1) sweep durability — the full-corpus runner made resumable/idempotent
   per case; (2) pyyaml-version parity tripwire; (3) artifact `case` echo;
-  (4) per-probe `probe_s` timing; (5) multi-rule prange characterization of the
+  (4) per-probe `probes_s` timing; (5) multi-rule prange characterization of the
   pinned PARALLEL kernel, screened at the pin
 - verdict: **all five seeds landed.** Fast tier **320 passed, 6 deselected**
   (was 310 + the 10 new tests, +1 new deselected e2e); the packet's small e2e
@@ -139,7 +139,7 @@ sits outside the probe map, so digests are untouched; the schema stays 1
 (additive keys; the judge's checks read exactly the fields they always read,
 and previously banked schema-1 artifacts remain judgeable).
 
-## 4. Per-probe `probe_s` timing (`harness/capture.py`)
+## 4. Per-probe `probes_s` timing (`harness/capture.py`)
 
 `timing.probes_s` maps probe id → wall-clock seconds (probe execution +
 canonical reduction), in both case forms (top-level probes and step probes;
