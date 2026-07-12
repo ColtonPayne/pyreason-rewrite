@@ -769,3 +769,34 @@ multi-rule behavior. After that banks, everything left waits on the
 operator's execution-layer decision.
 
 **Resume prompt.** `/campaign`
+
+## Session 31 — 2026-07-12
+
+**What we knew going in.** One unblocked thread remained — harness quality —
+while the execution-layer decision waited on the operator. The motivating
+scar: two host interruptions in recent memory, one of which cost a
+forty-nine-minute sweep restarted from zero.
+
+**What we learned this session.** The harness is now interruption-proof: a
+sweep that dies mid-run resumes over its own results directory, loses at
+most the case in flight, re-verifies every completed case's artifacts by
+hash rather than trusting markers, and stamps its report as resumed so a
+verdict-of-record can still prove it ran clean in one invocation when it
+needs to. Capture artifacts became fully self-describing, a version tripwire
+now guards the one dependency the campaign env carries, and the pinned
+parallel kernel's multi-rule behavior — a question carried since the early
+knob sessions — is characterized: deterministic, and identical to the serial
+engine, with rule-list order mattering the same way in both engines. One new
+case banks that finding, taking the corpus to one hundred sixteen. The
+review hardened three edge behaviors into tests and left the code otherwise
+untouched — the first session where the harness design survived adversarial
+review without a functional fix.
+
+**What we expect to learn next session.** Nothing runs until the operator
+answers the execution-layer question (the memo recommends shipping the
+pure-Python core, now fourteen times faster than the oracle on the largest
+workload). With the word given, the Phase-4 boundary sweep runs the full
+corpus as the verdict-of-record, and the campaign moves to its closing
+criteria.
+
+**Resume prompt.** `/campaign` (after answering docs/perf/execution-layer-options.md)
