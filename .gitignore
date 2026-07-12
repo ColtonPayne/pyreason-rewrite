@@ -4,37 +4,11 @@ oracle/pyreason/
 # Dedicated oracle environment — rebuildable from oracle/PIN + tools/oracle_smoke.py docstring
 oracle-env/
 
-# Harness run artifacts — rebuildable; verdicts of record bank in the ledger
-results/
-results-phase3-slice1/
-results-phase3-slice1-review/
-results-phase3-slice2/
-results-phase3-slice2-review/
-results-phase3-slice3/
-results-phase3-slice3-review/
-results-phase3-slice4/
-results-phase3-slice4-review/
-results-phase3-slice5/
-results-phase3-slice5-review/
-results-phase3-slice7/
-results-phase3-slice7-review/
-results-phase3-slice8/
-results-phase3-slice8-review/
-results-phase3-boundary/
-results-phase3-boundary-review/
+# Harness run artifacts (any results dir) — rebuildable; verdicts of record bank in the ledger
+results*/
 
 # Caches / rebuildable local state
 __pycache__/
 .pytest_cache/
 .ruff_cache/
 .venv/
-results-phase3-slice6/
-results-phase3-slice6-review/
-
-# Phase-4 performance artifacts — rebuildable; numbers of record bank in docs/perf/
-results-phase4-ladder/
-results-phase4-baselines/
-results-phase4-ladder-review/
-results-phase4-profile/
-results-session29-breadth/
-results-session30-seeds/
