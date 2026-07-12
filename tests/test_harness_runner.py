@@ -8,7 +8,8 @@ irreproducible / error) without any engine environment.
 import json
 
 from harness.compare import digest
-from harness.run import judge_case, load_artifact, run_case
+from harness.run import (CAPTURE_NAMES, MARKER_NAME, judge_case,
+                         load_artifact, run_case)
 
 CASE = {"id": "c1", "comparison": {"probes": {}}}
 
@@ -92,22 +93,180 @@ def test_load_artifact_maps_failures_to_error_artifacts(tmp_path):
     assert "error" not in load_artifact(stale, returncode=0)
 
 
-def test_run_case_drives_four_captures_through_the_seam(tmp_path):
-    """proves: run_case captures each case twice per engine through the injected
-    capture callable and judges from the artifacts it wrote."""
-    case_path = tmp_path / "case.json"
+def make_case(tmp_path, case_id="seam"):
+    case_path = tmp_path / f"{case_id}.json"
     case_path.write_text(json.dumps(
-        {"id": "seam", "inputs": {},
+        {"id": case_id, "inputs": {},
          "probes": [{"id": "x", "kind": "get_time"}], "comparison": {}}))
-    calls = []
+    return case_path
 
+
+def counting_capture(calls):
     def fake_capture(exe, case_p, out_p):
         calls.append(exe)
         out_p.parent.mkdir(parents=True, exist_ok=True)
         out_p.write_text(json.dumps(art({"x": [1]}, exe=exe)))
         return 0
+    return fake_capture
 
-    verdict = run_case(case_path, "pyA", "pyB", tmp_path / "results",
-                       capture=fake_capture)
+
+def test_run_case_drives_four_captures_through_the_seam(tmp_path):
+    """proves: run_case captures each case twice per engine through the injected
+    capture callable and judges from the artifacts it wrote."""
+    case_path = make_case(tmp_path)
+    calls = []
+    verdict, prior = run_case(case_path, "pyA", "pyB", tmp_path / "results",
+                              capture=counting_capture(calls))
     assert verdict["status"] == "pass"
+    assert prior is False
     assert calls == ["pyA", "pyA", "pyB", "pyB"]
+
+
+def test_completed_case_writes_a_marker_and_resumes_without_recapture(tmp_path):
+    """proves: a completed case leaves a completion marker decidable from the
+    results dir alone, and a re-invocation re-judges it from the on-disk
+    artifacts — identical verdict, zero new captures, prior=True."""
+    case_path = make_case(tmp_path)
+    results = tmp_path / "results"
+    calls = []
+    first, prior1 = run_case(case_path, "pyA", "pyB", results,
+                             capture=counting_capture(calls))
+    marker = json.loads((results / "seam" / MARKER_NAME).read_text())
+    assert marker["schema"] == 1
+    assert set(marker["returncodes"]) == set(CAPTURE_NAMES)
+    assert set(marker["artifacts"]) == set(CAPTURE_NAMES)
+
+    second, prior2 = run_case(case_path, "pyA", "pyB", results,
+                              capture=counting_capture(calls))
+    assert (prior1, prior2) == (False, True)
+    assert second == first
+    assert len(calls) == 4  # nothing captured on the resume pass
+
+
+def test_identity_mismatch_invalidates_the_marker(tmp_path):
+    """proves: a marker only vouches for its own invocation — a changed case
+    file, a different engine executable, or a different partner engine each
+    force a full re-capture of that case."""
+    case_path = make_case(tmp_path)
+    results = tmp_path / "results"
+    calls = []
+    run_case(case_path, "pyA", "pyB", results, capture=counting_capture(calls))
+
+    _, prior = run_case(case_path, "pyA", "pyC", results,
+                        capture=counting_capture(calls))
+    assert prior is False and len(calls) == 8
+
+    case_path.write_text(case_path.read_text() + " ")
+    _, prior = run_case(case_path, "pyA", "pyC", results,
+                        capture=counting_capture(calls))
+    assert prior is False and len(calls) == 12
+
+
+def test_damaged_artifact_or_missing_marker_reruns_the_case(tmp_path):
+    """proves: the two interruption shapes — a deleted marker (killed before
+    completion) and a truncated artifact (killed mid-write) — each read as
+    incomplete, so the case re-captures whole instead of judging debris."""
+    case_path = make_case(tmp_path)
+    results = tmp_path / "results"
+    calls = []
+    run_case(case_path, "pyA", "pyB", results, capture=counting_capture(calls))
+
+    (results / "seam" / MARKER_NAME).unlink()
+    _, prior = run_case(case_path, "pyA", "pyB", results,
+                        capture=counting_capture(calls))
+    assert prior is False and len(calls) == 8
+
+    artifact = results / "seam" / "b1.json"
+    artifact.write_text(artifact.read_text()[:40])
+    _, prior = run_case(case_path, "pyA", "pyB", results,
+                        capture=counting_capture(calls))
+    assert prior is False and len(calls) == 12
+    verdict, prior = run_case(case_path, "pyA", "pyB", results,
+                              capture=counting_capture(calls))
+    assert prior is True and len(calls) == 12
+    assert verdict["status"] == "pass"
+
+
+def test_stale_marker_is_removed_before_recapture_begins(tmp_path):
+    """proves: a re-run deletes the stale marker before its first capture, so
+    an interruption mid-recapture can never leave an old marker vouching for a
+    partially refreshed case dir."""
+    case_path = make_case(tmp_path)
+    results = tmp_path / "results"
+    run_case(case_path, "pyA", "pyB", results, capture=counting_capture([]))
+    artifact = results / "seam" / "a2.json"
+    artifact.write_text(artifact.read_text()[:40])  # now incomplete
+
+    def dying_capture(exe, case_p, out_p):
+        raise RuntimeError("host interruption")
+
+    try:
+        run_case(case_path, "pyA", "pyB", results, capture=dying_capture)
+    except RuntimeError:
+        pass
+    assert not (results / "seam" / MARKER_NAME).exists()
+
+
+def test_error_verdict_is_still_a_completed_case(tmp_path):
+    """proves: a capture that exits nonzero (artifact absent) completes the
+    case with an error verdict, and a re-invocation resumes to the identical
+    error verdict rather than silently retrying — forcing a retry is the
+    explicit act of deleting the marker or the case dir."""
+    case_path = make_case(tmp_path)
+    results = tmp_path / "results"
+    calls = []
+
+    def failing_capture(exe, case_p, out_p):
+        calls.append(exe)
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        if len(calls) == 3:  # b1 dies without an artifact
+            return 137
+        out_p.write_text(json.dumps(art({"x": [1]}, exe=exe)))
+        return 0
+
+    first, _ = run_case(case_path, "pyA", "pyB", results,
+                        capture=failing_capture)
+    assert first["status"] == "error" and "b1" in first["detail"]
+    second, prior = run_case(case_path, "pyA", "pyB", results,
+                             capture=failing_capture)
+    assert prior is True and len(calls) == 4
+    assert second == first
+
+
+def test_resumed_report_equals_a_clean_run_and_says_resumed(tmp_path, monkeypatch, capsys):
+    """proves: after an artificial interruption (one marker deleted), a
+    re-invocation recaptures only the incomplete case, its report's verdicts
+    equal the uninterrupted report's, and the resume block plus console SAY it
+    was resumed — while a single-invocation report says resumed: false."""
+    from harness import run as harness_run
+
+    cases = tmp_path / "cases"
+    cases.mkdir()
+    for cid in ("c-one", "c-two", "c-three"):
+        make_case(cases, cid)
+    calls = []
+    monkeypatch.setattr(harness_run, "capture_subprocess",
+                        counting_capture(calls))
+    results = tmp_path / "results"
+    argv = ["--cases", str(cases), "--engine-a", "pyA", "--engine-b", "pyB",
+            "--results", str(results)]
+
+    assert harness_run.main(argv) == 0
+    clean = json.loads((results / "report.json").read_text())
+    assert clean["resume"] == {"resumed": False, "prior_complete": [],
+                               "captured_this_invocation":
+                                   ["c-one", "c-three", "c-two"]}
+    assert len(calls) == 12
+
+    (results / "c-two" / MARKER_NAME).unlink()  # the interruption
+    capsys.readouterr()
+    assert harness_run.main(argv) == 0
+    resumed = json.loads((results / "report.json").read_text())
+    assert resumed["verdicts"] == clean["verdicts"]
+    assert resumed["resume"] == {"resumed": True,
+                                 "prior_complete": ["c-one", "c-three"],
+                                 "captured_this_invocation": ["c-two"]}
+    assert len(calls) == 16  # only c-two recaptured
+    console = capsys.readouterr().out
+    assert "RESUMED — 2 prior-complete, 1 captured this invocation" in console
+    assert console.count("[prior-complete]") == 2

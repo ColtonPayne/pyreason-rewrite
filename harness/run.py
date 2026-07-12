@@ -13,21 +13,44 @@ Same-engine repeats compare by exact digest even for tolerance-policied probes:
 per the charter, engine nondeterminism is explicitly characterized and
 canonicalized or exempted per-case, never absorbed by a tolerance.
 
+Per-case durability: after a case's four captures land, the runner writes an
+atomic completion marker (`case.done.json`, tmp + rename) beside them,
+recording the invocation identity (engine executables, hash seed, the case
+file's byte digest) plus each capture's exit code and each artifact file's
+digest. Completion is thereafter decidable from the results dir alone: a
+re-invocation over the same dir re-judges a completed case from its on-disk
+artifacts (never re-capturing) and re-runs an incomplete one from scratch, so
+a host interruption loses at most the in-flight case. Because every verdict —
+first run or resumed — is derived from the artifacts by the same pure judge,
+a resumed sweep's verdict list equals a single-invocation sweep's; the report
+additionally carries a `resume` block naming which cases were prior-complete,
+so a resumed sweep always SAYS it was resumed (a verdict-of-record claiming
+single-invocation coherence needs `resumed: false` plus the usual mtime
+analysis). A completed case with an `error` verdict is still completed — its
+captures ran to their recorded exit — and is skipped like any other; deleting
+its case directory (or just its marker) is the deliberate way to force a
+re-capture.
+
 Exit codes: 0 every case passes, 1 any case does not (the per-case status in
 report.json and on the console carries the taxonomy), 2 usage.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 from harness.compare import compare_probes
 
 REPO = Path(__file__).resolve().parent.parent
 HASHSEED = "0"
+CAPTURE_NAMES = ("a1", "a2", "b1", "b2")
+MARKER_NAME = "case.done.json"
+MARKER_SCHEMA = 1
 
 
 def capture_subprocess(python_exe: str, case_path: Path, out_path: Path) -> int:
@@ -100,19 +123,115 @@ def judge_case(case: dict, artifacts: dict, self_proof: bool = False) -> dict:
     return {"status": "pass"}
 
 
+def file_digest(path: Path):
+    """sha256 of a file's bytes, or None when the file is absent/unreadable —
+    None is itself a recordable state (a capture that exited nonzero without
+    writing an artifact has no artifact to hash, and that absence must resume
+    to the same error verdict, not a silent retry)."""
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return None
+
+
+def read_marker(case_dir: Path):
+    """The case's completion marker, parsed — or None when absent, unreadable,
+    or not an object. An unreadable marker means exactly what a missing one
+    means (the case re-runs); it can never fail a sweep."""
+    try:
+        marker = json.loads((case_dir / MARKER_NAME).read_text())
+    except (OSError, ValueError):
+        return None
+    return marker if isinstance(marker, dict) else None
+
+
+def completed_marker(case_dir: Path, case_digest: str,
+                     engine_a: str, engine_b: str):
+    """The marker vouching this case's four captures completed under exactly
+    this invocation's inputs — or None, meaning the case must (re)run.
+
+    Decided from the on-disk results dir alone: the marker's identity fields
+    must match the current invocation (both engine executables, the pinned
+    hash seed, the case file's byte digest — an edited case always re-runs),
+    and every artifact it lists must still hash to the recorded digest, so a
+    truncated or half-written artifact invalidates the case instead of being
+    judged as if it were the completed capture's output.
+    """
+    marker = read_marker(case_dir)
+    if marker is None or marker.get("schema") != MARKER_SCHEMA:
+        return None
+    identity = {"case_digest": case_digest, "engine_a": engine_a,
+                "engine_b": engine_b, "hashseed": HASHSEED}
+    if any(marker.get(key) != value for key, value in identity.items()):
+        return None
+    returncodes, artifacts = marker.get("returncodes"), marker.get("artifacts")
+    if not (isinstance(returncodes, dict)
+            and set(returncodes) == set(CAPTURE_NAMES)
+            and all(isinstance(rc, int) for rc in returncodes.values())):
+        return None
+    if not (isinstance(artifacts, dict)
+            and set(artifacts) == set(CAPTURE_NAMES)):
+        return None
+    for name in CAPTURE_NAMES:
+        if file_digest(case_dir / f"{name}.json") != artifacts[name]:
+            return None
+    return marker
+
+
+def write_marker(case_dir: Path, marker: dict) -> None:
+    """Written atomically (tmp + rename) and only AFTER all four captures: a
+    marker on disk always means a completed case; an interruption at any
+    earlier moment leaves no marker and the whole case re-runs."""
+    tmp = case_dir / (MARKER_NAME + ".tmp")
+    tmp.write_text(json.dumps(marker, indent=2, sort_keys=True))
+    os.replace(tmp, case_dir / MARKER_NAME)
+
+
 def run_case(case_path: Path, engine_a: str, engine_b: str, results_dir: Path,
-             capture=capture_subprocess) -> dict:
-    case = json.loads(case_path.read_text())
+             capture=None):
+    """Capture-or-resume one case, then judge it from its on-disk artifacts.
+
+    Returns (verdict, prior) — prior True when the four artifacts were
+    complete from an earlier invocation and were re-judged, not re-captured.
+    The judge always reads the artifacts, so the verdict is identical either
+    way; `prior` only feeds the report's resume honesty block.
+    """
+    capture = capture or capture_subprocess
+    case_bytes = case_path.read_bytes()
+    case = json.loads(case_bytes)
+    case_digest = hashlib.sha256(case_bytes).hexdigest()
     case_dir = results_dir / case["id"]
-    artifacts = {}
-    for name, exe in (("a1", engine_a), ("a2", engine_a),
-                      ("b1", engine_b), ("b2", engine_b)):
-        out = case_dir / f"{name}.json"
-        rc = capture(exe, case_path, out)
-        artifacts[name] = load_artifact(out, rc)
+    marker = completed_marker(case_dir, case_digest, engine_a, engine_b)
+    if marker is None:
+        case_dir.mkdir(parents=True, exist_ok=True)
+        # A stale marker goes before any capture starts — never after some:
+        # were it left in place, an interruption mid-recapture would pair the
+        # old marker with a partially refreshed case dir. (The per-artifact
+        # digest check would still catch that; removing first keeps "marker
+        # present == case complete" a single-cause invariant.)
+        (case_dir / MARKER_NAME).unlink(missing_ok=True)
+        returncodes = {}
+        for name, exe in zip(CAPTURE_NAMES,
+                             (engine_a, engine_a, engine_b, engine_b)):
+            returncodes[name] = capture(exe, case_path,
+                                        case_dir / f"{name}.json")
+        write_marker(case_dir, {
+            "schema": MARKER_SCHEMA, "case_id": case["id"],
+            "case_digest": case_digest,
+            "engine_a": engine_a, "engine_b": engine_b, "hashseed": HASHSEED,
+            "returncodes": returncodes,
+            "artifacts": {name: file_digest(case_dir / f"{name}.json")
+                          for name in CAPTURE_NAMES},
+            "completed_at": datetime.now(timezone.utc).isoformat()})
+    else:
+        returncodes = {name: marker["returncodes"][name]
+                       for name in CAPTURE_NAMES}
+    artifacts = {name: load_artifact(case_dir / f"{name}.json",
+                                     returncodes[name])
+                 for name in CAPTURE_NAMES}
     verdict = judge_case(case, artifacts, self_proof=engine_a == engine_b)
     verdict["case_id"] = case["id"]
-    return verdict
+    return verdict, marker is not None
 
 
 def main(argv=None) -> int:
@@ -145,22 +264,39 @@ def main(argv=None) -> int:
             return 2
         ids[case_id] = p
 
-    verdicts = [run_case(p, args.engine_a, engine_b, args.results)
-                for p in case_paths]
+    verdicts, prior_ids, captured_ids = [], [], []
+    for p in case_paths:
+        verdict, prior = run_case(p, args.engine_a, engine_b, args.results)
+        verdicts.append(verdict)
+        (prior_ids if prior else captured_ids).append(verdict["case_id"])
+    # The verdict list is derived from the artifacts either way, so it equals
+    # a single-invocation sweep's; the resume block is the deliberate honesty
+    # extension — `resumed` is true iff any case was prior-complete, so a
+    # single-invocation claim can be checked from the report itself.
     report = {"engine_a": args.engine_a, "engine_b": engine_b,
-              "hashseed": HASHSEED, "verdicts": verdicts}
+              "hashseed": HASHSEED, "verdicts": verdicts,
+              "resume": {"resumed": bool(prior_ids),
+                         "prior_complete": prior_ids,
+                         "captured_this_invocation": captured_ids}}
     args.results.mkdir(parents=True, exist_ok=True)
     (args.results / "report.json").write_text(json.dumps(report, indent=2))
 
+    prior_set = set(prior_ids)
     for v in verdicts:
         line = f"{v['status']:<15} {v['case_id']}"
         if v.get("probes"):
             line += f"  probes: {', '.join(v['probes'])}"
         if v.get("detail"):
             line += f"  ({v['detail']})"
+        if v["case_id"] in prior_set:
+            line += "  [prior-complete]"
         print(line)
     ok = all(v["status"] == "pass" for v in verdicts)
-    print(f"\n{'ALL PASS' if ok else 'NOT PASSING'} ({len(verdicts)} case(s))")
+    tally = f"{len(verdicts)} case(s)"
+    if prior_ids:
+        tally += (f"; RESUMED — {len(prior_ids)} prior-complete, "
+                  f"{len(captured_ids)} captured this invocation")
+    print(f"\n{'ALL PASS' if ok else 'NOT PASSING'} ({tally})")
     return 0 if ok else 1
 
 
