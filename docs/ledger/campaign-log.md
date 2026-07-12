@@ -585,3 +585,36 @@ baselines on this machine, and the profile that says where the time actually
 goes.
 
 **Resume prompt.** `/campaign` (after adjudicating docs/ledger/phase3-adjudication-batch.md)
+
+## Session 25 — 2026-07-11
+
+**What we knew going in.** Phase 3 was closed (96/96 oracle-vs-rewrite in one
+invocation, independently re-derived) and the campaign was stopped on the
+operator's between-phases gate: the forty-four-section adjudication batch —
+two divergence records, thirty-four carried oracle-bug-candidates, eight
+recorded observations.
+
+**What we learned this session.** The operator adjudicated the entire batch,
+accepting every recommendation as written. Both divergence records are now
+adjudicated intentional behavior: the query-filter recursion guard stands
+(the pin dies on that input; the rewrite terminates with the identical
+reachable set on every input a case can bank), and the IPL loader now raises
+a stable, honest ValueError on non-string entries at the exact seam where
+the pin's typed container fails with an unreproducible garbage-memory
+message — implemented at a single choke point both loader entry points pass
+through, verified against the pin with live probes, with no committed case
+changing verdict. The three direction decisions are on the record (the
+fp+infer_edges payload gets the same honest-message treatment if ever cased;
+the one-core-two-schedules answer to the fp trace asymmetry is confirmed;
+the Interval proxy-arm choice is blessed), and the fp hang on
+run-to-convergence is carried forward as the one hazard the Phase-4 workload
+ladder must design around. Phase 4 is unblocked.
+
+**What we expect to learn next session.** The shape of the workload ladder —
+what small, medium, and large actually are, with rationale — and then the
+first real performance numbers of the campaign: the oracle's cold-start,
+per-rung throughput, and peak memory on this machine, each with a banked
+noise band, which is the baseline every later execution-layer claim will be
+measured against.
+
+**Resume prompt.** `/campaign`
