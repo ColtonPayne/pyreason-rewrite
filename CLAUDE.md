@@ -64,9 +64,15 @@ The umbrella root resolves as `$HIVEMIND_ROOT`, defaulting to `~/Projects/ai-hiv
 - **Isolation.** All campaign work happens in this repo. Never write to
   `~/Projects/dyuman-pryeason` (read-only input corpus), the operator's `pyreason` clones,
   or any other tree of his. Never touch `oracle/pyreason` except to read it.
-- **No lab compute, at all.** This campaign never reaches the GH200 fleet — no inference
-  endpoints, no broker, nothing. Experiments are local and intentionally lightweight
-  (screen-then-confirm: a short smoke screen before any long measurement).
+- **No lab compute — except the operator's standing sanders waiver.** This campaign never
+  reaches the GH200 fleet — no inference endpoints, no broker, nothing. **One operator-
+  adjudicated exception** (2026-07-12): scaling experiments run on `sanders.syr.edu` as
+  `crpayne`, scoped and conditioned in
+  [the waiver record](docs/ledger/lab-compute-waiver.md) — that host only, no sudo, every
+  install logged in [docs/lab/sanders-install-log.md](docs/lab/sanders-install-log.md),
+  never interrupt running jobs, revocable on the operator's word. Everything else stays
+  local and intentionally lightweight (screen-then-confirm: a short smoke screen before
+  any long measurement).
 - **Toolchain** — uv only (`uv run pytest`, `uv run python …`); `uv.lock` is committed;
   never commit `.venv/` or caches. **Never install anything unprompted** — even `uv add`
   for a new dependency gets explicit operator permission first.
