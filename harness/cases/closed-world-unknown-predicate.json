@@ -1,0 +1,55 @@
+{
+  "id": "closed-world-unknown-predicate",
+  "purpose": "A closed-world predicate no fact, graph attribute, or rule head ever grounds: with 'busy' registered closed-world and wholly unstated, the single-clause rule flag(x) <-1 busy(x):[0,0] takes the ALL-NODES fallback grounding (the predicate map has no 'busy' entry, so get_rule_node_clause_grounding falls back to every node, interpretation.py:1396-1402) and the CWA branch reads each node's missing label as [0,0] — flag fires [1,1] for John, Mary, AND Justin at t=1, while 'busy' itself leaves no row anywhere; the ordinary (non-closed-world) never-grounded edge rule alongside stays completely silent — empty link frames and an empty edge trace. Contrast closed-world-on, where a stated fact narrows the grounding to the predicate map.",
+  "runtime_class": "smoke",
+  "provenance": "corpus seed — docs/surface.md fn:add_closed_world_predicate interacts-unknown-predicate (the session-20 board note's ready-made case shape, screened live 2026-07-07, re-screened 2026-07-12: 4 fresh pin processes, digest-stable); interpretation.py:1396-1402, :1757-1775 at the pin",
+  "surface_items": [
+    "fn:load_graph",
+    "fn:add_rule",
+    "fn:reason",
+    "type:Rule",
+    "dsl:rule-text",
+    "fn:add_closed_world_predicate",
+    "fn:get_rule_trace",
+    "fn:filter_and_sort_nodes",
+    "fn:filter_and_sort_edges",
+    "fn:get_time",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin"],
+      "edges": [
+        ["John", "Mary", {"Friends": 1}],
+        ["Mary", "Justin", {"Friends": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "flag(x) <-1 busy(x):[0,0]", "name": "cwa_unknown_rule"},
+      {"text": "link(x,y) <-1 unknown(x,y)", "name": "ungrounded_edge_rule"}
+    ]
+  },
+  "steps": [
+    {
+      "id": "cwa-add",
+      "op": "add_closed_world_predicate",
+      "args": {"name": "busy"}
+    },
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {"timesteps": 2},
+      "probes": [
+        {"id": "nodes-flag", "kind": "filter_sort_nodes", "labels": ["flag"]},
+        {"id": "nodes-busy", "kind": "filter_sort_nodes", "labels": ["busy"]},
+        {"id": "edges-link", "kind": "filter_sort_edges", "labels": ["link"]},
+        {"id": "trace-node", "kind": "rule_trace_node"},
+        {"id": "trace-edge", "kind": "rule_trace_edge"},
+        {"id": "time", "kind": "get_time"}
+      ]
+    }
+  ],
+  "comparison": {"probes": {}}
+}

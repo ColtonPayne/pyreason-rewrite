@@ -1,0 +1,21 @@
+{
+  "id": "rule-delta-variants",
+  "purpose": "The rule-text delta_t boundary arms at the constructor, pinned through the parse fingerprint's delta field: no leading digits and an explicit '<-0' both store 0; 65535 (uint16 max) stores verbatim; 65536 WRAPS to 0 and 70000 to 4464 — the numba.types.uint16 cast at rule_parser.py:243, so a delta at or past 2**16 silently changes the rule's firing schedule instead of raising.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md dsl:rule-text happy-delta-t/bound-zero-delta-default/bound-delta-t-uint16 widening; rule_parser.py:51-64, :243 at the pin; wrap values screened live 2026-07-12 (4 fresh pin processes, digest-stable)",
+  "surface_items": ["type:Rule", "dsl:rule-text"],
+  "inputs": {"settings": {"verbose": false}},
+  "probes": [
+    {"id": "delta-none", "kind": "expect_raise", "construct": "rule",
+     "args": {"text": "popular(x) <- boss(x)"}},
+    {"id": "delta-zero", "kind": "expect_raise", "construct": "rule",
+     "args": {"text": "popular(x) <-0 boss(x)"}},
+    {"id": "delta-uint16-max", "kind": "expect_raise", "construct": "rule",
+     "args": {"text": "popular(x) <-65535 boss(x)"}},
+    {"id": "delta-uint16-wrap", "kind": "expect_raise", "construct": "rule",
+     "args": {"text": "popular(x) <-65536 boss(x)"}},
+    {"id": "delta-uint16-wrap-mid", "kind": "expect_raise", "construct": "rule",
+     "args": {"text": "popular(x) <-70000 boss(x)"}}
+  ],
+  "comparison": {"probes": {}}
+}

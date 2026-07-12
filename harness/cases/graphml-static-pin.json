@@ -1,0 +1,53 @@
+{
+  "id": "graphml-static-pin",
+  "purpose": "The O1/O2 graphml coercion arms (slice-5 review observations, never cased until now), observed by colliding LATER FACTS with the coerced attributes under the default static_graph_facts=true: at t=0 only ow='1, 1' leaves a row ([1,1] under the bare key — int() strips the space the isdigit branch rejects, O2), while inv='1,0' (the inverted pair, O1), inv='0,1', pw='0, 1', and nz='-0,1' (int('-0')=0) all leave none. From t=1 the user facts and the re-applied static graph-attribute-facts interleave, and every observation is deterministic and identical cross-engine: the node-side facts record no-change trace rows and the filter shows X1 pinned at the INVERTED [1,0] and X2/X3/X5 at the vacuous [0,1] — no later fact ever sticks on a graph-stated label ([1,1], [0.5,1], and [0.7,1] all fail to land; the static re-application wins every timestep); the edge side resolves differently — both einv user facts bank [1.0,1.0]->[0.0,1.0] resolve rows and the X1->X2 graph fact re-applies as [1,0]->[0,1] — the node/edge asymmetry of the resolve arm. The t=0 silence plus the t>=1 frozen values are the observable form of B23's static pin; the ow/pw/nz trio is B24's whitespace-tolerance asymmetry.",
+  "runtime_class": "smoke",
+  "provenance": "corpus seed — batch §B23/§B24 (docs/ledger/phase3-adjudication-batch.md) and the slice-5 review's rv-ladder-extra probes (docs/reviews/2026-07-07-phase3-slice5-review.md O1/O2); graphml_parser.py:44-55 + the resolve/static-fact arms at the pin; screened live 2026-07-12 (4 fresh pin processes, digest-stable); fixture harness/fixtures/attr-static-pin.graphml",
+  "surface_items": [
+    "fn:load_graphml",
+    "fn:add_rule",
+    "fn:add_fact",
+    "fn:reason",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "fn:get_rule_trace",
+    "fn:filter_and_sort_nodes",
+    "fn:filter_and_sort_edges",
+    "fn:get_time",
+    "setting:graph_attribute_parsing",
+    "setting:static_graph_facts",
+    "setting:save_graph_attributes_to_trace",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true,
+                 "save_graph_attributes_to_trace": true},
+    "graph": {"graphml_path": "harness/fixtures/attr-static-pin.graphml"},
+    "rules": [
+      {"text": "inert(x) <-1 never(x)", "name": "inert_rule"}
+    ],
+    "facts": [
+      {"text": "inv(X1) : [1,1]", "name": "f-inv-x1", "start": 1, "end": 2},
+      {"text": "inv(X2) : [1,1]", "name": "f-inv-x2", "start": 1, "end": 2},
+      {"text": "pw(X3) : [0.5,1]", "name": "f-pw-x3", "start": 1, "end": 2},
+      {"text": "nz(X5) : [0.7,1]", "name": "f-nz-x5", "start": 1, "end": 2},
+      {"text": "einv(X1,X2) : [1,1]", "name": "f-einv-e1", "start": 1, "end": 2},
+      {"text": "einv(X2,X3) : [1,1]", "name": "f-einv-e2", "start": 1, "end": 2}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "nodes-inv", "kind": "filter_sort_nodes", "labels": ["inv"]},
+    {"id": "nodes-ow", "kind": "filter_sort_nodes", "labels": ["ow"]},
+    {"id": "nodes-pw", "kind": "filter_sort_nodes", "labels": ["pw"]},
+    {"id": "nodes-nz", "kind": "filter_sort_nodes", "labels": ["nz"]},
+    {"id": "edges-einv", "kind": "filter_sort_edges", "labels": ["einv"]},
+    {"id": "trace-node", "kind": "rule_trace_node"},
+    {"id": "trace-edge", "kind": "rule_trace_edge"},
+    {"id": "time", "kind": "get_time"}
+  ],
+  "comparison": {"probes": {}}
+}

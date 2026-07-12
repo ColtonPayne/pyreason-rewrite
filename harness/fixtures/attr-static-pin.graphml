@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="d0" for="node" attr.name="inv" attr.type="string" />
+  <key id="d1" for="node" attr.name="pw" attr.type="string" />
+  <key id="d2" for="node" attr.name="ow" attr.type="string" />
+  <key id="d3" for="node" attr.name="nz" attr.type="string" />
+  <key id="d4" for="edge" attr.name="einv" attr.type="string" />
+  <graph edgedefault="directed">
+    <node id="X1">
+      <data key="d0">1,0</data>
+    </node>
+    <node id="X2">
+      <data key="d0">0,1</data>
+    </node>
+    <node id="X3">
+      <data key="d1">0, 1</data>
+    </node>
+    <node id="X4">
+      <data key="d2">1, 1</data>
+    </node>
+    <node id="X5">
+      <data key="d3">-0,1</data>
+    </node>
+    <edge source="X1" target="X2">
+      <data key="d4">1,0</data>
+    </edge>
+    <edge source="X2" target="X3">
+      <data key="d4">0,1</data>
+    </edge>
+  </graph>
+</graphml>

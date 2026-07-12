@@ -1,0 +1,6 @@
+popular(x) <-1 boss(x),ws_first,,
+,ws_missing,,
+trendy(x) <-1 popular(x),ws_badbool,maybe,
+cool(x) <-1 trendy(x),ws_first,,
+this is not a rule,ws_badtext,,
+seen(x) <-1 cool(x),ws_last,,

@@ -1,0 +1,50 @@
+{
+  "id": "fact-from-json-warn-skip",
+  "purpose": "add_fact_from_json's raise_errors=False arms, observed through reasoning: a non-object item (42), a missing fact_text, and an unparseable fact_text ('delta(A):[nope,1]') skip; a non-int start_time (the JSON list [1] — int() raises TypeError, caught by the same warn path as ValueError) LOADS with start=0 (beta [1,1] in every frame); a non-int end_time ('whenever') LOADS with end=start (gamma only in the t=1 frame); the duplicate-name item skips (alpha on A only); an invalid static ('perhaps') warns and loads non-static — the same skip-vs-load-with-default asymmetry as the CSV twin, on the JSON item path. The unconditional loaded-count print (pyreason.py:1290) lands on pre-reason stdout, uncompared.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_fact_from_json raise_errors=False arms + malformed-nonint-time end_time half; pyreason.py:1080-1119, :1168-1292 at the pin; screened live 2026-07-12 (4 fresh pin processes, digest-stable); fixture harness/fixtures/facts-warnskip.json",
+  "surface_items": [
+    "fn:load_graph",
+    "fn:add_rule",
+    "fn:reason",
+    "type:Rule",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "fn:add_fact_from_json",
+    "fn:add_fact",
+    "fn:get_rule_trace",
+    "fn:filter_and_sort_nodes",
+    "fn:get_time",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true},
+    "graph": {"nodes": ["A", "B"]},
+    "rules": [
+      {"text": "inert(x) <-1 never(x)", "name": "inert_rule"}
+    ]
+  },
+  "steps": [
+    {
+      "id": "load-skip",
+      "op": "add_fact_from_json",
+      "args": {"path": "harness/fixtures/facts-warnskip.json", "raise_errors": false}
+    },
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {"timesteps": 2},
+      "probes": [
+        {"id": "nodes-alpha", "kind": "filter_sort_nodes", "labels": ["alpha"]},
+        {"id": "nodes-beta", "kind": "filter_sort_nodes", "labels": ["beta"]},
+        {"id": "nodes-gamma", "kind": "filter_sort_nodes", "labels": ["gamma"]},
+        {"id": "nodes-delta", "kind": "filter_sort_nodes", "labels": ["delta"]},
+        {"id": "nodes-epsilon", "kind": "filter_sort_nodes", "labels": ["epsilon"]},
+        {"id": "trace-node", "kind": "rule_trace_node"},
+        {"id": "time", "kind": "get_time"}
+      ]
+    }
+  ],
+  "comparison": {"probes": {}}
+}

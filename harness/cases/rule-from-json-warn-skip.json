@@ -1,0 +1,30 @@
+{
+  "id": "rule-from-json-warn-skip",
+  "purpose": "add_rule_from_json's raise_errors=False warn-and-skip arms over one mixed fixture: a non-object item, a missing rule_text, a threshold object missing 'thresh', a non-convertible weights list (['heavy'] — the arm whose raise spelling is the builtins.Exception 'Unexpected error' wrap), a non-list weights value, and a file-local duplicate name (whose invalid infer_edges 'maybe' warns first, then the dup check skips the item) all warn and skip — the compared observation is the loader accepting plus the closing fingerprint carrying exactly [wsj_good, wsj_last]. Warnings land on stderr, uncompared.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_rule_from_json raise_errors=False arms; pyreason.py:868-1077 at the pin; skip semantics screened live 2026-07-12 (4 fresh pin processes, digest-stable); fixture harness/fixtures/rules-warnskip.json",
+  "surface_items": [
+    "fn:add_rule_from_json",
+    "fn:get_rules",
+    "type:Threshold",
+    "dsl:rule-text",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false}
+  },
+  "probes": [
+    {
+      "id": "load-skip",
+      "kind": "apply_input",
+      "op": "add_rule_from_json",
+      "args": {"path": "harness/fixtures/rules-warnskip.json", "raise_errors": false}
+    },
+    {
+      "id": "rules-after",
+      "kind": "accessor_fingerprint",
+      "accessor": "rules"
+    }
+  ],
+  "comparison": {"probes": {}}
+}

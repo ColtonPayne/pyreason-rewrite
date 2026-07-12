@@ -1,0 +1,11 @@
+[
+  "not an object",
+  {"name": "wsj_no_text"},
+  {"rule_text": "popular(x) <-1 boss(x)", "name": "wsj_good"},
+  {"rule_text": "trendy(x) <-1 popular(x)", "name": "wsj_badthresh",
+   "custom_thresholds": [{"quantifier": "greater_equal", "quantifier_type": ["number", "total"]}]},
+  {"rule_text": "cool(x) <-1 trendy(x)", "name": "wsj_badweights", "weights": ["heavy"]},
+  {"rule_text": "hip(x) <-1 cool(x)", "name": "wsj_weights_notlist", "weights": "notalist"},
+  {"rule_text": "seen(x) <-1 hip(x)", "name": "wsj_good", "infer_edges": "maybe"},
+  {"rule_text": "known(x) <-1 seen(x)", "name": "wsj_last"}
+]

@@ -1,0 +1,65 @@
+{
+  "id": "rule-json-weights-dtypes",
+  "purpose": "add_rule_from_json's weights dtype variants, riding np.array(weights, dtype=float64) conversion at the pin (rule_parser.py:208-212): plain ints, numeric strings ('0.5'), and booleans all convert and load; a rectangular NESTED list [[1,2]] is ACCEPTED too — np's len() is the top-level row count, so it passes a one-clause rule's length check (wd_nested in the closing fingerprint; weights contents stay unobserved at this seam, per the board). Raise arms, one fixture each: a non-convertible entry (['heavy']) raises builtins.Exception 'Item 0: Unexpected error - weights must be a numpy array or convertible to one, got list' — the parser's TypeError falls past the loader's ValueError catch into the Exception wrap; a length mismatch, a negative entry, and a bare NaN literal (json.load accepts it) each raise the single-wrapped loader ValueError with the parser's own text.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_rule_from_json happy-weights/malformed-weights-* widening; pyreason.py:1036-1046 + rule_parser.py:203-230 at the pin; every arm screened live 2026-07-12 (4 fresh pin processes, digest-stable); fixtures harness/fixtures/rules-weights-*.json",
+  "surface_items": [
+    "fn:add_rule_from_json",
+    "fn:get_rules",
+    "type:Rule",
+    "dsl:rule-text",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false}
+  },
+  "probes": [
+    {
+      "id": "load-accept",
+      "kind": "apply_input",
+      "op": "add_rule_from_json",
+      "args": {"path": "harness/fixtures/rules-weights-accept.json"}
+    },
+    {
+      "id": "rules-after-accept",
+      "kind": "accessor_fingerprint",
+      "accessor": "rules"
+    },
+    {
+      "id": "weights-nonconv",
+      "kind": "apply_input",
+      "op": "add_rule_from_json",
+      "args": {"path": "harness/fixtures/rules-weights-nonconv.json"}
+    },
+    {
+      "id": "weights-length",
+      "kind": "apply_input",
+      "op": "add_rule_from_json",
+      "args": {"path": "harness/fixtures/rules-weights-length.json"}
+    },
+    {
+      "id": "weights-negative",
+      "kind": "apply_input",
+      "op": "add_rule_from_json",
+      "args": {"path": "harness/fixtures/rules-weights-negative.json"}
+    },
+    {
+      "id": "weights-nan",
+      "kind": "apply_input",
+      "op": "add_rule_from_json",
+      "args": {"path": "harness/fixtures/rules-weights-nan.json"}
+    },
+    {
+      "id": "weights-nested",
+      "kind": "apply_input",
+      "op": "add_rule_from_json",
+      "args": {"path": "harness/fixtures/rules-weights-nested.json"}
+    },
+    {
+      "id": "rules-after-all",
+      "kind": "accessor_fingerprint",
+      "accessor": "rules"
+    }
+  ],
+  "comparison": {"probes": {}}
+}

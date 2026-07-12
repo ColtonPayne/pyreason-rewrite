@@ -1,0 +1,10 @@
+[
+  42,
+  {"name": "wsg_no_text"},
+  {"fact_text": "alpha(A)", "name": "wsg_good", "start_time": 0, "end_time": 2},
+  {"fact_text": "beta(A)", "name": "wsg_badstart", "start_time": [1], "end_time": 2},
+  {"fact_text": "gamma(A)", "name": "wsg_badend", "start_time": 1, "end_time": "whenever"},
+  {"fact_text": "delta(A):[nope,1]", "name": "wsg_badtext"},
+  {"fact_text": "alpha(B)", "name": "wsg_good"},
+  {"fact_text": "epsilon(A)", "name": "wsg_static", "static": "perhaps", "end_time": 2}
+]

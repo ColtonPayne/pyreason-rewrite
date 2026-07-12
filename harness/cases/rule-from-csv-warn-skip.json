@@ -1,0 +1,29 @@
+{
+  "id": "rule-from-csv-warn-skip",
+  "purpose": "add_rule_from_csv's raise_errors=False warn-and-skip arms over one mixed fixture: a missing rule_text row warns and skips; an invalid infer_edges cell ('maybe') warns and STILL LOADS the row with the default (pyreason.py:715-718 — the bool-table fault is parameter-level, not row-level); a file-local duplicate name warns and skips; an unparseable rule text warns and skips — the warnings land on stderr, uncompared, so the compared observation is the loader accepting ({raised: false}) plus the closing fingerprint carrying exactly [ws_first, ws_badbool, ws_last]: the skip-vs-load-with-default asymmetry.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_rule_from_csv raise_errors=False arms; pyreason.py:692-724, :753-866 at the pin; skip semantics screened live 2026-07-12 (4 fresh pin processes, digest-stable); fixture harness/fixtures/rules-warnskip.csv",
+  "surface_items": [
+    "fn:add_rule_from_csv",
+    "fn:get_rules",
+    "dsl:rule-text",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false}
+  },
+  "probes": [
+    {
+      "id": "load-skip",
+      "kind": "apply_input",
+      "op": "add_rule_from_csv",
+      "args": {"path": "harness/fixtures/rules-warnskip.csv", "raise_errors": false}
+    },
+    {
+      "id": "rules-after",
+      "kind": "accessor_fingerprint",
+      "accessor": "rules"
+    }
+  ],
+  "comparison": {"probes": {}}
+}

@@ -1,0 +1,7 @@
+alpha(A),wsf_a,0,2,false
+,wsf_missing,,,
+"beta(A):[abc,1]",wsf_badbound,,,
+gamma(A),wsf_badstart,soon,2,
+delta(A),wsf_badend,1,later,
+alpha(B),wsf_a,0,2,
+epsilon(A),wsf_eps,0,2,maybe

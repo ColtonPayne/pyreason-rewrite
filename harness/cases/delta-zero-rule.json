@@ -1,0 +1,41 @@
+{
+  "id": "delta-zero-rule",
+  "purpose": "A delta_t=0 rule end-to-end: the explicit '<-0' rule fires in the SAME timestep its body fact applies (flag(A) already [1,1] in the t=0 frame; trace row at Time 0, fixed-point operation 1), while the '<-1' chain rule downstream fires one timestep later (chain(A) from the t=1 frame on) — the zero-delta firing schedule the delta classes' fingerprint arms cannot observe.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md dsl:rule-text bound-zero-delta-default/happy-delta-t e2e widening; rule_parser.py:51-64 at the pin; firing schedule screened live 2026-07-12 (4 fresh pin processes, digest-stable)",
+  "surface_items": [
+    "fn:load_graph",
+    "fn:add_rule",
+    "fn:add_fact",
+    "fn:reason",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "fn:get_rule_trace",
+    "fn:filter_and_sort_nodes",
+    "fn:get_time",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true},
+    "graph": {"nodes": ["A", "B"], "edges": [["A", "B", {"link": 1}]]},
+    "rules": [
+      {"text": "flag(x) <-0 seen(x)", "name": "zero_delta_rule"},
+      {"text": "chain(x) <-1 flag(x)", "name": "one_delta_rule"}
+    ],
+    "facts": [
+      {"text": "seen(A)", "name": "seen-a", "start": 0, "end": 2}
+    ],
+    "reason": {"timesteps": 2}
+  },
+  "probes": [
+    {"id": "nodes-seen", "kind": "filter_sort_nodes", "labels": ["seen"]},
+    {"id": "nodes-flag", "kind": "filter_sort_nodes", "labels": ["flag"]},
+    {"id": "nodes-chain", "kind": "filter_sort_nodes", "labels": ["chain"]},
+    {"id": "trace-node", "kind": "rule_trace_node"},
+    {"id": "time", "kind": "get_time"}
+  ],
+  "comparison": {"probes": {}}
+}
