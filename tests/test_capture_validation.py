@@ -1423,3 +1423,69 @@ def test_registrand_cases_snapshot_and_restore_the_kernel_cache(tmp_path):
     assert (empty_names, empty_indexes) == (set(), {})
     restore_kernel_cache(None, empty_names, empty_indexes)
     restore_kernel_cache(tmp_path / "no-such-dir", set(), {})
+
+
+def _fake_engine(monkeypatch, **attrs):
+    """A stand-in pyreason module for engine-free run_case tests — the same
+    sys.modules pattern the graphml routing test uses."""
+    import sys
+    from types import ModuleType
+
+    fake = ModuleType("pyreason")
+    fake.settings = SimpleNamespace()
+    for name, value in attrs.items():
+        setattr(fake, name, value)
+    monkeypatch.setitem(sys.modules, "pyreason", fake)
+    return fake
+
+
+def test_run_case_echoes_the_full_case_record(monkeypatch):
+    """proves: the artifact echoes the parsed case verbatim under 'case' — an
+    artifact is self-describing without the case file — and the echo stays
+    outside the digested probe map."""
+    from harness.capture import run_case
+
+    _fake_engine(monkeypatch, get_time=lambda: 7)
+    case = {"id": "c", "inputs": {"settings": {}},
+            "purpose": "echo-check",
+            "probes": [{"id": "t", "kind": "get_time"}],
+            "comparison": {"probes": {}}}
+    artifact = run_case(case)
+    assert artifact["case"] == case
+    assert set(artifact["digests"]) == {"t"}
+
+
+def test_run_case_times_each_probe_outside_the_probe_map(monkeypatch):
+    """proves: every probe's wall-clock lands in timing.probes_s keyed by
+    probe id, in the one-step form, as numbers — and timing is never digested,
+    so it can never move a verdict."""
+    from harness.capture import run_case
+
+    _fake_engine(monkeypatch, get_time=lambda: 7)
+    case = {"id": "c", "inputs": {"settings": {}},
+            "probes": [{"id": "t1", "kind": "get_time"},
+                       {"id": "t2", "kind": "get_time"}]}
+    artifact = run_case(case)
+    probes_s = artifact["timing"]["probes_s"]
+    assert set(probes_s) == {"t1", "t2"}
+    assert all(isinstance(v, (int, float)) and not isinstance(v, bool)
+               and v >= 0 for v in probes_s.values())
+    assert set(artifact["digests"]) == {"t1", "t2"}
+
+
+def test_steps_form_times_step_probes_alongside_steps_s(monkeypatch):
+    """proves: in the steps form each step probe's wall-clock lands in
+    timing.probes_s (keyed by probe id) beside the existing per-step steps_s —
+    step outcomes are timed as steps, probes as probes."""
+    from harness.capture import run_case
+
+    _fake_engine(monkeypatch, reason=lambda **kw: "interp",
+                 get_time=lambda: 3)
+    case = {"id": "c", "inputs": {"settings": {}}, "steps": [
+        {"id": "s1", "op": "reason", "args": {"timesteps": 1},
+         "probes": [{"id": "p1", "kind": "get_time"}]}]}
+    artifact = run_case(case)
+    assert set(artifact["timing"]["steps_s"]) == {"s1"}
+    assert set(artifact["timing"]["probes_s"]) == {"p1"}
+    assert artifact["probes"]["s1"] == {"raised": False}
+    assert artifact["probes"]["p1"] == 3

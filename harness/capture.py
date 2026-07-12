@@ -54,11 +54,17 @@ equality/hash/containment relations, intersection results, and (intervals)
 the reset transition — the direct-construction reach for types the public
 API otherwise only consumes internally.
 
-The artifact is self-describing: the case id, engine identity + environment
-fingerprint, each probe's canonical output, and a digest per probe. Exit codes:
-0 artifact written, 1 the case failed inside the engine, 2 usage (unreadable or
-invalid case — an authoring fault, never an engine finding; the artifact's
-error text says which).
+The artifact is self-describing: the case id, the full case record it ran
+(`case` — echoed verbatim from the parsed case file, so an artifact can be
+read, re-judged, or audited without the case file beside it; every artifact
+written after the case parsed carries it, error artifacts included), engine
+identity + environment fingerprint, each probe's canonical output, a digest
+per probe, and per-probe wall-clock (`timing.probes_s`, measured around the
+probe's execution + canonical reduction — diagnostic only, like the rest of
+`timing`: it rides outside the probe map, so it is never digested and never
+compared). Exit codes: 0 artifact written, 1 the case failed inside the
+engine, 2 usage (unreadable or invalid case — an authoring fault, never an
+engine finding; the artifact's error text says which).
 """
 
 import argparse
@@ -1202,6 +1208,17 @@ def run_case(case: dict) -> dict:
     interpretation = None
     reason_s = None
     probes = {}
+    # Per-probe wall-clock (execution + canonical reduction). Diagnostic only:
+    # timing rides outside the probe map, so it is never digested and never
+    # compared — probe timing is run schedule, not engine behavior.
+    probes_s = {}
+
+    def timed_probe(probe):
+        t1 = time.perf_counter()
+        value = canonical(run_probe_recorded(pr, interpretation, probe))
+        probes_s[probe["id"]] = round(time.perf_counter() - t1, 3)
+        return value
+
     timing: dict = {"import_s": round(import_s, 3)}
     if "steps" in case:
         steps_s = {}
@@ -1211,8 +1228,7 @@ def run_case(case: dict) -> dict:
             steps_s[step["id"]] = round(time.perf_counter() - t1, 3)
             probes[step["id"]] = canonical(outcome)
             for probe in step.get("probes", []):
-                probes[probe["id"]] = canonical(
-                    run_probe_recorded(pr, interpretation, probe))
+                probes[probe["id"]] = timed_probe(probe)
         timing["steps_s"] = steps_s
     else:
         if "reason" in inputs:
@@ -1220,13 +1236,14 @@ def run_case(case: dict) -> dict:
             interpretation = pr.reason(**build_reason_args(pr, inputs["reason"]))
             reason_s = time.perf_counter() - t1
         for probe in case["probes"]:
-            probes[probe["id"]] = canonical(
-                run_probe_recorded(pr, interpretation, probe))
+            probes[probe["id"]] = timed_probe(probe)
         timing["reason_s"] = None if reason_s is None else round(reason_s, 3)
+    timing["probes_s"] = probes_s
 
     return {
         "schema": 1,
         "case_id": case["id"],
+        "case": case,
         "engine": {
             "pyreason": str(getattr(pr, "__version__", "unknown")),
             "python": sys.version.split()[0],
@@ -1264,6 +1281,7 @@ def main(argv=None) -> int:
     fault = validate_case(case)
     if fault:
         write_artifact(args.out, {"schema": 1, "case_id": case.get("id"),
+                                  "case": case,
                                   "error": f"invalid case: {fault}"})
         print(f"invalid case: {fault}", file=sys.stderr)
         return 2
@@ -1284,7 +1302,7 @@ def main(argv=None) -> int:
         artifact = run_case(case)
     except Exception as exc:  # the artifact must say HOW the engine failed
         write_artifact(args.out, {"schema": 1, "case_id": case.get("id"),
-                                  "error": repr(exc)})
+                                  "case": case, "error": repr(exc)})
         print(f"capture failed: {exc!r}", file=sys.stderr)
         return 1
     finally:
