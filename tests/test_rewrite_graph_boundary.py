@@ -60,6 +60,27 @@ def test_load_graphml_parses_file_and_grounds_attribute_facts(pr):
     assert pr.get_time() == 3
 
 
+def test_load_graphml_malformed_file_fails_loudly_and_leaves_state(pr, tmp_path):
+    """proves: load_graphml on unparseable GraphML fails loudly at the shared
+    nx.read_graphml choke point (xml.etree.ElementTree.ParseError — the same
+    raise the pinned graphml_parser.py:16 `nx.read_graphml` surfaces; screened in
+    the oracle env's networkx 3.4.2 and the rewrite's 3.6.1, session 33) and
+    on a missing path raises FileNotFoundError, in both arms BEFORE any state
+    assignment — a previously loaded graph survives untouched."""
+    from xml.etree.ElementTree import ParseError
+
+    pr.load_graphml(str(FIXTURES / "chain-ab.graphml"))
+    before = pyreason._state_obj.graph
+
+    broken = tmp_path / "broken.graphml"
+    broken.write_text('<graphml><node id="A">')
+    with pytest.raises(ParseError):
+        pr.load_graphml(str(broken))
+    with pytest.raises(FileNotFoundError):
+        pr.load_graphml(str(tmp_path / "missing.graphml"))
+    assert pyreason._state_obj.graph is before
+
+
 def test_load_graphml_attr_parse_off_skips_attribute_grounding(pr):
     """proves: with graph_attribute_parsing=False load_graphml still parses
     the graph but leaves all four attribute products empty, so nothing ever
