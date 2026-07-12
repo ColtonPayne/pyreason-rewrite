@@ -1,0 +1,45 @@
+{
+  "id": "parallel-computing-multirule",
+  "purpose": "settings.parallel_computing=true on a THREE-rule program with interacting heads (two writers of popular — popular_rule and echo_rule — plus trendy_rule consuming it, cyclically): the rules-loop prange at interpretation_parallel.py:571 runs at width 3, the multi-rule class the one-rule parallel pair deliberately left unexercised. Screened at the pin (session 31, warm kernel cache, PYTHONHASHSEED=0): 4 fresh oracle processes digest-identical (deterministic), and every reasoning probe digest-equaled the serial default engine's on the identical program AND on a rule-order permutation of it — the width-3 prange did not reorder trace appends or updates relative to the serial engine on this program. Rule-list order itself IS behavior (permuting it moves a same-timestep duplicate derivation's trace attribution to the other writing rule and reorders equal-bound rows in the filtered frames), but identically in both engines, so this case pins the base order only. The rewrite's parallel knob runs the single default core (ADR 0003 / batch B11), which is exactly what the oracle's parallel kernel computed here.",
+  "runtime_class": "standard",
+  "provenance": "session-31 harness-quality packet: screened characterization of the pinned parallel kernel's multi-rule prange, promoted to a case per the deterministic/stable/coverage-adding gate; extends docs/surface.md setting:parallel_computing beyond the one-rule family",
+  "surface_items": [
+    "fn:load_graph", "fn:add_rule", "fn:add_fact", "fn:reason",
+    "fn:filter_and_sort_nodes", "fn:get_rule_trace", "fn:get_time",
+    "type:Rule", "type:Fact", "dsl:rule-text", "dsl:fact-text",
+    "setting:parallel_computing", "setting:atom_trace", "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {"verbose": false, "atom_trace": true, "parallel_computing": true},
+    "graph": {
+      "nodes": ["John", "Mary", "Justin", "Dog", "Cat"],
+      "edges": [
+        ["Justin", "Mary", {"Friends": 1}],
+        ["John", "Mary", {"Friends": 1}],
+        ["John", "Justin", {"Friends": 1}],
+        ["Mary", "Cat", {"owns": 1}],
+        ["Justin", "Cat", {"owns": 1}],
+        ["Justin", "Dog", {"owns": 1}],
+        ["John", "Dog", {"owns": 1}]
+      ]
+    },
+    "rules": [
+      {"text": "popular(x) <-1 popular(y), Friends(x,y), owns(y,z), owns(x,z)", "name": "popular_rule"},
+      {"text": "trendy(x) <-1 popular(x)", "name": "trendy_rule"},
+      {"text": "popular(x) <-1 trendy(x)", "name": "echo_rule"}
+    ],
+    "facts": [
+      {"text": "popular(Mary)", "name": "popular_fact", "start": 0, "end": 2}
+    ],
+    "reason": {"timesteps": 3}
+  },
+  "probes": [
+    {"id": "nodes-popular", "kind": "filter_sort_nodes", "labels": ["popular"]},
+    {"id": "nodes-trendy", "kind": "filter_sort_nodes", "labels": ["trendy"]},
+    {"id": "trace-node", "kind": "rule_trace_node"},
+    {"id": "trace-edge", "kind": "rule_trace_edge"},
+    {"id": "time", "kind": "get_time"},
+    {"id": "par-knob", "kind": "get_setting", "knob": "parallel_computing"}
+  ],
+  "comparison": {"probes": {}}
+}
