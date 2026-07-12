@@ -353,11 +353,14 @@ def _apply_fact(interp, kind, i, t, fp_cnt, convergence_state,
 
     # A static bound needs no update — bank the reapplication (and any IPL
     # complements) in the trace and move on (interpretation.py:294-310).
-    if l in interpretations[comp].world and interpretations[comp].world[l].is_static():
+    # One .get() replaces the membership-test-plus-lookup pair; world values
+    # are always Intervals, never None, so absent-vs-present is unambiguous.
+    world_l = interpretations[comp].world.get(l)
+    if world_l is not None and world_l.is_static():
         if (interp.save_graph_attributes_to_rule_trace or not graph_attribute) \
                 and interp.store_interpretation_changes:
             meta_name = trace[i] if interp.atom_trace else ''
-            recorded = bnd if kind == 'node' else interpretations[comp].world[l]
+            recorded = bnd if kind == 'node' else world_l
             rule_trace.append((t, fp_cnt, comp, l, recorded, True, 'Fact', meta_name, ''))
             if interp.atom_trace:
                 _update_rule_trace(rule_trace_atoms, [], [], bnd, trace[i])
@@ -1063,8 +1066,12 @@ def _ground_rule(interp, rule, extended_ann_fn, t, interpretations_node,
     dependency_graph_neighbors = {}
     dependency_graph_reverse_neighbors = {}
 
-    nodes_set = set(interp.nodes)
-    edges_set = set(interp.edges)
+    # Built only when consumed: nodes_set feeds the allow_ground_rules arms,
+    # edges_set those plus the edge-rule head pairing. Skipping the build
+    # when unused changes nothing observable (pure construction).
+    nodes_set = set(interp.nodes) if allow_ground_rules else ()
+    edges_set = (set(interp.edges)
+                 if allow_ground_rules or rule_type == 'edge' else ())
 
     satisfaction = True
     for i, clause in enumerate(clauses):

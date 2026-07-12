@@ -71,16 +71,52 @@ def is_satisfied_edge(interpretations_edge, comp, na, closed_world_predicates):
 
 def get_qualified_node_groundings(interpretations_node, grounding, clause_l,
                                   clause_bnd, closed_world_predicates):
-    return [n for n in grounding
-            if is_satisfied_node(interpretations_node, n, (clause_l, clause_bnd),
-                                 closed_world_predicates)]
+    # Same decision per candidate as is_satisfied_node, with the
+    # per-candidate constant work (the None guards, the closed-world
+    # membership test, the World/Interval method dispatch) hoisted out of
+    # the scan. The clause bound is engine IR — always an Interval — and
+    # `x in bnd` is exactly `bnd.lower <= x.lower and bnd.upper >= x.upper`.
+    if clause_l is None or clause_bnd is None:
+        return list(grounding)
+    if clause_l in closed_world_predicates:
+        return [n for n in grounding
+                if is_satisfied_node(interpretations_node, n, (clause_l, clause_bnd),
+                                     closed_world_predicates)]
+    result = []
+    append = result.append
+    bnd_lower = clause_bnd._lower
+    bnd_upper = clause_bnd._upper
+    for n in grounding:
+        try:
+            w = interpretations_node[n]._world[clause_l]
+            if bnd_lower <= w._lower and bnd_upper >= w._upper:
+                append(n)
+        except (KeyError, AttributeError):
+            pass  # absent component/label — the never-satisfied arm
+    return result
 
 
 def get_qualified_edge_groundings(interpretations_edge, grounding, clause_l,
                                   clause_bnd, closed_world_predicates):
-    return [e for e in grounding
-            if is_satisfied_edge(interpretations_edge, e, (clause_l, clause_bnd),
-                                 closed_world_predicates)]
+    # Mirror of get_qualified_node_groundings' hoisted scan.
+    if clause_l is None or clause_bnd is None:
+        return list(grounding)
+    if clause_l in closed_world_predicates:
+        return [e for e in grounding
+                if is_satisfied_edge(interpretations_edge, e, (clause_l, clause_bnd),
+                                     closed_world_predicates)]
+    result = []
+    append = result.append
+    bnd_lower = clause_bnd._lower
+    bnd_upper = clause_bnd._upper
+    for e in grounding:
+        try:
+            w = interpretations_edge[e]._world[clause_l]
+            if bnd_lower <= w._lower and bnd_upper >= w._upper:
+                append(e)
+        except (KeyError, AttributeError):
+            pass
+    return result
 
 
 # --- threshold gating ---------------------------------------------------------
