@@ -287,6 +287,11 @@ def main(argv=None) -> int:
         return child_main(Path(args.child[0]), Path(args.child[1]).resolve())
     if not args.engine or not args.cases:
         parser.error("--engine and --cases are required in parent mode")
+    # Resolve against the *invoker's* cwd before any path reaches a child:
+    # children run with cwd=REPO, so a relative --cases/--results would mean
+    # different files to parent and child when invoked outside the repo root.
+    args.cases = args.cases.resolve()
+    args.results = args.results.resolve()
     if args.repeats < 1:
         parser.error("--repeats must be >= 1")
     return parent_main(args)

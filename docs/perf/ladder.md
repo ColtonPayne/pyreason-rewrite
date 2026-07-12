@@ -46,7 +46,7 @@ committed artifacts.
 
 Rule texts are a tier chain (`t1(x) <-1 seed(y), rel0(x,y)`, then
 `t2 <- t1`, `t3 <- t2`, `t4 <- t3` over cycling relation labels); `seed` is
-asserted only by facts, staggered `start = i mod (timesteps/2)`,
+asserted only by facts, staggered `start = i mod ⌊timesteps/2⌋`,
 `end = timesteps`. The large rung's join rule reuses the proven hello-world
 clause shape (node clause + three edge clauses over three variables) at
 scale — it is the grounding stressor and dominates large-rung cost in both

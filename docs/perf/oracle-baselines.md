@@ -77,7 +77,11 @@ MiB (of the whole child: import + setup + reason, no probes).
 ## Measurement behavior notes (honest characterization)
 
 - **Small/medium are stable and unimodal**: reason() spreads of 0.131 s
-  (4.4% of median) and 0.096 s (2.7%).
+  (4.4% of median) and 0.096 s (2.7%). The lone-run-faster effect below is
+  not large-rung-specific: isolated single runs (the author's smoke screens
+  2.73 / 3.27 s; the review's control repeats 2.804 / 3.359 s) land at or
+  a few percent below these bands' low edges — the bands are same-config
+  *back-to-back-series* bands, mildly conservative as bars for a lone run.
 - **The large rung drifts monotonically upward within the series**
   (reason(): 17.18, 17.31, 17.63, 17.98, 18.23, 18.41, 18.52 s run-by-run
   — spread 1.35 s, 7.5% of median), consistent with sustained-load
