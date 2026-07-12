@@ -136,6 +136,18 @@ exposing `custom_thresholds` and `weights`.
   the parser.
 - `happy-weights`: `weights` is a numeric list passed through to the parser
   (`pyreason.py:1036-1046`).
+- `bound-weights-dtypes`: the list rides into `np.array(weights, dtype=float64)`
+  (`rule_parser.py:208-212`), so ints, numeric strings (`"0.5"`), and booleans all
+  convert and load (case rule-json-weights-dtypes).
+- `bound-weights-nested`: a RECTANGULAR nested numeric list (`[[1,2]]`) converts to a
+  2-D array whose `len()` is the top-level row count — it passes a one-clause rule's
+  length check and LOADS; contents unobserved at this seam (case
+  rule-json-weights-dtypes, weights-nested probe; screened at the pin 2026-07-12).
+- `malformed-weights-nonconvertible-entry`: a non-convertible entry (`["heavy"]`, a
+  ragged nested list) → the parser's `TypeError` falls past the loader's `ValueError`
+  catch into the `except Exception` wrap → `builtins.Exception` "Item i: Unexpected
+  error - weights must be a numpy array or convertible to one, got list"
+  (`pyreason.py:1068-1072`; case rule-json-weights-dtypes).
 - `malformed-not-array`: top-level JSON is not a list → `ValueError` (`pyreason.py:927-928`).
 - `bound-empty-array`: empty array → warn and return (`pyreason.py:930-932`).
 - `malformed-item-not-object`: an element is not a dict → raise or warn-skip

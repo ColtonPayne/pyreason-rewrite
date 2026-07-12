@@ -26,7 +26,7 @@ classes likewise.
 ## fn:load_graphml
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:569
 - status: equivalent
-- cases: reverse-digraph-default, reverse-digraph-on, load-graphml-basic, load-graphml-no-attr-parse, graphml-attr-coercions, graphml-empty, perf-ladder-small, perf-ladder-medium, perf-ladder-large
+- cases: reverse-digraph-default, reverse-digraph-on, load-graphml-basic, load-graphml-no-attr-parse, graphml-attr-coercions, graphml-empty, graphml-static-pin, perf-ladder-small, perf-ladder-medium, perf-ladder-large
 - input classes:
   - happy-basic
   - happy-no-attr-parse
@@ -39,9 +39,11 @@ classes likewise.
   - malformed-attr-comma-float
   - malformed-attr-out-of-range
   - malformed-attr-nonnumeric
+  - malformed-attr-inverted-pair
+  - bound-attr-whitespace-pair
   - malformed-missing-file
   - malformed-bad-graphml
-- notes: mutates five module globals; grounding tables survive reset(); attribute-bound coercions are the hazard cluster — all silent at the pin (session 9: no malformed attribute value raises; values 0 and '0,1' coerce to the vacuous [0,1] and leave no observable row). Uncovered classes: interacts-static_graph_facts (stamping in effect in every happy case here; the interaction itself is proven over load_graph by the static-graph-facts pair), malformed-missing-file and malformed-bad-graphml (the capture's graphml_path input existence-checks fixtures, and a loader raise during input application would fail the capture — the apply_input raising-probe form exists as of session 13, but load_graphml is deliberately not yet an apply op: no committed case consumes it, and the op rides the case that does)
+- notes: mutates five module globals; grounding tables survive reset(); attribute-bound coercions are the hazard cluster — all silent at the pin (session 9: no malformed attribute value raises; values 0 and '0,1' coerce to the vacuous [0,1] and leave no observable row). The O1/O2 arms the slice-5 review probed are now CASED (graphml-static-pin, screened 2026-07-12): malformed-attr-inverted-pair — '1,0' on a node and an edge leaves no t=0 row and later facts never stick (the node filter shows the frozen INVERTED [1,0] from t=1, the edge side resolves to [0,1] with [1,1]->[0,1] resolve rows — the node/edge asymmetry), observed by colliding start=1 facts under default static_graph_facts (whose re-application also freezes the fluent-vanish labels — no later fact sticks on ANY graph-stated label); bound-attr-whitespace-pair — '1, 1' parses to [1,1] under the bare key while '0, 1' and '-0,1' (int('-0')=0) vanish. Uncovered classes: interacts-static_graph_facts (stamping in effect in every happy case here; the interaction itself is proven over load_graph by the static-graph-facts pair), malformed-missing-file and malformed-bad-graphml (the capture's graphml_path input existence-checks fixtures, and a loader raise during input application would fail the capture — the apply_input raising-probe form exists as of session 13, but load_graphml is deliberately not yet an apply op: no committed case consumes it, and the op rides the case that does)
 - analysis: docs/analysis/surface/facts-and-graph.md
 
 ## fn:load_graph
@@ -94,7 +96,7 @@ classes likewise.
 ## fn:add_closed_world_predicate
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1122
 - status: equivalent
-- cases: closed-world-on, closed-world-off
+- cases: closed-world-on, closed-world-off, closed-world-unknown-predicate
 - input classes:
   - happy-basic
   - bound-duplicate
@@ -102,7 +104,7 @@ classes likewise.
   - malformed-non-str
   - interacts-unknown-predicate
   - interacts-reset
-- notes: effect deferred to reason() — pinned differentially by the on/off twins: with 'busy' closed-world, a busy(x):[0,0] clause over Friends-grounded x fires for the never-stated nodes (is_satisfied_node's CWA branch treats a missing/unknown [0,1] label as [0,0], interpretation.py:1763-1770) while the known-[1,1] node still fails it; off, no available row ever derives. Grounding scope (review-corrected 2026-07-07): the prior-clause grounding shape is needed only because a fact states the predicate — get_rule_node_clause_grounding (interpretation.py:1396-1402) draws a map-known predicate's candidates from the predicate map, hiding never-stated nodes from a single-clause rule; with the predicate wholly unstated the fallback grounding is ALL nodes and a single-clause [0,0] rule fires for every node (screened live 2026-07-07, not cased). Duplicate add is a set no-op (pinned: the on twin applies it twice). Uncovered: bound-empty-string (screened 2026-07-07: adds and reasons without effect on a program whose rules never name an empty predicate — not cased), malformed-non-str (screened: the add itself is silent — a bare set.add — and the raise surfaces only at reason() from the numba Label conversion with a run-varying character-code message, unbankable under exact compare; a canonicalization would need its own recorded policy), interacts-reset (cleared by reset() unlike IPL — unpinned), interacts-unknown-predicate (the all-nodes grounding screen above is its ready-made case shape)
+- notes: effect deferred to reason() — pinned differentially by the on/off twins: with 'busy' closed-world, a busy(x):[0,0] clause over Friends-grounded x fires for the never-stated nodes (is_satisfied_node's CWA branch treats a missing/unknown [0,1] label as [0,0], interpretation.py:1763-1770) while the known-[1,1] node still fails it; off, no available row ever derives. Grounding scope (review-corrected 2026-07-07): the prior-clause grounding shape is needed only because a fact states the predicate — get_rule_node_clause_grounding (interpretation.py:1396-1402) draws a map-known predicate's candidates from the predicate map, hiding never-stated nodes from a single-clause rule; with the predicate wholly unstated the fallback grounding is ALL nodes and a single-clause [0,0] rule fires for every node — now CASED (closed-world-unknown-predicate, re-screened 2026-07-12: flag fires [1,1] for every node at t=1, busy leaves no row anywhere, and an ordinary never-grounded edge rule alongside stays completely silent — interacts-unknown-predicate banked). Duplicate add is a set no-op (pinned: the on twin applies it twice). Uncovered: bound-empty-string (screened 2026-07-07: adds and reasons without effect on a program whose rules never name an empty predicate — not cased), malformed-non-str (screened: the add itself is silent — a bare set.add — and the raise surfaces only at reason() from the numba Label conversion with a run-varying character-code message, unbankable under exact compare; a canonicalization would need its own recorded policy), interacts-reset (cleared by reset() unlike IPL — unpinned)
 - analysis: docs/analysis/surface/facts-and-graph.md
 
 ## fn:add_fact
@@ -123,7 +125,7 @@ classes likewise.
 ## fn:add_fact_from_json
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1168
 - status: equivalent
-- cases: fact-from-json-basic, fact-from-json-malformed
+- cases: fact-from-json-basic, fact-from-json-malformed, fact-from-json-warn-skip
 - input classes:
   - happy-basic
   - bound-empty-array
@@ -137,18 +139,20 @@ classes likewise.
   - interacts-duplicate-name-intrafile
   - malformed-missing-file
   - malformed-bad-json
-- notes: loaded state observed through the reason trace (no fact accessor at the pin): given + auto-counter names, windows, bounds, static all pinned there. Malformed arms pin the doubled item prefix on loader-level failures ("Item 0: Failed to parse fact - Item 0: ...") vs the single prefix when the fact parser itself raises ("Item 0: Failed to parse fact - Missing closing parenthesis in fact"); duplicate-name raises at item 1 AFTER item 0 loaded (that partial state has no accessor — named unobserved). The summary print is unconditional at the pin (pyreason.py:1290-1292, differs from the CSV loader's verbose gate) but lands on pre-reason process stdout, which the harness never compares — named unobserved. Uncovered: bound-empty-array, malformed-item-not-object (pinned on the rule loader only; the shared helper makes the fact-side message shape a same-code-path inference, not a banked observation), malformed-nonint-time's end_time half (the "invalid end_time silently defaults to start_time" behavior lives on the raise_errors=False path — no warn-and-skip arm of this loader is cased)
+- notes: loaded state observed through the reason trace (no fact accessor at the pin): given + auto-counter names, windows, bounds, static all pinned there. Malformed arms pin the doubled item prefix on loader-level failures ("Item 0: Failed to parse fact - Item 0: ...") vs the single prefix when the fact parser itself raises ("Item 0: Failed to parse fact - Missing closing parenthesis in fact"); duplicate-name raises at item 1 AFTER item 0 loaded (that partial state has no accessor — named unobserved). The summary print is unconditional at the pin (pyreason.py:1290-1292, differs from the CSV loader's verbose gate) but lands on pre-reason process stdout, which the harness never compares — named unobserved. raise_errors=False arms banked (fact-from-json-warn-skip, screened 2026-07-12, observed through reasoning): a non-object item (malformed-item-not-object on this loader), missing fact_text, and unparseable fact_text SKIP; a non-int start_time (a JSON list — the TypeError path of the shared helper) LOADS with start=0, a non-int end_time LOADS with end=start — malformed-nonint-time's end_time half now banked (gamma fires only at its start timestep) — an invalid static string LOADS non-static, and a duplicate name skips. Uncovered: bound-empty-array, the raise halves of the item-level faults where only the skip half is banked
 - analysis: docs/analysis/surface/facts-and-graph.md
 
 ## fn:add_fact_from_csv
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:1294
 - status: equivalent
-- cases: fact-from-csv-basic, fact-from-csv-malformed
+- cases: fact-from-csv-basic, fact-from-csv-malformed, fact-from-csv-warn-skip, fact-csv-ragged
 - input classes:
   - happy-basic
   - happy-header
   - bound-header-mismatch
   - bound-short-rows
+  - malformed-ragged-wide-row
+  - bound-ragged-first-row-wide
   - bound-empty-file
   - malformed-missing-fact_text
   - malformed-bad-fact_text
@@ -157,7 +161,7 @@ classes likewise.
   - interacts-quoted-commas
   - interacts-duplicate-name-intrafile
   - malformed-missing-file
-- notes: header detection is an exact-match (pinned: the fixture's exact header row loads no fact); every cell read as string with keep_default_na off — short rows are padded by the reader (the two-field row loads with start/end 0, static False), truthy 'yes' coerces static, a quoted comma-bearing edge fact with an interval bound rides one cell, empty name cells auto-name through the shared node+edge counter, and a zero-byte file warns and returns without raising (the no-raise outcome record is the compared observation — nothing else is observable, no fact accessor exists). Malformed arms: missing file (the loader's own 'CSV file not found' FileNotFoundError), plus invalid static cell and missing fact_text — those two doubled-row-prefix ValueErrors. Uncovered: bound-header-mismatch, malformed-bad-fact_text and malformed-nonint-time on this loader (pinned on the JSON fact loader; the shared _parse_and_validate_fact_params makes the CSV-side shape a same-code-path inference, not a banked observation), interacts-duplicate-name-intrafile on this loader, every raise_errors=False warn-and-skip arm
+- notes: header detection is an exact-match (pinned: the fixture's exact header row loads no fact); every cell read as string with keep_default_na off — short rows are padded by the reader (the two-field row loads with start/end 0, static False), truthy 'yes' coerces static, a quoted comma-bearing edge fact with an interval bound rides one cell, empty name cells auto-name through the shared node+edge counter, and a zero-byte file warns and returns without raising (the no-raise outcome record is the compared observation — nothing else is observable, no fact accessor exists). Malformed arms: missing file (the loader's own 'CSV file not found' FileNotFoundError), plus invalid static cell and missing fact_text — those two doubled-row-prefix ValueErrors. raise_errors=False arms banked (fact-from-csv-warn-skip, screened 2026-07-12, observed through reasoning): missing fact_text, non-numeric interval bound (malformed-bad-fact_text on this loader), and duplicate name SKIP; invalid start_time LOADS with start=0, invalid end_time LOADS with end=start (NOT the empty-cell default 0 — pyreason.py:1114; the fact fires only at its start timestep), invalid static LOADS non-static — malformed-nonint-time both halves and interacts-duplicate-name-intrafile on this loader now banked on the warn path. Ragged arms banked (fact-csv-ragged, screened 2026-07-12): a row WIDER than the first row fails the read wholesale with the pandas C-tokenizer text inside the 'Error reading CSV file' ValueError (line = record ordinal), loading nothing; a wide FIRST row instead fixes the field count — extra trailing columns silently ignored, later narrower rows padded. Uncovered: bound-header-mismatch, the raise halves of the warn-path arms above
 - analysis: docs/analysis/surface/facts-and-graph.md
 
 ## fn:add_rule
@@ -195,7 +199,7 @@ classes likewise.
 ## fn:add_rule_from_csv
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:753
 - status: equivalent
-- cases: rule-from-csv-basic, rule-from-csv-malformed
+- cases: rule-from-csv-basic, rule-from-csv-malformed, rule-from-csv-warn-skip
 - input classes:
   - happy-full-row
   - happy-minimal-row
@@ -211,18 +215,21 @@ classes likewise.
   - malformed-duplicate-name
   - bound-quoted-commas
   - interacts-verbose
-- notes: file-local name dedup never consults the engine-global rule-name set (the dup raise fires at row 2 after row 1 loaded — partial load pinned by fingerprint). Happy arms pinned: exact-match header skip, explicit clause bound, truthy 'yes'/'1' strings coercing infer_edges/set_static, quoted comma-bearing rule_text, empty-name auto-naming through add_rule, and the loaded rules consumed by reason() (the infer_edges rule writes inferred team edges into the edge trace). Failure granularity pinned: a bad row raises row-wise, but an unquoted comma fails pandas' tokenizer wholesale ('Error reading CSV file ...'), loading nothing from that file. Named unobserved: the set_static flag is not rendered by the accessor fingerprint (its surface sits with type:Rule). Uncovered: malformed-header-mismatch, malformed-empty-file, malformed-bool-invalid, bound-numeric-bool, interacts-verbose, every raise_errors=False arm
+- notes: file-local name dedup never consults the engine-global rule-name set (the dup raise fires at row 2 after row 1 loaded — partial load pinned by fingerprint). Happy arms pinned: exact-match header skip, explicit clause bound, truthy 'yes'/'1' strings coercing infer_edges/set_static, quoted comma-bearing rule_text, empty-name auto-naming through add_rule, and the loaded rules consumed by reason() (the infer_edges rule writes inferred team edges into the edge trace). Failure granularity pinned: a bad row raises row-wise, but an unquoted comma fails pandas' tokenizer wholesale ('Error reading CSV file ...'), loading nothing from that file. Named unobserved: the set_static flag is not rendered by the accessor fingerprint (its surface sits with type:Rule). raise_errors=False arms banked (rule-from-csv-warn-skip, screened 2026-07-12): missing rule_text, duplicate name, and unparseable rule text warn and SKIP, but an invalid bool cell ('maybe') warns and still LOADS the row with the default — the parameter-level vs row-level fault asymmetry (pyreason.py:715-718); warnings ride stderr uncompared, so the closing fingerprint (ws_first, ws_badbool, ws_last) is the compared observation; malformed-bool-invalid's warn half banked there. Uncovered: malformed-header-mismatch, malformed-empty-file, malformed-bool-invalid's raise arm, bound-numeric-bool, interacts-verbose
 - analysis: docs/analysis/surface/rules.md
 
 ## fn:add_rule_from_json
 - oracle anchor: oracle/pyreason/pyreason/pyreason.py:868
 - status: equivalent
-- cases: rule-from-json-basic, rule-from-json-malformed
+- cases: rule-from-json-basic, rule-from-json-malformed, rule-from-json-warn-skip, rule-json-weights-dtypes
 - input classes:
   - happy-basic
   - happy-custom-thresholds-list
   - happy-custom-thresholds-dict
   - happy-weights
+  - bound-weights-dtypes
+  - bound-weights-nested
+  - malformed-weights-nonconvertible-entry
   - malformed-not-array
   - bound-empty-array
   - malformed-item-not-object
@@ -236,7 +243,7 @@ classes likewise.
   - malformed-missing-file
   - malformed-duplicate-name
   - interacts-thresholds-vs-clause-count
-- notes: the only loader exposing custom_thresholds and weights — both accepted forms pinned as acceptance + parsed-rule fingerprints (list form, dict form with a string clause-index key parsed to int and unnamed clauses defaulted, and a weights list), but the fingerprint renders neither thresholds nor weights, so their *contents* are unobserved here (they sit with type:Threshold and the annotation-function rows). Malformed arms pinned: the four file/document faults plus two threshold faults — both banked with the same outer wrap as every loader-level ValueError ("Item 0: Failed to parse rule - Item 0, threshold 0: Invalid threshold - 'thresh'" — the KeyError key verbatim — and the non-integer dict key) — all six raising before any add_rule (closing fingerprint None — the rules global never initialized). Doubled item prefix pinned ("Item 0: Failed to parse rule - Item 0: ..."). Uncovered: bound-empty-array, malformed-missing-rule_text, malformed-threshold-not-object, malformed-custom_thresholds-wrong-type, malformed-weights-not-list, malformed-duplicate-name on this loader, interacts-thresholds-vs-clause-count, every raise_errors=False arm
+- notes: the only loader exposing custom_thresholds and weights — both accepted forms pinned as acceptance + parsed-rule fingerprints (list form, dict form with a string clause-index key parsed to int and unnamed clauses defaulted, and a weights list), but the fingerprint renders neither thresholds nor weights, so their *contents* are unobserved here (they sit with type:Threshold and the annotation-function rows). Malformed arms pinned: the four file/document faults plus two threshold faults — both banked with the same outer wrap as every loader-level ValueError ("Item 0: Failed to parse rule - Item 0, threshold 0: Invalid threshold - 'thresh'" — the KeyError key verbatim — and the non-integer dict key) — all six raising before any add_rule (closing fingerprint None — the rules global never initialized). Doubled item prefix pinned ("Item 0: Failed to parse rule - Item 0: ..."). raise_errors=False arms banked (rule-from-json-warn-skip, screened 2026-07-12): non-object item, missing rule_text, threshold-missing-field, non-convertible weights entry, non-list weights, and duplicate name all warn and skip (closing fingerprint wsj_good + wsj_last only — covering malformed-missing-rule_text, malformed-weights-not-list, and malformed-duplicate-name on this loader via their skip halves). Weights dtype family banked (rule-json-weights-dtypes, screened 2026-07-12): ints, numeric strings, and booleans convert through the pinned np.array(dtype=float64) and load; a rectangular NESTED list [[1,2]] is ACCEPTED — np len() is the top-level row count, so it passes a one-clause length check (bound-weights-nested; contents stay unobserved); a non-convertible entry (['heavy']) raises builtins.Exception 'Item 0: Unexpected error - ...' (the parser TypeError falls past the loader's ValueError catch — malformed-weights-nonconvertible-entry); length/negative/NaN-literal arms raise the single-wrapped loader ValueError with the parser's own text (json.load accepts a bare NaN). Uncovered: bound-empty-array, malformed-threshold-not-object, malformed-custom_thresholds-wrong-type, interacts-thresholds-vs-clause-count, the raise halves of the item-level faults listed above where only the skip half is banked
 - analysis: docs/analysis/surface/rules.md
 
 ## fn:add_annotation_function
@@ -434,7 +441,7 @@ classes likewise.
 ## type:Rule
 - oracle anchor: oracle/pyreason/pyreason/scripts/rules/rule.py:4
 - status: equivalent
-- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, rule-text-malformed, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore, edge-rule-frames, store-off-accessors, store-off-atom-trace-flip, fp-version-on, update-mode-default, update-mode-override, update-mode-junk-string, allow-ground-rules-on, allow-ground-rules-off, graph-attr-parsing-on, graph-attr-parsing-off, static-graph-facts-on, static-graph-facts-off, save-graph-attrs-to-trace-on, save-graph-attrs-to-trace-off, canonical-on, canonical-last-write, abort-on-inconsistency-default, abort-on-inconsistency-on, memory-profile-default, memory-profile-on, reverse-digraph-default, reverse-digraph-on, load-graphml-basic, load-graphml-no-attr-parse, graphml-attr-coercions, graphml-empty, output-to-file-default, output-to-file-on, output-file-name-custom, output-file-name-inert, parallel-computing-default, parallel-computing-on, parallel-fp-precedence, perf-ladder-small, perf-ladder-medium, perf-ladder-large
+- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, rule-text-malformed, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore, edge-rule-frames, store-off-accessors, store-off-atom-trace-flip, fp-version-on, update-mode-default, update-mode-override, update-mode-junk-string, allow-ground-rules-on, allow-ground-rules-off, graph-attr-parsing-on, graph-attr-parsing-off, static-graph-facts-on, static-graph-facts-off, save-graph-attrs-to-trace-on, save-graph-attrs-to-trace-off, canonical-on, canonical-last-write, abort-on-inconsistency-default, abort-on-inconsistency-on, memory-profile-default, memory-profile-on, reverse-digraph-default, reverse-digraph-on, load-graphml-basic, load-graphml-no-attr-parse, graphml-attr-coercions, graphml-empty, output-to-file-default, output-to-file-on, output-file-name-custom, output-file-name-inert, parallel-computing-default, parallel-computing-on, parallel-fp-precedence, perf-ladder-small, perf-ladder-medium, perf-ladder-large, rule-delta-variants, delta-zero-rule, rule-json-weights-dtypes
 - input classes:
   - happy-text-only
   - happy-full-args
@@ -539,7 +546,7 @@ classes likewise.
 ## dsl:rule-text
 - oracle anchor: oracle/pyreason/pyreason/scripts/utils/rule_parser.py:17
 - status: equivalent
-- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, rule-text-malformed, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore, edge-rule-frames, store-off-accessors, store-off-atom-trace-flip, fp-version-on, update-mode-default, update-mode-override, update-mode-junk-string, allow-ground-rules-on, allow-ground-rules-off, graph-attr-parsing-on, graph-attr-parsing-off, static-graph-facts-on, static-graph-facts-off, save-graph-attrs-to-trace-on, save-graph-attrs-to-trace-off, canonical-on, canonical-last-write, abort-on-inconsistency-default, abort-on-inconsistency-on, memory-profile-default, memory-profile-on, reverse-digraph-default, reverse-digraph-on, load-graphml-basic, load-graphml-no-attr-parse, graphml-attr-coercions, graphml-empty, output-to-file-default, output-to-file-on, output-file-name-custom, output-file-name-inert, parallel-computing-default, parallel-computing-on, parallel-fp-precedence, perf-ladder-small, perf-ladder-medium, perf-ladder-large
+- cases: hello-world, conv-perfect, conv-delta-interp, conv-delta-bound, persistent-off, persistent-on, inconsistency-ipl-resolve, inconsistency-ipl-override, rule-text-malformed, reason-again-restart-true, reason-again-restart-false, reason-again-no-program, reason-bare-again-no-facts, reset-with-program, reset-no-program, reset-rules-with-program, reset-rules-no-program, reset-settings-restore, edge-rule-frames, store-off-accessors, store-off-atom-trace-flip, fp-version-on, update-mode-default, update-mode-override, update-mode-junk-string, allow-ground-rules-on, allow-ground-rules-off, graph-attr-parsing-on, graph-attr-parsing-off, static-graph-facts-on, static-graph-facts-off, save-graph-attrs-to-trace-on, save-graph-attrs-to-trace-off, canonical-on, canonical-last-write, abort-on-inconsistency-default, abort-on-inconsistency-on, memory-profile-default, memory-profile-on, reverse-digraph-default, reverse-digraph-on, load-graphml-basic, load-graphml-no-attr-parse, graphml-attr-coercions, graphml-empty, output-to-file-default, output-to-file-on, output-file-name-custom, output-file-name-inert, parallel-computing-default, parallel-computing-on, parallel-fp-precedence, perf-ladder-small, perf-ladder-medium, perf-ladder-large, rule-delta-variants, delta-zero-rule, rule-json-weights-dtypes
 - input classes:
   - happy-node-rule
   - happy-edge-rule
@@ -603,7 +610,7 @@ classes likewise.
   - interacts-infer_edges-node
   - interacts-infer_edges-edge
   - interacts-set_static
-- notes: the deepest DSL; the doubled-delimiter clause splitter and the uint16 delta_t cast are the named hazards
+- notes: the deepest DSL; the doubled-delimiter clause splitter and the uint16 delta_t cast are the named hazards. Delta boundary arms banked (rule-delta-variants + delta-zero-rule, screened 2026-07-12): no-delta and explicit '<-0' both store 0, 65535 stores verbatim, 65536 WRAPS to 0 and 70000 to 4464 (the numba.types.uint16 cast, rule_parser.py:243 — a delta at or past 2**16 silently changes the firing schedule instead of raising; happy-delta-t/bound-zero-delta-default/bound-delta-t-uint16 banked empirically), and end-to-end a <-0 rule fires in the SAME timestep its body fact applies while the <-1 chain fires one later. Weights parser arms banked through the JSON loader (rule-json-weights-dtypes): the np.array conversion accepts ints/numeric strings/booleans AND rectangular nested lists (len = top-level row count); length/negative/NaN raise with the parser's own text (malformed-weights-length/-negative/-nonfinite); a non-convertible entry takes the TypeError arm (malformed-weights-nonnumeric's list-input shape)
 - analysis: docs/analysis/surface/rules.md
 
 ## dsl:fact-text

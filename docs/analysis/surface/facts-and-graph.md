@@ -38,6 +38,8 @@ graph-fact tables and specific-label maps; otherwise those tables are left empty
 - `malformed-attr-comma-float`: string attribute like `"0.3,0.7"` → `int("0.3")` raises, caught and swallowed (graphml_parser.py:54-55/84-85), so the pair path is skipped and the value falls to the numeric-single or `key-value` label branch. `hypothesis(graphml_parser_validation: int-not-float on comma bound)`.
 - `malformed-attr-out-of-range`: numeric attribute outside [0,1] (e.g. `1.5`, `-0.2`, `7`) → NOT caught by the range guard, silently falls through to `label_str = f'{key}-{value}'` with bound [1,1] (graphml_parser.py:40-43). `hypothesis(graphml_parser_validation: out-of-range numeric should warn-and-skip)`.
 - `malformed-attr-nonnumeric`: non-numeric string attribute → builds label `f'{key}-{value}'`, bound [1,1] (graphml_parser.py:40-43,70-73); no validation that the composed label matches predicate regex. `hypothesis(graphml_parser_validation: composed label may contain illegal chars)`.
+- `malformed-attr-inverted-pair`: an in-range but INVERTED integer comma pair (`'1,0'`) — no ordering check on the pair branch (graphml_parser.py:44-55), so the out-of-order bound rides into the inconsistency machinery at application: no t=0 observable anywhere, later facts on the label never stick, the node filter shows the frozen inverted [1,0] from t=1 while the edge side resolves to [0,1] with visible resolve rows — the node/edge asymmetry (slice-5 review O1 / batch §B23; case graphml-static-pin). `hypothesis(graphml_parser_validation: inverted pair should raise or normalize)`.
+- `bound-attr-whitespace-pair`: the comma-pair arm tolerates whitespace the numeric-string arm rejects — `int()` strips spaces (graphml_parser.py:48-49), so `'1, 1'` becomes the [1,1] bound under the bare key while `'0, 1'` and `'-0,1'` (`int('-0')` = 0) coerce to the vacuous [0,1] and vanish (slice-5 review O2 / batch §B24; case graphml-static-pin).
 - `malformed-missing-file`: nonexistent path → `nx.read_graphml` raises (uncaught by pyreason).
 - `malformed-bad-graphml`: malformed/non-GraphML content → networkx parse error propagates uncaught.
 
@@ -218,6 +220,8 @@ each row as a fact through the `Fact(fact_text=...)` path.
 - `malformed-nonint-time`: non-integer time cell → coerce-or-default via helper (pyreason.py:1099-1114).
 - `interacts-static_field`: static cell parsed by `_parse_bool_param` (True/1/yes/t/y etc.); empty string → default False (pyreason.py:712-713).
 - `interacts-quoted-commas`: quoted `fact_text` containing a comma, e.g. `"HaveAccess(a,b)"` or `"Processed(N):[0.5,0.8]"` → pandas keeps it as one field so edge/interval facts survive CSV splitting (docstring 1319-1320).
+- `malformed-ragged-wide-row`: a data row with MORE fields than the first row → the pandas C tokenizer fails the whole read ("Error tokenizing data. C error: Expected N fields in line L, saw M"; L is the record ordinal), wrapped as the loader's 'Error reading CSV file' ValueError — nothing loads from that file (pyreason.py:1340-1341; case fact-csv-ragged).
+- `bound-ragged-first-row-wide`: when the FIRST row is the widest it fixes the field count — its extra trailing columns beyond the 5 the loader reads are silently ignored, and later narrower rows are padded with `''` (keep_default_na=False), taking the short-row defaults (case fact-csv-ragged).
 - `interacts-duplicate-name-intrafile`: duplicate `name` across rows → raise or warn-skip (pyreason.py:1383-1388).
 - `malformed-missing-file`: nonexistent path → `FileNotFoundError` (pyreason.py:1334-1335).
 
