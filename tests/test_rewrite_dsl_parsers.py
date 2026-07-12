@@ -108,6 +108,51 @@ def test_rule_multichar_delta_consumed_as_one_integer():
     assert len(r.get_clauses()) == 2
 
 
+@pytest.mark.parametrize("text,delta", [
+    ("popular(x) <- boss(x)", 0),          # no leading digits -> default 0
+    ("popular(x) <-0 boss(x)", 0),         # explicit zero
+    ("popular(x) <-65535 boss(x)", 65535),  # uint16 max, verbatim
+    ("popular(x) <-65536 boss(x)", 0),      # wraps modulo 2**16
+    ("popular(x) <-70000 boss(x)", 4464),   # 70000 - 65536
+])
+def test_rule_delta_wraps_at_uint16(text, delta):
+    """proves: the stored delta wraps modulo 2**16 exactly as the pinned
+    numba.types.uint16 cast does (rule_parser.py:243 at the pin; oracle
+    fingerprints banked by the rule-delta-variants case: 65536 -> 0,
+    70000 -> 4464)."""
+    assert Rule(text).rule.get_delta() == delta
+
+
+def test_rule_weights_nested_rectangular_list_accepted():
+    """proves: a rectangular nested weights list is accepted with len() equal
+    to its top-level row count — np.array([[1,2]]) is a (1,2) float array, so
+    [[1,2]] passes a one-clause rule's length check exactly as the pin does
+    (rule-json-weights-dtypes weights-nested probe, oracle acceptance banked
+    2026-07-12)."""
+    r = Rule("popular(x) <-1 boss(x)", "n", weights=[[1, 2]]).rule
+    assert r.get_rule_name() == "n"
+
+
+def test_rule_weights_none_entry_takes_finiteness_raise():
+    """proves: a None weights entry converts to NaN the way
+    np.array([None], dtype=float64) does, so it raises the finiteness
+    ValueError — never the conversion TypeError (verified against the pinned
+    numpy 2026-07-12)."""
+    _raises_msg(ValueError,
+                "weights must contain only finite values (no NaN or Inf)",
+                lambda: Rule("popular(x) <-1 boss(x)", "n", weights=[None]))
+
+
+def test_rule_weights_ragged_nested_list_takes_conversion_raise():
+    """proves: a ragged nested weights list fails conversion (np.array
+    raises on inhomogeneous shapes) and re-wraps as the pinned TypeError
+    naming the input's own type."""
+    _raises_msg(TypeError,
+                "weights must be a numpy array or convertible to one, got list",
+                lambda: Rule("popular(x) <-1 boss(x)", "n",
+                             weights=[[1], [2, 3]]))
+
+
 def test_rule_clause_shape_matches_fingerprint_contract():
     """proves: a parsed clause is the (type, Label, variables, Interval, op)
     tuple the accessor fingerprint renders — node clause, [1,1] default

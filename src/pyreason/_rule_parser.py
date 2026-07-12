@@ -4,9 +4,10 @@ Behavior target: the pinned oracle's rule parser (oracle
 scripts/utils/rule_parser.py), whose rejection behavior and exact message
 text are banked by the rule-text-malformed case. The control flow mirrors
 the pin statement-for-statement; the numba containers become plain lists,
-the weights ndarray becomes a plain float list (same validation outcomes on
-list input — the arm the public constructor exposes), and delta stays a
-plain int.
+the weights ndarray becomes a plain float list (np.array conversion
+semantics mimicked on list input — the arm the public constructor exposes —
+including rectangular nested lists and None-to-NaN, see _weights_to_floats),
+and delta is a plain int wrapped modulo 2**16 (the pinned uint16 cast).
 
 Pinned quirks kept on purpose (equivalence first, per AC-6):
 - every leading digit of the body is consumed as one integer, so '<-10'
@@ -71,7 +72,11 @@ def parse_rule(rule_text, name, custom_thresholds, infer_edges=False,
         if delta_t == '':
             delta_t = 0
         else:
-            delta_t = int(delta_t)
+            # The pinned constructor casts through numba.types.uint16
+            # (rule_parser.py:243 at the pin), so the stored delta wraps
+            # modulo 2**16: '<-65536' means delta_t=0 and '<-70000' means
+            # 4464 — banked by the rule-delta-variants case fingerprints.
+            delta_t = int(delta_t) % 65536
 
         # Split the body into clauses and their bounds
         body_clauses, body_bounds = _split_body_into_clauses(body)
@@ -189,27 +194,77 @@ def parse_rule(rule_text, name, custom_thresholds, infer_edges=False,
     if weights is None:
         weights = [1.0] * len(body_predicates)
     else:
-        # The pinned parser converts to a float64 ndarray; a plain float list
-        # carries the same validation outcomes for the list input the public
-        # constructor exposes (conversion fault, length, finiteness, sign).
+        # The pinned parser converts through np.array(weights, dtype=float64)
+        # (rule_parser.py:208-212 at the pin), which accepts more than a flat
+        # float list: rectangular NESTED numeric lists convert to a 2-D array
+        # whose len() is its top-level row count (so [[1,2]] passes a
+        # one-clause length check — banked by rule-json-weights-dtypes'
+        # weights-nested probe), and None converts to NaN (taking the
+        # finiteness raise, not the conversion raise). _weights_to_floats
+        # mimics exactly those observable arms; every conversion fault takes
+        # the pinned TypeError below, and the length/finiteness/sign checks
+        # run over top-level length and flattened leaves the way the pinned
+        # ndarray checks do.
         try:
-            weights = [float(w) for w in weights]
+            weights = _weights_to_floats(weights)
         except (ValueError, TypeError):
             raise TypeError(f"weights must be a numpy array or convertible to one, got {type(weights).__name__}")
 
         if len(weights) != len(body_predicates):
             raise ValueError(f'Number of weights {len(weights)} is not equal to number of clauses {len(body_predicates)}')
 
-        if not all(math.isfinite(w) for w in weights):
+        leaves = list(_flat_weights(weights))
+        if not all(math.isfinite(w) for w in leaves):
             raise ValueError("weights must contain only finite values (no NaN or Inf)")
 
-        if any(w < 0 for w in weights):
+        if any(w < 0 for w in leaves):
             raise ValueError("weights must be non-negative")
 
     return RuleIR(name, rule_type, target, list(head_variables), delta_t,
                   clauses, target_bound, thresholds, ann_fn, weights,
                   list(head_fns), [list(v) for v in head_fns_vars], edges,
                   set_static, head_negated)
+
+
+def _weights_to_floats(w):
+    """Convert one weights list the way np.array(w, dtype=float64) does,
+    for the leaf types JSON input can carry (the arm the public constructor
+    and the JSON rule loader expose): numbers, numeric strings, and booleans
+    convert through float(); None converts to NaN (np fills nan, so a [None]
+    weight takes the FINITENESS raise, not the conversion raise — verified
+    against the pinned numpy 2026-07-12); nested lists must be rectangular
+    (np raises ValueError on ragged input) and keep their structure, so
+    len() of the result is the top-level row count exactly as len(ndarray)
+    is shape[0]. Any other leaf (dict, non-numeric string) raises — the
+    caller re-wraps every conversion fault as the pinned TypeError."""
+    if isinstance(w, list):
+        converted = [_weights_to_floats(x) for x in w]
+        shapes = {_weights_shape(x) for x in converted}
+        if len(shapes) > 1:
+            raise ValueError("setting an array element with a sequence")
+        return converted
+    if w is None:
+        return float("nan")
+    return float(w)
+
+
+def _weights_shape(w):
+    """The nested-list shape of an already-converted weights entry — leaves
+    are (), lists are (len, *inner) — rectangularity was enforced during
+    conversion, so the first element's shape stands for all."""
+    if isinstance(w, list):
+        return (len(w),) + (_weights_shape(w[0]) if w else ())
+    return ()
+
+
+def _flat_weights(w):
+    """Every leaf float of a (possibly nested) converted weights list — the
+    iteration order np's elementwise isfinite/sign checks reduce over."""
+    if isinstance(w, list):
+        for x in w:
+            yield from _flat_weights(x)
+    else:
+        yield w
 
 
 def _split_body_into_clauses(body):
