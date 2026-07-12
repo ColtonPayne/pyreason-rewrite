@@ -163,9 +163,10 @@ def test_identity_mismatch_invalidates_the_marker(tmp_path):
 
 
 def test_damaged_artifact_or_missing_marker_reruns_the_case(tmp_path):
-    """proves: the two interruption shapes — a deleted marker (killed before
-    completion) and a truncated artifact (killed mid-write) — each read as
-    incomplete, so the case re-captures whole instead of judging debris."""
+    """proves: the three interruption shapes — a deleted marker (killed before
+    completion), a truncated artifact (killed mid-write), and a deleted
+    artifact (marker present, file gone) — each read as incomplete, so the
+    case re-captures whole instead of judging debris."""
     case_path = make_case(tmp_path)
     results = tmp_path / "results"
     calls = []
@@ -181,9 +182,14 @@ def test_damaged_artifact_or_missing_marker_reruns_the_case(tmp_path):
     _, prior = run_case(case_path, "pyA", "pyB", results,
                         capture=counting_capture(calls))
     assert prior is False and len(calls) == 12
+
+    (results / "seam" / "a1.json").unlink()  # marker vouches, file is gone
+    _, prior = run_case(case_path, "pyA", "pyB", results,
+                        capture=counting_capture(calls))
+    assert prior is False and len(calls) == 16
     verdict, prior = run_case(case_path, "pyA", "pyB", results,
                               capture=counting_capture(calls))
-    assert prior is True and len(calls) == 12
+    assert prior is True and len(calls) == 16
     assert verdict["status"] == "pass"
 
 
@@ -237,7 +243,9 @@ def test_resumed_report_equals_a_clean_run_and_says_resumed(tmp_path, monkeypatc
     """proves: after an artificial interruption (one marker deleted), a
     re-invocation recaptures only the incomplete case, its report's verdicts
     equal the uninterrupted report's, and the resume block plus console SAY it
-    was resumed — while a single-invocation report says resumed: false."""
+    was resumed — while a single-invocation report says resumed: false, and a
+    re-invocation that found EVERY case complete (zero recaptures) still says
+    resumed: true, so resumed: false is impossible on any resumed shape."""
     from harness import run as harness_run
 
     cases = tmp_path / "cases"
@@ -270,3 +278,16 @@ def test_resumed_report_equals_a_clean_run_and_says_resumed(tmp_path, monkeypatc
     console = capsys.readouterr().out
     assert "RESUMED — 2 prior-complete, 1 captured this invocation" in console
     assert console.count("[prior-complete]") == 2
+
+    # A re-invocation with nothing to do is still a resumed shape, never a
+    # single invocation: all prior-complete, zero captures, resumed: true.
+    assert harness_run.main(argv) == 0
+    all_prior = json.loads((results / "report.json").read_text())
+    assert all_prior["verdicts"] == clean["verdicts"]
+    assert all_prior["resume"] == {"resumed": True,
+                                   "prior_complete":
+                                       ["c-one", "c-three", "c-two"],
+                                   "captured_this_invocation": []}
+    assert len(calls) == 16  # nothing recaptured
+    console = capsys.readouterr().out
+    assert "RESUMED — 3 prior-complete, 0 captured this invocation" in console

@@ -1489,3 +1489,39 @@ def test_steps_form_times_step_probes_alongside_steps_s(monkeypatch):
     assert set(artifact["timing"]["probes_s"]) == {"p1"}
     assert artifact["probes"]["s1"] == {"raised": False}
     assert artifact["probes"]["p1"] == 3
+
+
+def test_error_artifacts_echo_the_case_record(monkeypatch, tmp_path):
+    """proves: both post-parse error artifacts — invalid case (exit 2) and
+    engine failure (exit 1) — echo the parsed case under 'case', so an error
+    artifact is as self-describing as a healthy one; the pre-parse
+    unreadable-file artifact carries no echo (there is no parsed case yet)."""
+    import json
+
+    from harness import capture
+
+    invalid = tmp_path / "invalid.json"
+    invalid.write_text(json.dumps({"id": "bad-case"}))  # no inputs: a fault
+    out = tmp_path / "invalid-artifact.json"
+    assert capture.main([str(invalid), str(out)]) == 2
+    artifact = json.loads(out.read_text())
+    assert artifact["case"] == {"id": "bad-case"}
+    assert artifact["error"].startswith("invalid case")
+
+    _fake_engine(monkeypatch)  # no get_time: the probe raises in-engine
+    case = {"id": "boom", "inputs": {"settings": {}},
+            "probes": [{"id": "t", "kind": "get_time"}], "comparison": {}}
+    case_path = tmp_path / "boom.json"
+    case_path.write_text(json.dumps(case))
+    out = tmp_path / "boom-artifact.json"
+    assert capture.main([str(case_path), str(out)]) == 1
+    artifact = json.loads(out.read_text())
+    assert artifact["case"] == case
+    assert "AttributeError" in artifact["error"]
+
+    unreadable = tmp_path / "unreadable.json"
+    unreadable.write_text("{not json")
+    out = tmp_path / "unreadable-artifact.json"
+    assert capture.main([str(unreadable), str(out)]) == 2
+    artifact = json.loads(out.read_text())
+    assert "case" not in artifact and artifact["case_id"] is None
