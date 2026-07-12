@@ -42,7 +42,7 @@ Top of the call graph (cumulative): the whole run is the temporal loop
 and the node-clause arm (`get_qualified_node_groundings` →
 `is_satisfied_node`) at **28.4%**.
 
-Hottest functions by self time (top 10 ≈ 88% of everything):
+Hottest functions by self time (top 10 ≈ 86% of everything):
 
 | function | self % | self s | cum % | calls |
 |---|---|---|---|---|
@@ -141,8 +141,10 @@ per-function attribution impossible by construction).
    `isinstance` / property overhead is internal mechanism, invisible to
    the pinned observable surface — equality-and-hash-*by-string-value*
    is the pinned behavior (label-ops), not *how* the hash is computed).
-3. **The profile is scale-stable** (same hot set, same ordering, medium
-   and large), so a single spike target covers the ladder; medium is the
+3. **The profile is scale-stable** (same hot set at medium and large,
+   same ordering except `Label.__eq__`/`Label.__hash__` swapping adjacent
+   ranks 2–3 between the rungs), so a single spike target covers the
+   ladder; medium is the
    cheap iteration rung (0.655 s unprofiled) for spike development, with
    large as the confirmation rung.
 4. Each spike is a later session with its own equivalence evidence

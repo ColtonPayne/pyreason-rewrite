@@ -85,13 +85,20 @@ same-config spread (1.346 s) and the two series' bands overlap.
 
 ## Measurement behavior notes (honest characterization)
 
-- **Small/medium are extremely stable**: reason() spreads of 0.0000 s and
-  0.002 s (0.3% of the medium median) — pure-Python execution with no
-  JIT/cache variance. The oracle-side lone-run-vs-series effect has no
-  visible rewrite analogue at these rungs.
-- **The large rung shows the same monotonic upward drift as the oracle's
+- **Small/medium are extremely stable within a series**: reason() spreads
+  of 0.0000 s and 0.002 s (0.3% of the medium median) — pure-Python
+  execution with no JIT/cache variance. The oracle-side lone-run-vs-series
+  effect *does* have a rewrite analogue at the medium rung: isolated
+  single runs (the author's smoke 0.617 s; the review's control repeat
+  0.623 s) land ~5% below the series band's low edge, so the banked band
+  is a back-to-back-series band, mildly conservative as a bar for a lone
+  run — the same characterization banked for the oracle. The small rung
+  shows no visible effect (lone runs land in-band).
+- **The large rung shows the same sustained upward drift as the oracle's
   series** (reason(): 18.12, 18.41, 18.67, 18.79, 18.87, 18.94, 18.88 s
-  run-by-run — spread 0.816 s, 4.3% of median), consistent with
+  run-by-run — rising through run 6 and easing slightly at the tail,
+  where the oracle's series rose strictly; spread 0.816 s, 4.3% of
+  median), consistent with
   sustained-load thermal/scheduler settling; the isolated smoke run
   (18.24 s) sits near the series' low end. The full 18.12–18.94 band is
   the honest noise band for large-rung comparisons.
