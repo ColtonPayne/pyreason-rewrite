@@ -14,6 +14,11 @@ class Label:
 
     def __init__(self, value):
         self._value = value
+        # Lazy hash cache: `_value` is never reassigned after construction,
+        # so hash-by-string-value (the pinned relation) is computed once.
+        # Lazy — never eager — so a non-string value still raises the
+        # pinned TypeError at first hash() rather than at construction.
+        self._hash = None
 
     def get_value(self):
         return self._value
@@ -26,7 +31,10 @@ class Label:
         return self._value
 
     def __hash__(self):
-        return hash(str(self))
+        h = self._hash
+        if h is None:
+            h = self._hash = hash(str(self))
+        return h
 
     def __repr__(self):
         return self.get_value()
