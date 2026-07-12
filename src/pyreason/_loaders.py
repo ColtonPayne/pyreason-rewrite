@@ -25,7 +25,9 @@ identically in both engines; session-16 review probe).
 The IPL YAML loader mirrors the pinned yaml_parser.parse_ipl
 (yaml_parser.py:187-196): safe_load only, no validation of its own — every
 malformed arm is the underlying operation's raise, banked by
-ipl-load-malformed.
+ipl-load-malformed — except the one arm the pin cannot pin: non-string pair
+entries raise a stable ValueError at the append seam (the ipl_pair guard,
+DIV-0002 adjudicated 2026-07-11).
 """
 
 import csv
@@ -34,9 +36,8 @@ import warnings
 
 import yaml
 
-from ._state import EngineState, add_fact, add_rule
+from ._state import EngineState, add_fact, add_rule, ipl_pair
 from .fact import Fact
-from .label import Label
 from .rule import Rule
 from .threshold import Threshold
 
@@ -619,9 +620,12 @@ def load_inconsistent_predicate_list(state: EngineState, path: str) -> None:
     the 'ipl' key is the subscript's KeyError, a pair shorter than two is
     the [1] IndexError, and a null 'ipl:' value fails the `is not None`
     guard and reduces to an empty list — loaded, not None, so a null file
-    still overwrites. The rebind happens only after a complete parse: any
-    raise above leaves the prior IPL untouched, exactly as the pin's
-    parse-then-assign shape does.
+    still overwrites. A pair with a NON-STRING entry raises ValueError at
+    the append (the ipl_pair guard — same seam and type as the pin's
+    typed-list unbox rejection, whose own message is address-derived and
+    unpinnable; DIV-0002, adjudicated 2026-07-11). The rebind happens only
+    after a complete parse: any raise above leaves the prior IPL untouched,
+    exactly as the pin's parse-then-assign shape does.
     """
     with open(path, 'r') as file:
         ipl_yaml = yaml.safe_load(file)
@@ -629,5 +633,5 @@ def load_inconsistent_predicate_list(state: EngineState, path: str) -> None:
     ipl = []
     if ipl_yaml['ipl'] is not None:
         for labels in ipl_yaml['ipl']:
-            ipl.append((Label(labels[0]), Label(labels[1])))
+            ipl.append(ipl_pair(labels[0], labels[1]))
     state.ipl = ipl

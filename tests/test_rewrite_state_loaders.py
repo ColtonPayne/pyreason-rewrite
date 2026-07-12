@@ -575,16 +575,32 @@ def test_facade_ipl_loader_reads_through_the_public_api(monkeypatch):
     assert fresh.ipl == [(Label("popular"), Label("unpopular"))]
 
 
-def test_ipl_yaml_nonstring_entries_load_provisionally(state, tmp_path):
-    """proves: (DIV-0002, provisional pending adjudication) an IPL pair
-    whose entries are YAML integers loads into the rewrite's plain-list
-    IPL without raising — where the pin's typed-list append raises a
-    builtins.ValueError whose message is address-derived and same-engine
-    unstable (docs/divergences/DIV-0002.md; pin-side reproducer
-    tests/test_div_0002_reproducer.py). This test documents the rewrite's
-    current arm; it flips with the fix if the operator adjudicates the
-    guarded raise."""
+def test_ipl_yaml_nonstring_entries_raise_stable_valueerror(state, tmp_path):
+    """proves: (DIV-0002, adjudicated 2026-07-11) an IPL pair whose entries
+    are YAML integers raises builtins.ValueError at the append seam — the
+    same seam and type as the pin's typed-list unbox rejection, with the
+    stable message the pin cannot provide (its own text is address-derived
+    and same-engine unstable; docs/divergences/DIV-0002.md, pin-side
+    reproducer tests/test_div_0002_reproducer.py) — and the raise leaves
+    the previously-held IPL untouched, like every other malformed arm
+    (parse-then-rebind)."""
+    add_inconsistent_predicate(state, "sick", "healthy")
+    prior = list(state.ipl)
     ipl_file = tmp_path / "nonstring-ipl.yaml"
     ipl_file.write_text("ipl:\n  - [1, 2]\n")
-    _loaders.load_inconsistent_predicate_list(state, str(ipl_file))
-    assert state.ipl == [(Label(1), Label(2))]
+    _raises_msg(ValueError, "IPL entries must be strings; got int: 1",
+                lambda: _loaders.load_inconsistent_predicate_list(
+                    state, str(ipl_file)))
+    assert state.ipl == prior
+
+
+def test_add_inconsistent_predicate_nonstring_raises_the_same_guard(state):
+    """proves: (DIV-0002 guard parity) the add path reaches the same IPL
+    append seam — at the pin, add_inconsistent_predicate's typed-list
+    append (pyreason.py:629) fails the identical unbox the loader's does —
+    so a non-string predicate raises the same stable ValueError here, and,
+    like the pin (which binds the empty typed list before the failing
+    append), a first failed add leaves the IPL created-but-empty."""
+    _raises_msg(ValueError, "IPL entries must be strings; got int: 3",
+                lambda: add_inconsistent_predicate(state, "sick", 3))
+    assert state.ipl == []

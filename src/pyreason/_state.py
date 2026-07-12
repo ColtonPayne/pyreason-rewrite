@@ -116,12 +116,32 @@ def add_fact(state: EngineState, pyreason_fact) -> None:
         state.edge_facts.append(pyreason_fact)
 
 
+def ipl_pair(pred1, pred2) -> tuple:
+    """Build one IPL pair, guarding entry types the way the pinned typed-list
+    append does: at the pin every IPL append lands in a numba
+    typed.List(Tuple((label_type, label_type))) (pyreason.py:629 for the add
+    path, yaml_parser.py:194 for the loader), and unbox_label reads each
+    Label's _value as a numba string (label_type.py:86-94), so any non-str
+    entry raises builtins.ValueError there. The pin's message is
+    address-derived garbage (unreproducible even pin-vs-pin), so this guard
+    raises the same type at the same seam with a stable, honest text instead
+    — DIV-0002, adjudicated 2026-07-11 (docs/divergences/DIV-0002.md)."""
+    for value in (pred1, pred2):
+        if not isinstance(value, str):
+            raise ValueError(
+                f"IPL entries must be strings; got {type(value).__name__}: {value!r}")
+    return (Label(pred1), Label(pred2))
+
+
 def add_inconsistent_predicate(state: EngineState, pred1: str, pred2: str) -> None:
     """Add one inconsistent predicate pair (oracle pyreason.py:620-629): the
-    list is created on first add; the pair is stored as Labels, in order."""
+    list is created on first add; the pair is stored as Labels, in order.
+    Non-string predicates raise ValueError at the append (ipl_pair — the
+    DIV-0002 guard; the pin's typed-list append rejects them at the same
+    point, after the empty list is already bound)."""
     if state.ipl is None:
         state.ipl = []
-    state.ipl.append((Label(pred1), Label(pred2)))
+    state.ipl.append(ipl_pair(pred1, pred2))
 
 
 def add_annotation_function(state: EngineState, function) -> None:
