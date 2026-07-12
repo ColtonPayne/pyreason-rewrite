@@ -5,9 +5,11 @@ scripts/utils/rule_parser.py), whose rejection behavior and exact message
 text are banked by the rule-text-malformed case. The control flow mirrors
 the pin statement-for-statement; the numba containers become plain lists,
 the weights ndarray becomes a plain float list (np.array conversion
-semantics mimicked on list input — the arm the public constructor exposes —
-including rectangular nested lists and None-to-NaN, see _weights_to_floats),
-and delta is a plain int wrapped modulo 2**16 (the pinned uint16 cast).
+semantics mimicked on list/tuple input — the arms the public constructor
+exposes — including rectangular nested sequences, None-to-NaN, and the
+0-d scalar's unsized-object length raise, see _weights_to_floats), and
+delta is a plain int cast through _delta_uint16 (the pinned uint16 cast:
+wrap modulo 2**16, OverflowError past the C-long max).
 
 Pinned quirks kept on purpose (equivalence first, per AC-6):
 - every leading digit of the body is consumed as one integer, so '<-10'
@@ -72,11 +74,11 @@ def parse_rule(rule_text, name, custom_thresholds, infer_edges=False,
         if delta_t == '':
             delta_t = 0
         else:
-            # The pinned constructor casts through numba.types.uint16
-            # (rule_parser.py:243 at the pin), so the stored delta wraps
-            # modulo 2**16: '<-65536' means delta_t=0 and '<-70000' means
-            # 4464 — banked by the rule-delta-variants case fingerprints.
-            delta_t = int(delta_t) % 65536
+            # Kept raw here; the pinned numba.types.uint16 cast happens at
+            # construction time (rule_parser.py:243 at the pin, AFTER every
+            # other validation) — mimicked by _delta_uint16 just before the
+            # RuleIR below, so clause/weights faults still raise first.
+            delta_t = int(delta_t)
 
         # Split the body into clauses and their bounds
         body_clauses, body_bounds = _split_body_into_clauses(body)
@@ -210,6 +212,14 @@ def parse_rule(rule_text, name, custom_thresholds, infer_edges=False,
         except (ValueError, TypeError):
             raise TypeError(f"weights must be a numpy array or convertible to one, got {type(weights).__name__}")
 
+        if not isinstance(weights, list):
+            # A scalar weights value converts to a 0-d ndarray at the pin
+            # (np.array(5) succeeds), so the length check's len() raises the
+            # pinned unsized-object TypeError — outside the conversion
+            # try/except, hence never re-wrapped (screened at the pin
+            # 2026-07-12: weights=5 and weights='12' both raise exactly this).
+            raise TypeError("len() of unsized object")
+
         if len(weights) != len(body_predicates):
             raise ValueError(f'Number of weights {len(weights)} is not equal to number of clauses {len(body_predicates)}')
 
@@ -220,24 +230,42 @@ def parse_rule(rule_text, name, custom_thresholds, infer_edges=False,
         if any(w < 0 for w in leaves):
             raise ValueError("weights must be non-negative")
 
-    return RuleIR(name, rule_type, target, list(head_variables), delta_t,
+    return RuleIR(name, rule_type, target, list(head_variables),
+                  _delta_uint16(delta_t),
                   clauses, target_bound, thresholds, ann_fn, weights,
                   list(head_fns), [list(v) for v in head_fns_vars], edges,
                   set_static, head_negated)
 
 
+def _delta_uint16(v):
+    """The pinned numba.types.uint16 cast at construction time
+    (rule_parser.py:243 at the pin): values up to the C-long max wrap
+    modulo 2**16, larger ints raise the pinned OverflowError verbatim
+    (screened at the pin 2026-07-12: 2**63-1 -> 65535, 2**63 and 2**64-1
+    both raise). Negative and float deltas cannot reach here — the parse
+    consumes digits only."""
+    if v > 2**63 - 1:
+        raise OverflowError("Python int too large to convert to C long")
+    return v % 65536
+
+
 def _weights_to_floats(w):
-    """Convert one weights list the way np.array(w, dtype=float64) does,
-    for the leaf types JSON input can carry (the arm the public constructor
-    and the JSON rule loader expose): numbers, numeric strings, and booleans
-    convert through float(); None converts to NaN (np fills nan, so a [None]
-    weight takes the FINITENESS raise, not the conversion raise — verified
-    against the pinned numpy 2026-07-12); nested lists must be rectangular
-    (np raises ValueError on ragged input) and keep their structure, so
-    len() of the result is the top-level row count exactly as len(ndarray)
-    is shape[0]. Any other leaf (dict, non-numeric string) raises — the
-    caller re-wraps every conversion fault as the pinned TypeError."""
-    if isinstance(w, list):
+    """Convert one weights value the way np.array(w, dtype=float64) does,
+    for the input classes the public constructor and the JSON rule loader
+    expose: numbers, numeric strings, booleans, and bytes convert through
+    float(); None converts to NaN (np fills nan, so a [None] weight takes
+    the FINITENESS raise, not the conversion raise — verified against the
+    pinned numpy 2026-07-12); nested SEQUENCES — lists and tuples alike,
+    np.array treats both as array dimensions (screened at the pin
+    2026-07-12: weights=(1,2) and [(1,2)] are both accepted) — must be
+    rectangular (np raises ValueError on ragged input) and normalize to
+    lists, so len() of the result is the top-level row count exactly as
+    len(ndarray) is shape[0]. Any other leaf (dict, set, non-numeric
+    string) raises — the caller re-wraps every conversion fault as the
+    pinned TypeError. Unmodeled: exotic sequence types beyond list/tuple
+    (e.g. range) and ndarray input itself — the rewrite engine carries no
+    numpy, so no cross-engine case program can construct one."""
+    if isinstance(w, (list, tuple)):
         converted = [_weights_to_floats(x) for x in w]
         shapes = {_weights_shape(x) for x in converted}
         if len(shapes) > 1:

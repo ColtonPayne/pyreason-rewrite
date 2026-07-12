@@ -153,6 +153,48 @@ def test_rule_weights_ragged_nested_list_takes_conversion_raise():
                              weights=[[1], [2, 3]]))
 
 
+@pytest.mark.parametrize("text,delta", [
+    ("popular(x) <-4294967296 boss(x)", 0),  # 2**32 still wraps
+    ("popular(x) <-9223372036854775807 boss(x)", 65535),  # C-long max wraps
+])
+def test_rule_delta_wraps_up_to_c_long_max(text, delta):
+    """proves: the uint16 wrap holds all the way to the C-long max — the
+    pinned numba.types.uint16 cast wraps 2**32 to 0 and 2**63-1 to 65535
+    (screened at the pin 2026-07-12, fresh processes, stable)."""
+    assert Rule(text).rule.get_delta() == delta
+
+
+def test_rule_delta_past_c_long_max_takes_pinned_overflow():
+    """proves: a delta past the C-long max raises the pinned OverflowError
+    verbatim — numba.types.uint16(2**63) raises rather than wraps at the pin
+    (screened 2026-07-12: 2**63 and 2**64-1 both raise 'Python int too
+    large to convert to C long'; 2**63-1 still wraps)."""
+    _raises_msg(OverflowError, "Python int too large to convert to C long",
+                lambda: Rule("popular(x) <-9223372036854775808 boss(x)"))
+
+
+def test_rule_weights_tuples_accepted_like_lists():
+    """proves: np.array treats tuples as array dimensions exactly like
+    lists, so a tuple weights value and a list-of-tuples both parse
+    (screened at the pin 2026-07-12: weights=(1,2) on a two-clause rule and
+    weights=[(1,2)] on a one-clause rule are both accepted)."""
+    r2 = Rule("popular(x) <-1 boss(x), rich(x)", "t2", weights=(1, 2)).rule
+    assert r2.get_rule_name() == "t2"
+    r1 = Rule("popular(x) <-1 boss(x)", "t1", weights=[(1, 2)]).rule
+    assert r1.get_rule_name() == "t1"
+
+
+def test_rule_weights_scalar_takes_pinned_unsized_len_raise():
+    """proves: a scalar weights value converts to a 0-d array at the pin, so
+    the length check's len() raises TypeError 'len() of unsized object' —
+    not the conversion re-wrap and not a float-has-no-len message (screened
+    at the pin 2026-07-12: weights=5 and weights='12' both raise exactly
+    this)."""
+    for w in (5, "12"):
+        _raises_msg(TypeError, "len() of unsized object",
+                    lambda w=w: Rule("popular(x) <-1 boss(x)", "n", weights=w))
+
+
 def test_rule_clause_shape_matches_fingerprint_contract():
     """proves: a parsed clause is the (type, Label, variables, Interval, op)
     tuple the accessor fingerprint renders — node clause, [1,1] default
