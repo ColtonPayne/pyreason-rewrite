@@ -99,3 +99,20 @@ pure-Python core with the session-28 optimizations) as the campaign's
 execution layer — or authorize one Option-C spike, and if so, which
 sub-option and its dependency ask?* Until answered, no dependency is
 added and no C-track work starts.
+
+## Addendum (2026-07-12) — the Pokec scaling evidence strengthens B
+
+The lab-compute Pokec replication
+([the report](pokec-scaling-report.md)) adds two facts. (1) At real
+diffusion-workload scale the rewrite is **~101× faster than the pinned
+oracle on identical inputs** (10k rung: 26.7 s vs 2,589–2,701 s), with
+equivalence PASS — the session-28 win widens off the synthetic ladder,
+and the pinned oracle cannot reach large real workloads at all. (2)
+The paper-era engine (pyreason 1.2.4) beats both via
+**neighborhood-scoped grounding** — O(E) per timestep, measured
+exponent 0.98, vs the modern global grounder's ~1.87 — meaning the
+zero-dependency core has a further, named, algorithmic (not
+dependency-bearing) headroom class for one-hop-anchored rules. That is
+post-decision work with a real equivalence-proof burden, but it bounds
+Option C's appeal further: the next order of magnitude on diffusion
+workloads looks reachable without leaving pure Python.
