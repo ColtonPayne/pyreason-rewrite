@@ -64,6 +64,7 @@ import statistics
 import subprocess
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -285,13 +286,26 @@ def parent_main(args) -> int:
               "machine": machine_identity(),
               "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
               "cases": {}}
+    report["parallel"] = args.parallel
     failed = False
     for case_path in case_paths:
         case_id = json.loads(case_path.read_text()).get("id", case_path.stem)
+        if args.parallel > 1:
+            # Concurrent repeats (operator-requested wall-clock mode): each
+            # repeat is still its own fresh process; threads only wait on
+            # them. Contention risk (memory bandwidth) is disclosed by the
+            # report's `parallel` field — bands stay honest either way.
+            with ThreadPoolExecutor(max_workers=args.parallel) as pool:
+                records = list(pool.map(
+                    lambda i: measure_once(args.engine, case_path,
+                                           run_dir / f"{case_id}-run{i}.json"),
+                    range(args.repeats)))
+        else:
+            records = [measure_once(args.engine, case_path,
+                                    run_dir / f"{case_id}-run{i}.json")
+                       for i in range(args.repeats)]
         runs = []
-        for i in range(args.repeats):
-            record = measure_once(args.engine, case_path,
-                                  run_dir / f"{case_id}-run{i}.json")
+        for i, record in enumerate(records):
             if "error" in record:
                 print(f"FAIL {case_id} run {i}: {record['error']}",
                       file=sys.stderr)
@@ -322,6 +336,10 @@ def main(argv=None) -> int:
     parser.add_argument("--cases", type=Path,
                         help="a case file or a directory of *.json cases")
     parser.add_argument("--repeats", type=int, default=5)
+    parser.add_argument("--parallel", type=int, default=1,
+                        help="max concurrent repeats (1 = the banked "
+                             "sequential protocol; >1 trades band tightness "
+                             "for wall-clock and says so in the report)")
     parser.add_argument("--results", type=Path,
                         default=REPO / "results-phase4-baselines")
     parser.add_argument("--tag", default=time.strftime("%Y%m%d-%H%M%S"),
@@ -338,6 +356,8 @@ def main(argv=None) -> int:
     args.results = args.results.resolve()
     if args.repeats < 1:
         parser.error("--repeats must be >= 1")
+    if args.parallel < 1:
+        parser.error("--parallel must be >= 1")
     return parent_main(args)
 
 

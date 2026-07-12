@@ -3,8 +3,11 @@ validation, and the median/spread aggregation the banked baselines cite.
 No engine, no subprocess: the measured seam is exercised e2e by the banked
 baseline runs themselves (docs/perf/oracle-baselines.md)."""
 
+import json
+
 import pytest
 
+from harness import bench
 from harness.bench import (aggregate_case, child_payload_fault, parse_maxrss,
                            summarize)
 
@@ -95,6 +98,33 @@ def test_child_payload_fault_rejects_partial_or_foreign_payloads(mutate):
     payload = _payload()
     mutate(payload)
     assert child_payload_fault(payload) is not None
+
+
+def test_parent_parallel_mode_banks_same_shape_and_says_parallel(
+        tmp_path, monkeypatch):
+    """proves: --parallel N produces the sequential mode's report shape (all
+    repeats aggregated per metric) and stamps `parallel` in the report, so a
+    contention-mode run can never masquerade as the banked protocol."""
+    case = {"id": "c", "inputs": {"reason": {"timesteps": 1}}}
+    case_path = tmp_path / "c.json"
+    case_path.write_text(json.dumps(case))
+    calls = []
+
+    def fake_measure(engine, cpath, opath):
+        calls.append(opath.name)
+        return {**_payload(import_s=float(len(calls))),
+                "maxrss_bytes": 1000, "maxrss_source": "child-rusage",
+                "wall_s": 1.0}
+
+    monkeypatch.setattr(bench, "measure_once", fake_measure)
+    rc = bench.parent_main(type("A", (), {
+        "cases": case_path, "results": tmp_path / "res", "tag": "t",
+        "engine": "/fake/python", "repeats": 3, "parallel": 3})())
+    assert rc == 0
+    report = json.loads((tmp_path / "res" / "t" / "bench-report.json").read_text())
+    assert report["parallel"] == 3
+    assert sorted(calls) == ["c-run0.json", "c-run1.json", "c-run2.json"]
+    assert report["cases"]["c"]["summary"]["import_s"]["n"] == 3
 
 
 def test_aggregate_case_derives_cold_start_and_survives_missing_maxrss():
