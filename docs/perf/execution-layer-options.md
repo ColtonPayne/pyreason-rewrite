@@ -100,6 +100,19 @@ execution layer — or authorize one Option-C spike, and if so, which
 sub-option and its dependency ask?* Until answered, no dependency is
 added and no C-track work starts.
 
+## Decision (operator, 2026-07-12)
+
+**Option B is signed.** The operator committed the execution layer in
+session 33: the campaign ships the pure-Python core with the session-28
+optimizations (commits `c56d238`, `c218f45`, `958523a`, `ca600a3`). The
+C-track closes unopened — no sub-option was authorized, no dependency ask
+was granted, and no spike session runs. The session-32 boundary sweep
+(116/116 PASS, one clean invocation) was banked over exactly this tree
+state and stands as the verdict-of-record of the chosen layer. The
+decision record with the evidence trail and the AC-5.5 version-headroom
+statement is
+[ADR 0004](../adr/0004-execution-layer-pure-python-core.md).
+
 ## Addendum (2026-07-12) — the Pokec scaling evidence strengthens B
 
 The lab-compute Pokec replication
