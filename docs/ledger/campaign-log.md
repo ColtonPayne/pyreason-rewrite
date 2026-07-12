@@ -739,3 +739,33 @@ which would leave only harness-quality polish in the unblocked queue while
 the execution-layer decision waits.
 
 **Resume prompt.** `/campaign`
+
+## Session 30 — 2026-07-12
+
+**What we knew going in.** With the execution-layer decision waiting on the
+operator, one substantive unblocked thread remained: the case seeds carried
+in the ledger for weeks — the error-tolerant loader paths, malformed-input
+widenings, and two graph-attribute coercion quirks that had only ever been
+observed by review probes, never by committed cases.
+
+**What we learned this session.** All of it banked. Ten new cases pass both
+engines, taking the committed corpus to one hundred fifteen, and the pin
+screens forced two real fixes to the rewrite's rule parser — its delta and
+weights handling had never been exercised on the pin's stranger inputs
+(sixteen-bit wraparound, nested weight lists). The independent review then
+did exactly what it exists for: probing beyond the author's sampled points,
+it found three more coercion classes the new models got wrong — including
+integers large enough to overflow where the pin raises — and fixed them
+against fresh screens. The session also survived a mid-run infrastructure
+failure: the author process was killed mid-packet, resumed against what was
+actually on disk rather than what it remembered claiming, and the review
+audited that recovery clean.
+
+**What we expect to learn next session.** The last unblocked thread:
+harness-quality work — making the full-corpus sweep interruption-proof,
+adding self-describing timing and input echoes to capture artifacts, a
+version tripwire, and a characterization of the pinned parallel kernel's
+multi-rule behavior. After that banks, everything left waits on the
+operator's execution-layer decision.
+
+**Resume prompt.** `/campaign`
