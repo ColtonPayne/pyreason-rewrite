@@ -1176,6 +1176,15 @@ def _ground_rule(interp, rule, extended_ann_fn, t, interpretations_node,
                     add_head_var_node_to_graph = True
                 groundings[head_var_1] = [head_var_1]
 
+            # Refinement may have narrowed groundings since the clause
+            # pass — re-check every clause before accepting a head. Nothing
+            # inside this loop mutates groundings, groundings_edges, or the
+            # worlds the check reads (the lone _add_node arm forces a
+            # single-element head grounding list), so the pinned per-head
+            # re-check computes the same value for every head grounding:
+            # compute it on the first iteration and reuse it — same
+            # observable, without the per-head full-clause re-scan.
+            head_check = None
             for head_grounding in groundings[head_var_1]:
                 qualified_nodes = []
                 qualified_edges = []
@@ -1184,11 +1193,11 @@ def _ground_rule(interp, rule, extended_ann_fn, t, interpretations_node,
                 clause_variables_out = []
                 edges_to_be_added = ([], [], rule_edges[-1])
 
-                # Refinement may have narrowed groundings since the clause
-                # pass — re-check every clause before accepting this head
-                satisfaction = check_all_clause_satisfaction(
-                    interpretations_node, interpretations_edge, clauses,
-                    thresholds, groundings, groundings_edges, cwp)
+                if head_check is None:
+                    head_check = check_all_clause_satisfaction(
+                        interpretations_node, interpretations_edge, clauses,
+                        thresholds, groundings, groundings_edges, cwp)
+                satisfaction = head_check
                 if not satisfaction:
                     continue
 
