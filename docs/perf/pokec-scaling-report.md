@@ -120,23 +120,51 @@ neighborhood grounder for first-order generality (arbitrary variable patterns,
 `infer_edges`) somewhere between 1.2.4 and today; the published performance describes an
 engine that no longer ships.
 
-**Verification outcome: the paper's performance claims are consistent with the
-paper-era engine and NOT reproducible on the pinned engine; the gap is an upstream
-algorithmic regression we can name, bound (202× at 10k), and date to the
-post-1.2.4 grounding rework.** Memory is the one claim tracking on all three engines
-(rewrite: 1.63 GB at 50k). A full-scale paper-era verification run (projected ~1 h) is
-in progress via a 200k screen.
+**The full-scale verification run (1.2.4, complete Pokec, both rules, timesteps=8):**
 
-## Pending (v2, tonight)
+| | Paper (2023, 96 vCPU EC2) | Measured (1.2.4, sanders, one core) |
+|---|---|---|
+| reason | 42 min | **60.6 min** (3,633.7 s) |
+| setup (31M-edge graph load) | not separated | 16.4 min |
+| peak RSS | 58.36 GB | 185 GB |
+| scaling in edges (10k→200k→full) | "sub-linear" | **linear, x^0.98** |
+| CPU | "supports CPU parallelism" | 100% of one core |
 
-1. The 200k rewrite band (n=2) → density-matched full-scale projection.
-2. The oracle 10k clean protocol band (n=2).
-3. The paper-era 200k screen → full-scale 1.2.4 verification run (projected ~1 h),
-   the honest way to satisfy "verify the paper's results".
-4. The operator's full-scale fork, with projected wall-clocks per option:
-   full-scale rewrite (n=1 sequential + n=7 parallel ≈ one repeat's wall-clock ≈
-   projected days), largest-feasible cross-engine equivalence rung, or stop at the
-   characterization.
+**Verification outcome: the paper's runtime claim is verified in substance on the
+paper-era engine** — same order, same shape, on one core versus their 96 vCPUs
+(consistent with the engine never really using more than one) — **and is not
+reproducible on the pinned engine, where the gap is an upstream algorithmic regression
+we can name, bound (202× at 10k), and date to the post-1.2.4 grounding rework.**
+
+**The result-count divergence is reconstruction density, bracketed by experiment.**
+Our rebuild reaches 1,158,131 relevance rows at t=8 (~71% of users) vs the paper's
+~53k (~3.3%). A 10k variant with *instance-scoped* pet nodes (rule 2 structurally
+inert) freezes at t=1 with exactly the seeds' one-hop halo — the paper's stall shape —
+and the paper's own arithmetic sits just above that extreme (2,693 fully-relevant hubs
+× ~19 friends ≈ 50,608, their exact partial count). So the paper's effective shared-pet
+layer was far sparser than our stem-based rebuild; the engines agree with each other on
+any given reconstruction (10k equivalence PASS; 1.2.4 within ~4.5% on ours). The memory
+gap (185 vs 58 GB) follows the same cause: a saturating diffusion carries ~20× more
+active atoms. Both engines' superlinear scaling numbers above are therefore claims
+about *our* (denser, disclosed) reconstruction.
+
+## Operator decisions of record (2026-07-12, approved in session)
+
+- **No full-scale rewrite run** — the fitted scaling law is the characterization; a
+  lone full-scale dot has no oracle to compare against and costs ~9.5 days.
+- **Equivalence-at-scale anchor at the 25k rung** (largest overnight-feasible oracle
+  rung) — queued to run after the 200k band closes.
+- **Parallel-mode validation** of `--parallel` at 10k (n=7 sequential vs n=7 parallel)
+  — queued in the same overnight batch.
+- The paper-era full-scale verification runs n=2 (repeat in flight) for a minimal band.
+- Oracle 10k clean protocol band: **reason median 2,600 s, spread 22 s (0.85%)** —
+  banked above.
+
+## Pending (v3, tonight/tomorrow morning)
+
+1. The 200k rewrite band (n=2) → density-matched full-scale projection of record.
+2. The paper-era full repeat (band).
+3. The overnight results: parallel validation + the 25k equivalence verdict.
 
 ## Idea seeds
 
