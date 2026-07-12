@@ -8,8 +8,8 @@ provenance `perf ladder`), so performance and equivalence share inputs: the
 same case files run through the differential harness for the equivalence
 verdict and through the benchmark runner (`harness/bench.py`) for the
 numbers. The committed ladder precedes any floor verdict; thresholds beyond
-the parity floor are proposed only after baselines exist (banked beside this
-file as `oracle-baselines.md`).
+the parity floor are proposed only after baselines exist
+([oracle-baselines.md](oracle-baselines.md)).
 
 ## What the engine actually spends time on
 
@@ -76,7 +76,7 @@ bounded enough to keep artifacts in the single-digit-MB range.
 
 Screened wall-clocks above are single smoke runs on the campaign machine
 (2026-07-12, oracle-env numba cache warm); the banked medians with noise
-bands live beside this file in `oracle-baselines.md`.
+bands live in [oracle-baselines.md](oracle-baselines.md).
 
 ## Structural constraints (not tribal knowledge)
 
