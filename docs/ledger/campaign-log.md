@@ -708,3 +708,34 @@ forms, the latter expected to surface the one remaining known divergence
 whose resolution the operator already pre-authorized.
 
 **Resume prompt.** `/campaign`
+
+## Session 29 — 2026-07-12
+
+**What we knew going in.** The execution-layer decision was queued for the
+operator, so the campaign turned to its oldest unblocked debt: two case
+families deferred since the registrand work — the return-shape and
+duplicate-name arms of user-registered functions, and head functions on edge
+rules — plus the one remaining known divergence, whose resolution the
+operator had already pre-authorized in the adjudication batch.
+
+**What we learned this session.** All of it landed. Six new cases pass
+oracle-vs-rewrite, the unreachable arm was re-proven unreachable rather than
+assumed, and the pre-authorized divergence is now implemented and filed: where
+the pinned engine dies with an empty KeyError on a re-inferred edge in fp
+mode, the rewrite raises the same error type with an honest message naming
+the edge — the third and last known divergence record, adjudicated on filing.
+The independent review earned its cost twice over: it caught the new
+coercion model accepting list returns the pinned engine rejects — fixed
+against fresh screens of the pin before any case could bank a wrong bound —
+and it found that the oracle environment's compile-cache baseline itself
+carries four import-fragile entries from an earlier session, now recorded
+with a re-baselining recommendation for the operator rather than silently
+tidied.
+
+**What we expect to learn next session.** The remaining case seeds in one
+batch — the error-tolerant loader arms, the malformed-CSV and interval
+widenings, and the two graphml coercion quirks if they prove bankable —
+which would leave only harness-quality polish in the unblocked queue while
+the execution-layer decision waits.
+
+**Resume prompt.** `/campaign`
