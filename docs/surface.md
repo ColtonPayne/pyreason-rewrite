@@ -88,7 +88,7 @@ classes likewise.
   - bound-duplicate-pair
   - malformed-empty-string
   - malformed-non-str
-- notes: additive, no dedup or name validation at this boundary
+- notes: additive, no dedup or name-content validation at this boundary. **DIV-0002 guard parity (adjudicated 2026-07-11, session 25, batch item A2)**: non-string predicates raise the stable ValueError at the append — the shared ipl_pair guard, src/pyreason/_state.py; the pinned twin's typed-list append (pyreason.py:629) fails the identical unbox — and a first failed add leaves the IPL created-but-empty, matching the pin binding the empty typed list before the failing append; seam test tests/test_rewrite_state_loaders.py::test_add_inconsistent_predicate_nonstring_raises_the_same_guard
 - analysis: docs/analysis/surface/facts-and-graph.md
 
 ## fn:add_closed_world_predicate
