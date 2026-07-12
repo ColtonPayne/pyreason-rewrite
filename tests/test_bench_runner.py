@@ -37,6 +37,22 @@ def test_parse_maxrss_last_match_wins_and_absence_is_none():
     assert parse_maxrss("child said nothing relevant\n") is None
 
 
+TIME_V_TAIL = """\
+some child stderr line
+\tUser time (seconds): 8.12
+\tMaximum resident set size (kbytes): 328496
+\tExit status: 0
+"""
+
+
+def test_parse_maxrss_reads_the_gnu_time_v_block_in_bytes():
+    """proves: parse_maxrss reads GNU `time -v` stderr (the Linux dialect),
+    normalizing kbytes to bytes, and the macOS byte dialect wins when both
+    appear (a macOS child echoing GNU-looking text cannot flip units)."""
+    assert parse_maxrss(TIME_V_TAIL) == 328496 * 1024
+    assert parse_maxrss(TIME_V_TAIL + TIME_L_TAIL) == 336379904
+
+
 def test_summarize_median_and_noise_band_odd_and_even():
     """proves: summarize banks median/min/max and spread=max-min (the
     control-repeat noise band) for both odd and even repeat counts."""
@@ -57,6 +73,13 @@ def test_child_payload_fault_accepts_the_real_shape():
     """proves: a well-formed bench-child payload passes validation, so a
     healthy run is aggregable."""
     assert child_payload_fault(_payload()) is None
+
+
+def test_child_payload_fault_accepts_self_reported_maxrss():
+    """proves: the Linux-fallback payload field (maxrss_self_bytes) rides
+    through validation — a wrapper-less box still aggregates."""
+    assert child_payload_fault(
+        {**_payload(), "maxrss_self_bytes": 123456789}) is None
 
 
 @pytest.mark.parametrize("mutate", [

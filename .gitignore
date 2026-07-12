@@ -12,3 +12,6 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .venv/
+
+# Pokec fixtures — GB-scale, regenerated on-box from the SNAP files
+harness/fixtures/pokec/

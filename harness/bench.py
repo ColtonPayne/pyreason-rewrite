@@ -34,12 +34,16 @@ Metrics per run (seconds via time.perf_counter unless noted):
 - `cold_start_s` — `import_s + reason_s`, computed by the parent: the
   fresh-process import + first-`reason()` metric (the small rung is the
   designated cold-start workload).
-- `maxrss_bytes` — peak resident set size of the whole child process, as
-  reported by `/usr/bin/time -l` (macOS reports bytes; it takes the value
-  from wait4()'s per-child rusage, so repeats never contaminate each other
-  the way an in-parent RUSAGE_CHILDREN aggregate would — that counter is
-  monotonic across children, which is why it is NOT used here). The window
-  covers import + setup + reason (no probes) and is documented as
+- `maxrss_bytes` — peak resident set size of the whole child process. On
+  macOS from `/usr/bin/time -l` (bytes), on Linux from GNU `time -v`
+  (kbytes, normalized) — both take wait4()'s per-child rusage, so repeats
+  never contaminate each other the way an in-parent RUSAGE_CHILDREN
+  aggregate would (that counter is monotonic across children, which is why
+  it is NOT used here). Where no time wrapper exists the child's own
+  RUSAGE_SELF at exit is banked instead and `maxrss_source` says so
+  ("time-wrapper" vs "child-rusage" — same peak in practice, since the
+  allocation peak is inside the measured window). The window covers
+  import + setup + reason (no probes) and is documented as
   peak-of-process, not reasoning-only.
 - `wall_s`    — parent-observed wall-clock of the whole child, context for
   the timer values.
@@ -65,22 +69,40 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 HASHSEED = "0"  # pinned like harness.run: measurement runs under the same
                 # env fingerprint as equivalence runs — shared inputs, shared env
-TIME_TOOL = "/usr/bin/time"  # -l: per-child rusage on macOS (bytes)
+TIME_TOOL = "/usr/bin/time"  # -l: macOS rusage (bytes); -v: GNU time (kbytes)
 
 MAXRSS_RE = re.compile(r"(\d+)\s+maximum resident set size")
+MAXRSS_GNU_RE = re.compile(r"Maximum resident set size \(kbytes\):\s*(\d+)")
 CHILD_METRICS = ("import_s", "setup_s", "reason_s")
 
 
 # ---------------------------------------------------------------- pure layer
 
-def parse_maxrss(time_l_output: str):
-    """Peak RSS in bytes from `/usr/bin/time -l` stderr text, or None.
+def parse_maxrss(time_output: str):
+    """Peak RSS in bytes from time-wrapper stderr text, or None. Accepts both
+    dialects: macOS `/usr/bin/time -l` (bytes) and GNU `time -v` (kbytes,
+    normalized to bytes here).
 
     Searches the whole text (the child's own stderr precedes the rusage
     block); the last match wins so a child that happened to echo a
     similar-looking line cannot shadow the real trailing block."""
-    matches = MAXRSS_RE.findall(time_l_output)
-    return int(matches[-1]) if matches else None
+    matches = MAXRSS_RE.findall(time_output)
+    if matches:
+        return int(matches[-1])
+    matches = MAXRSS_GNU_RE.findall(time_output)
+    return int(matches[-1]) * 1024 if matches else None
+
+
+def time_wrapper():
+    """The per-child rusage wrapper for this platform, or None when no
+    wrapper exists (then the child's self-reported rusage is the fallback —
+    same peak in practice: the allocation peak is inside the measured
+    window, and the child reports at exit)."""
+    if sys.platform == "darwin":
+        return [TIME_TOOL, "-l"]
+    if os.path.exists(TIME_TOOL):
+        return [TIME_TOOL, "-v"]
+    return None
 
 
 def summarize(values):
@@ -174,10 +196,17 @@ def child_main(case_path: Path, out_path: Path) -> int:
     pr.reason(**build_reason_args(pr, inputs["reason"]))
     reason_s = time.perf_counter() - t2
 
+    import resource
+    ru_maxrss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    # macOS reports bytes, Linux kilobytes — normalized to bytes here so the
+    # parent's fallback path never has to know the child's platform.
+    maxrss_self = ru_maxrss if sys.platform == "darwin" else ru_maxrss * 1024
+
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps({
         "schema": 1, "mode": "bench-child", "case_id": case["id"],
         "import_s": import_s, "setup_s": setup_s, "reason_s": reason_s,
+        "maxrss_self_bytes": maxrss_self,
         "python": sys.version.split()[0], "executable": sys.executable,
     }, indent=2, sort_keys=True))
     return 0
@@ -190,10 +219,11 @@ def measure_once(engine: str, case_path: Path, out_path: Path) -> dict:
     the run record or an {'error': ...} record. Raw stderr is preserved
     beside the payload for auditability."""
     out_path.unlink(missing_ok=True)
+    wrapper = time_wrapper()
     t0 = time.perf_counter()
     proc = subprocess.run(
-        [TIME_TOOL, "-l", engine, "-m", "harness.bench",
-         "--child", str(case_path), str(out_path)],
+        (wrapper or []) + [engine, "-m", "harness.bench",
+                           "--child", str(case_path), str(out_path)],
         capture_output=True, text=True, cwd=REPO,
         env={**os.environ, "PYTHONHASHSEED": HASHSEED},
     )
@@ -209,17 +239,31 @@ def measure_once(engine: str, case_path: Path, out_path: Path) -> dict:
     fault = child_payload_fault(payload)
     if fault:
         return {"error": fault}
-    return {**payload, "maxrss_bytes": parse_maxrss(proc.stderr),
+    maxrss = parse_maxrss(proc.stderr) if wrapper else None
+    source = "time-wrapper" if maxrss is not None else (
+        "child-rusage" if payload.get("maxrss_self_bytes") is not None
+        else None)
+    if maxrss is None:
+        maxrss = payload.get("maxrss_self_bytes")
+    return {**payload, "maxrss_bytes": maxrss, "maxrss_source": source,
             "wall_s": wall_s}
 
 
 def machine_identity() -> dict:
-    """The banked machine fingerprint. Chip via sysctl (best-effort — the
-    identity block must never fail a measurement run)."""
+    """The banked machine fingerprint. Chip via sysctl on macOS,
+    /proc/cpuinfo elsewhere (best-effort — the identity block must never
+    fail a measurement run)."""
+    chip = None
     try:
-        chip = subprocess.run(
-            ["sysctl", "-n", "machdep.cpu.brand_string"],
-            capture_output=True, text=True, timeout=10).stdout.strip() or None
+        if sys.platform == "darwin":
+            chip = subprocess.run(
+                ["sysctl", "-n", "machdep.cpu.brand_string"],
+                capture_output=True, text=True, timeout=10).stdout.strip() or None
+        else:
+            for line in Path("/proc/cpuinfo").read_text().splitlines():
+                if line.lower().startswith("model name"):
+                    chip = line.split(":", 1)[1].strip()
+                    break
     except OSError:
         chip = None
     return {"platform": platform.platform(), "machine": platform.machine(),
