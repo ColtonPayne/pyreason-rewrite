@@ -677,3 +677,34 @@ options with a recommendation: ship the pure core as-is, ship it with the
 algorithmic win, or authorize heavier acceleration spikes.
 
 **Resume prompt.** `/campaign`
+
+## Session 28 — 2026-07-12
+
+**What we knew going in.** The pure-Python core already met the performance
+floor — faster than the oracle everywhere except a tie on the largest
+workload — and the profile pointed at one place: the clause-satisfaction
+part of grounding, drowning in tens of millions of label hash and equality
+calls.
+
+**What we learned this session.** The hot path yielded to plain engineering,
+no dependencies required. Four changes — memoizing a redundant per-head
+re-check, caching label hashes, hoisting constant work out of the grounding
+scans, and sharing one label object per attribute string at load time — took
+the large rung from eighteen seconds to 1.2, which is fourteen times faster
+than the oracle on the workload that was designed to stress reasoning at
+scale. Equivalence held under adversarial review: every optimization was
+re-derived safe against the pinned source, and a deliberately hostile
+twenty-case sample — mid-run edge addition, expiring facts, the fp engine,
+trace ordering — passed oracle-vs-rewrite without a single divergence. The
+profile is now flat: no single kernel dominates, so further dependency-free
+gains are capped around another third.
+
+**What we expect to learn next session.** Two threads. The big one waits on
+the operator: the execution-layer decision, with the memo recommending we
+ship the pure-Python core as it now stands — every rung faster than the
+oracle, no dependencies, no version ceiling. Meanwhile the unblocked breadth
+seeds proceed: the registrand-behavior arms and the edge-rule head-function
+forms, the latter expected to surface the one remaining known divergence
+whose resolution the operator already pre-authorized.
+
+**Resume prompt.** `/campaign`
