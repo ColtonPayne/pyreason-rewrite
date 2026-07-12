@@ -647,3 +647,33 @@ profiles: where the time actually goes in each engine, which names the
 kernels any acceleration spike should target.
 
 **Resume prompt.** `/campaign`
+
+## Session 27 — 2026-07-12
+
+**What we knew going in.** Phase 4 had its measuring stick — the committed
+ladder and the oracle's banked numbers — plus a tantalizing single-run hint
+that the pure-Python core was already fast enough. Two debts were open: the
+mid-campaign pickup drill, and the actual profile of where time goes.
+
+**What we learned this session.** Both debts are paid and both answers are
+good. A cold agent handed nothing but the committed repository reconstructed
+the whole campaign accurately and proved the next step executable — the
+committed state is genuinely sufficient to resume from, which is the
+campaign's insurance policy. And the performance hint survived confirmation:
+across seven-run series with noise bands, the reference core beats the oracle
+outright on the small and medium rungs and on cold start (65× faster to first
+answer, at a seventh of the memory), and ties it on the large rung — meaning
+the charter's performance floor is already met by the plain-Python core,
+before any acceleration work. The profile then named exactly where the large
+rung's time goes: almost all of it in the clause-satisfaction part of
+grounding, dominated by tens of millions of label equality and hash calls —
+a concrete, addressable target.
+
+**What we expect to learn next session.** Whether a dependency-free
+algorithmic change to that hot path — label interning, cheaper world lookups —
+buys a real, band-clearing win on the large rung. Either way, the session
+ends by putting the execution-layer decision to the operator as measured
+options with a recommendation: ship the pure core as-is, ship it with the
+algorithmic win, or authorize heavier acceleration spikes.
+
+**Resume prompt.** `/campaign`
