@@ -800,3 +800,31 @@ corpus as the verdict-of-record, and the campaign moves to its closing
 criteria.
 
 **Resume prompt.** `/campaign` (after answering docs/perf/execution-layer-options.md)
+
+## Session 32 — 2026-07-12
+
+**What we knew going in.** The unblocked queue was empty: everything left
+waited on the operator's execution-layer decision, with the full-corpus
+boundary sweep slotted to run after that word. Overnight, the operator
+directed the campaign to keep doing whatever could be done autonomously
+until only true operator decisions remained.
+
+**What we learned this session.** The boundary sweep could run without the
+decision — its evidence binds to the tree as it stands, and the tree today
+is exactly the recommended Option-B state. So it ran: all one hundred
+sixteen corpus cases through both engines in one clean, uninterrupted
+invocation, and every single case passed — no divergences, nothing to fix,
+the first phase-boundary sweep to surface zero findings. An independent
+reviewer re-derived the verdict from the raw artifacts alone, verified
+every artifact hash and completion marker, reran a seven-case sample live,
+and approved with zero fixes. If the operator answers Option B, the
+verdict-of-record for the campaign's closing phase is already banked; an
+Option A or C answer would change the tree and force a re-sweep.
+
+**What we expect to learn next session.** The operator's execution-layer
+answer decides the path: Option B goes straight to the maintainability
+closure audit and the decision record; A or C reopens the sweep. The
+window-close pickup drill (a cold agent proving the committed state is
+resumable) remains runnable regardless.
+
+**Resume prompt.** `/campaign` (after answering docs/perf/execution-layer-options.md)
