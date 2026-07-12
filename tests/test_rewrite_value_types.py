@@ -94,6 +94,17 @@ def test_label_eq_against_plain_string_raises_attributeerror():
         Label("popular") == "popular"
 
 
+def test_label_nonstring_value_raises_typeerror_at_every_hash_never_at_construction():
+    """proves: a non-string Label value constructs silently and raises the
+    pinned TypeError('__str__ returned non-string...') at EVERY hash() call —
+    the lazy hash cache must neither raise at construction nor memoize a
+    first-hash failure into a different second-hash observable."""
+    lbl = Label(3)  # construction never raises — the pinned shape
+    for _ in range(2):
+        with pytest.raises(TypeError, match="__str__ returned non-string"):
+            hash(lbl)
+
+
 def test_threshold_accepts_all_quantifiers_and_stores_verbatim():
     """proves: every pinned quantifier and quantifier_type combination
     constructs, and to_tuple() echoes the stored triple verbatim."""

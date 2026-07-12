@@ -44,7 +44,7 @@ risk-per-second at this profile).
 
 | rung | reason() median (band) [spread] | pre-spike (band) | oracle (band) | verdict |
 |---|---|---|---|---|
-| small | **0.0028** (0.0028…0.0028) [0.0000] | 0.0041 (0.0041…0.0041) | 2.992 (2.922…3.053) | 1.46× vs pre-spike, bands disjoint |
+| small | **0.0028** (0.0028…0.0028) [0.0000] | 0.0041 (0.0041…0.0041) | 2.992 (2.922…3.053) | 1.47× vs pre-spike, bands disjoint |
 | medium | **0.151** (0.151…0.153) [0.002] | 0.655 (0.654…0.656) | 3.611 (3.529…3.625) | 4.3× vs pre-spike, bands disjoint |
 | large | **1.226** (1.224…1.240) [0.017] | 18.792 (18.124…18.940) | 17.977 (17.178…18.524) | **15.3× vs pre-spike, 14.7× vs oracle — all bands disjoint; the session-27 large-rung tie is now a win** |
 

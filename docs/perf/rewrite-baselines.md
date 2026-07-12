@@ -132,7 +132,7 @@ tie rule):
 
 | metric | post-spike (band) | pre-spike (band) | oracle (band) | verdict |
 |---|---|---|---|---|
-| small reason() | 0.0028 (0.0028…0.0028) | 0.0041 (0.0041…0.0041) | 2.992 (2.922…3.053) | **1.46× vs pre-spike** (bands disjoint); ~1070× vs oracle |
+| small reason() | 0.0028 (0.0028…0.0028) | 0.0041 (0.0041…0.0041) | 2.992 (2.922…3.053) | **1.47× vs pre-spike** (bands disjoint); ~1070× vs oracle |
 | medium reason() | 0.151 (0.151…0.153) | 0.655 (0.654…0.656) | 3.611 (3.529…3.625) | **4.3× vs pre-spike** (bands disjoint); ~24× vs oracle |
 | large reason() | 1.226 (1.224…1.240) | 18.792 (18.124…18.940) | 17.977 (17.178…18.524) | **15.3× vs pre-spike, 14.7× vs oracle** (all three bands disjoint — the session-27 tie becomes a win) |
 | cold-start (small) | 0.067 (0.066…0.067) | 0.068 (0.067…0.069) | 4.376 (4.267…4.477) | tie vs pre-spike (import dominates; bands touch); ~65× vs oracle |

@@ -38,7 +38,7 @@ Listed only for completeness.
 
 Ship the pure-Python core with commits `c56d238`, `c218f45`, `958523a`,
 `ca600a3`. The win cleared every band: large-rung 15.3× vs the pre-spike
-rewrite band and 14.7× vs the oracle band, medium 4.3×, small 1.46× —
+rewrite band and 14.7× vs the oracle band, medium 4.3×, small 1.47× —
 all with disjoint bands (the memo's table above; full bands in
 [rewrite-baselines.md](rewrite-baselines.md)). Zero new dependencies,
 one reasoning core, no kernel seam, no compile step, no version
