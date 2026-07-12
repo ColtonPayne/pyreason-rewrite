@@ -1,0 +1,28 @@
+#!/bin/sh
+# One-command bench reproduction for the committed AC-4 ladder
+# (docs/perf/ladder.md): stages the three perf-ladder-*.json cases into a
+# scratch dir (harness.bench takes a case *directory*, and staging keeps the
+# other ~90 harness cases out of the series), then runs the whole series in
+# one invocation so a single report carries all three rungs.
+#
+# Usage: scripts/bench-ladder <engine-python> <tag> [repeats]
+#   engine-python  oracle-env/bin/python | scripts/rewrite-python (or absolute)
+#   tag            artifact label: results-phase4-baselines/<tag>/
+#   repeats        fresh processes per rung (default 7 — the confirmation
+#                  series shape; use 1 for a smoke screen)
+#
+# Env pinning (PYTHONHASHSEED=0) matches harness.run/harness.bench so the
+# measurement runs under the same fingerprint as equivalence runs.
+set -eu
+if [ "$#" -lt 2 ]; then
+    echo "usage: scripts/bench-ladder <engine-python> <tag> [repeats]" >&2
+    exit 2
+fi
+repo="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+engine="$1"; tag="$2"; repeats="${3:-7}"
+stage="$(mktemp -d)"
+trap 'rm -rf "$stage"' EXIT
+cp "$repo"/harness/cases/perf-ladder-*.json "$stage"/
+cd "$repo"
+PYTHONHASHSEED=0 uv run python -m harness.bench \
+    --engine "$engine" --cases "$stage" --repeats "$repeats" --tag "$tag"

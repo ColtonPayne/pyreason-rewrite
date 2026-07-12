@@ -100,8 +100,11 @@ MiB (of the whole child: import + setup + reason, no probes).
 ## Reproduction
 
 ```
-# confirmation series (the numbers above); cases staged into one dir so a
-# single invocation writes one report:
+# confirmation series (the numbers above) — one command; the helper stages
+# the three ladder cases into a scratch dir so a single invocation writes
+# one report (works for either engine):
+scripts/bench-ladder oracle-env/bin/python oracle-baselines-2026-07-12 7
+# equivalent long form:
 mkdir -p /tmp/ladder && cp harness/cases/perf-ladder-*.json /tmp/ladder/
 PYTHONHASHSEED=0 uv run python -m harness.bench \
   --engine oracle-env/bin/python --cases /tmp/ladder \
