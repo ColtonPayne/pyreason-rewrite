@@ -828,3 +828,36 @@ window-close pickup drill (a cold agent proving the committed state is
 resumable) remains runnable regardless.
 
 **Resume prompt.** `/campaign` (after answering docs/perf/execution-layer-options.md)
+
+## Session 33 — 2026-07-12
+
+**What we knew going in.** The boundary sweep had banked a perfect 116/116
+verdict-of-record for the tree as it stood, and everything of consequence
+waited on one signature: which execution layer ships. The operator was
+awake, reviewing the evidence, and had two smaller asks queued alongside —
+a cache-hygiene re-baseline and, mid-session, a new question: exactly which
+upstream commit had destroyed the scaling the original paper measured.
+
+**What we learned this session.** The operator signed: the pure-Python core
+with its algorithmic optimizations is the engine this campaign ships. The
+decision now lives in the decision memo and in an architecture decision
+record carrying the version-headroom statement — two pure-Python libraries,
+no compiler, no interpreter ceiling. The maintainability audit closed all
+five of its bars green, two of them hardened this session (a malformed-input
+seam test and a standing gate that every test states what it proves). The
+oracle environment's compiled-kernel cache was rebuilt cleanly from bare
+runs, closing the one hygiene finding standing against its baseline. And
+the operator's history question got a sharp answer: one 2024 commit,
+bracketed between two releases, traded the paper's neighborhood-scoped rule
+matching for global matching — the source-level cause of the roughly
+two-hundred-fold slowdown the Pokec replication measured, with the
+confirming two-release run queued for the lab box. An independent reviewer
+re-derived every number and corrected one transcription slip in the
+decision record.
+
+**What we expect to learn next session.** The window-close pickup drill: a
+cold agent, given nothing but the committed repo, must reconstruct the
+campaign's state and prove the resume path works. Whatever it misreads is a
+defect in the committed state itself.
+
+**Resume prompt.** `/campaign`
