@@ -1,0 +1,81 @@
+{
+  "id": "head-fn-return-bare-string",
+  "purpose": "The head-function return-shape arm (the board's named-unobserved 'returning something other than a numba typed list of strings'): head_first_grounding_bare registers silently (the registrar validates nothing) but returns a bare grounding STRING, and reason() dies at the head-resolution seam with TypeError(\"can't unbox a <class 'str'> as a <class 'numba.typed.typedlist.List'>\") — the pinned _call_head_function objmode block unboxes the registrand result to types.ListType(types.unicode_type) (interpretation.py:2332). The raise is the reason step's banked outcome; get_time after it compares the state the raise left behind.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_head_function (return-contract arm, named unobserved until session 29); interpretation.py:2316-2338 at the pin; reference fn harness/reference_fns.py head_first_grounding_bare; screened live 2026-07-12 (screen_pin_arms.py head-str, 2 fresh pin processes, message byte-stable)",
+  "surface_items": [
+    "fn:add_head_function",
+    "fn:reason",
+    "fn:add_rule",
+    "fn:load_graph",
+    "fn:get_time",
+    "type:Rule",
+    "dsl:rule-text",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        [
+          "A",
+          {
+            "p": 1
+          }
+        ],
+        [
+          "B",
+          {
+            "p": 1
+          }
+        ]
+      ],
+      "edges": [
+        [
+          "A",
+          "B",
+          {
+            "connected": 1
+          }
+        ]
+      ]
+    },
+    "rules": [
+      {
+        "text": "Processed(head_first_grounding_bare(X)) <- p(X), p(Y), connected(X, Y)",
+        "name": "bare_head_rule"
+      }
+    ],
+    "facts": []
+  },
+  "steps": [
+    {
+      "id": "register-bare",
+      "op": "add_head_function",
+      "args": {
+        "name": "head_first_grounding_bare"
+      }
+    },
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 1
+      },
+      "probes": [
+        {
+          "id": "time-after-raise",
+          "kind": "get_time",
+          "allow_raise": true
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

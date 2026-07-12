@@ -1,0 +1,107 @@
+{
+  "id": "head-fn-duplicate-name",
+  "purpose": "The duplicate-name head-function arm (adjudication-batch B3's head twin): first_clause_first_grounding_shadow — a distinct callable whose __name__ is 'first_clause_first_grounding', grounding to the LAST grounding of its first argument — registers FIRST, the real first-grounding picker second, and the rule head grounds to the shadow's pick (Processed(B), X's groundings being ['A','B'] over the two-way connected pair): the pinned _call_head_function loop BREAKS on the first __name__ match (interpretation.py:2334-2336), so the FIRST registration wins — the sharp asymmetry with the annotation side's no-break last-wins, pinned by the sibling case.",
+  "runtime_class": "smoke",
+  "provenance": "docs/ledger/phase3-adjudication-batch.md B3 (head resolution asymmetry); interpretation.py:2316-2338 at the pin; reference fns harness/reference_fns.py first_clause_first_grounding + first_clause_first_grounding_shadow; screened live 2026-07-12 (screen_pin_arms.py head-dup, Processed(B) byte-identical cross-engine)",
+  "surface_items": [
+    "fn:add_head_function",
+    "fn:reason",
+    "fn:add_rule",
+    "fn:load_graph",
+    "fn:get_rule_trace",
+    "fn:filter_and_sort_nodes",
+    "fn:get_time",
+    "type:Rule",
+    "dsl:rule-text",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        [
+          "A",
+          {
+            "p": 1
+          }
+        ],
+        [
+          "B",
+          {
+            "p": 1
+          }
+        ]
+      ],
+      "edges": [
+        [
+          "A",
+          "B",
+          {
+            "connected": 1
+          }
+        ],
+        [
+          "B",
+          "A",
+          {
+            "connected": 1
+          }
+        ]
+      ]
+    },
+    "rules": [
+      {
+        "text": "Processed(first_clause_first_grounding(X)) <- p(X), p(Y), connected(X, Y)",
+        "name": "head_dup_rule"
+      }
+    ],
+    "facts": []
+  },
+  "steps": [
+    {
+      "id": "register-shadow-first",
+      "op": "add_head_function",
+      "args": {
+        "name": "first_clause_first_grounding_shadow"
+      }
+    },
+    {
+      "id": "register-real-second",
+      "op": "add_head_function",
+      "args": {
+        "name": "first_clause_first_grounding"
+      }
+    },
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 1
+      },
+      "probes": [
+        {
+          "id": "trace-node",
+          "kind": "rule_trace_node"
+        },
+        {
+          "id": "nodes-processed",
+          "kind": "filter_sort_nodes",
+          "labels": [
+            "Processed"
+          ]
+        },
+        {
+          "id": "time",
+          "kind": "get_time"
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

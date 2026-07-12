@@ -1,0 +1,92 @@
+{
+  "id": "annotation-fn-duplicate-name",
+  "purpose": "The duplicate-name annotation arm (adjudication-batch B3, kept-as-pinned): clause_lower_mean registers first, then clause_lower_mean_shadow — a DISTINCT callable whose __name__ is also 'clause_lower_mean' (the registry's shadow mechanism exists for exactly this) — and the rule head naming clause_lower_mean derives the SHADOW's constant [0.5, 0.75], not the mean's [0.25, 1]: the pinned annotate match loop has no break, every same-named registrand runs, and the LAST registration's result wins (interpretation.py:1919-1930). The head-fn twin case pins the opposite (first-wins) resolution.",
+  "runtime_class": "smoke",
+  "provenance": "docs/ledger/phase3-adjudication-batch.md B3 ('No committed case registers duplicate names; seam-level only' — until session 29); interpretation.py:1919-1930 at the pin; reference fns harness/reference_fns.py clause_lower_mean + clause_lower_mean_shadow; screened live 2026-07-12 (screen_pin_arms.py ann-dup, bound [0.5,1.0]-shape confirmed cross-engine with a distinct twin)",
+  "surface_items": [
+    "fn:add_annotation_function",
+    "fn:reason",
+    "fn:add_rule",
+    "fn:load_graph",
+    "fn:add_fact",
+    "fn:get_rule_trace",
+    "fn:filter_and_sort_nodes",
+    "fn:get_time",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        "A",
+        "B"
+      ],
+      "edges": []
+    },
+    "rules": [
+      {
+        "text": "combo(x) : clause_lower_mean <- p(x) : [0.125, 1]",
+        "name": "combo_rule"
+      }
+    ],
+    "facts": [
+      {
+        "text": "p(A) : [0.25, 1]",
+        "name": "f_p",
+        "start": 0,
+        "end": 0
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "register-mean",
+      "op": "add_annotation_function",
+      "args": {
+        "name": "clause_lower_mean"
+      }
+    },
+    {
+      "id": "register-shadow",
+      "op": "add_annotation_function",
+      "args": {
+        "name": "clause_lower_mean_shadow"
+      }
+    },
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 1
+      },
+      "probes": [
+        {
+          "id": "trace-node",
+          "kind": "rule_trace_node"
+        },
+        {
+          "id": "nodes-combo",
+          "kind": "filter_sort_nodes",
+          "labels": [
+            "combo"
+          ]
+        },
+        {
+          "id": "time",
+          "kind": "get_time"
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

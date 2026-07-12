@@ -1,0 +1,98 @@
+{
+  "id": "head-fn-edge-rule-positions",
+  "purpose": "The edge-rule head-function forms (the board's named-unobserved 'f(X) in one or both edge-head positions'; only the node-rule form was cased before session 29): one registered head function drives two edge rules through the default engine — LinkedOne(f(X), Y) grounds only its first head position through the resolver, LinkedBoth(f(X), f(Y)) grounds both — and each derives its target on the existing A->B edge with [1,1] (the non-infer-edges path keeps head pairs filtered to existing edges). The edge trace and the per-target edge frames carry the compared derivations.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_head_function (edge-rule forms, named unobserved until session 29); interpretation.py:2273-2314 at the pin (determine_edge_head_vars); reference fn harness/reference_fns.py first_clause_first_grounding; screened live 2026-07-12 (screen_pin_arms.py edge-head-fn + edge-head-fn-both, trace rows byte-identical cross-engine per form)",
+  "surface_items": [
+    "fn:add_head_function",
+    "fn:reason",
+    "fn:add_rule",
+    "fn:load_graph",
+    "fn:get_rule_trace",
+    "fn:filter_and_sort_edges",
+    "fn:get_time",
+    "type:Rule",
+    "dsl:rule-text",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        [
+          "A",
+          {
+            "p": 1
+          }
+        ],
+        [
+          "B",
+          {
+            "p": 1
+          }
+        ]
+      ],
+      "edges": [
+        [
+          "A",
+          "B",
+          {
+            "connected": 1
+          }
+        ]
+      ]
+    },
+    "rules": [
+      {
+        "text": "LinkedOne(first_clause_first_grounding(X), Y) <- p(X), p(Y), connected(X, Y)",
+        "name": "one_position_rule"
+      },
+      {
+        "text": "LinkedBoth(first_clause_first_grounding(X), first_clause_first_grounding(Y)) <- p(X), p(Y), connected(X, Y)",
+        "name": "both_positions_rule"
+      }
+    ],
+    "facts": []
+  },
+  "steps": [
+    {
+      "id": "register-grounder",
+      "op": "add_head_function",
+      "args": {
+        "name": "first_clause_first_grounding"
+      }
+    },
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 1
+      },
+      "probes": [
+        {
+          "id": "trace-edge",
+          "kind": "rule_trace_edge"
+        },
+        {
+          "id": "edges-linked",
+          "kind": "filter_sort_edges",
+          "labels": [
+            "LinkedOne",
+            "LinkedBoth"
+          ]
+        },
+        {
+          "id": "time",
+          "kind": "get_time"
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

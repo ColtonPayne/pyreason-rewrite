@@ -1,0 +1,73 @@
+{
+  "id": "annotation-fn-return-triple",
+  "purpose": "The annotation-function return-shape reject arm (slice-2 review L3): bound_triple registers cleanly (2-arg, the arity gate sees nothing wrong) but returns a 3-tuple, and reason() dies at the annotate seam with ValueError('size mismatch for tuple, expected 2 element(s) but got 3') — the pinned objmode block coerces the registrand return to Tuple((float64, float64)) at its exit (interpretation.py:1918), so the wrong SIZE is rejected with the tuple-unbox message. The raise is the reason step's banked outcome; get_time after it compares the state the raise left behind.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_annotation_function (return-shape arm, named unobserved until session 29); interpretation.py:1914-1931 at the pin; reference fn harness/reference_fns.py bound_triple; screened live 2026-07-12 (screen_pin_arms.py ann-triple, 2 fresh pin processes, message byte-stable)",
+  "surface_items": [
+    "fn:add_annotation_function",
+    "fn:reason",
+    "fn:add_rule",
+    "fn:load_graph",
+    "fn:add_fact",
+    "fn:get_time",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        "A",
+        "B"
+      ],
+      "edges": []
+    },
+    "rules": [
+      {
+        "text": "combo(x) : bound_triple <- p(x) : [0.125, 1]",
+        "name": "combo_rule"
+      }
+    ],
+    "facts": [
+      {
+        "text": "p(A) : [0.25, 1]",
+        "name": "f_p",
+        "start": 0,
+        "end": 0
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "register-triple",
+      "op": "add_annotation_function",
+      "args": {
+        "name": "bound_triple"
+      }
+    },
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 1
+      },
+      "probes": [
+        {
+          "id": "time-after-raise",
+          "kind": "get_time",
+          "allow_raise": true
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}

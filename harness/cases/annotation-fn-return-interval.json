@@ -1,0 +1,73 @@
+{
+  "id": "annotation-fn-return-interval",
+  "purpose": "The annotation-function Interval-return arm (the board's named-unobserved 'returning an Interval instead of a 2-tuple', slice-2 review L3): first_annotation_interval registers cleanly but returns the first qualifying atom's bound OBJECT, and reason() dies at the annotate seam with TypeError('bad argument type for built-in operation') — the pinned objmode Tuple((float64, float64)) coercion rejecting a non-sequence (interpretation.py:1918). The raise is the reason step's banked outcome; get_time after it compares the state the raise left behind.",
+  "runtime_class": "smoke",
+  "provenance": "docs/surface.md fn:add_annotation_function (Interval-return arm, named unobserved until session 29); interpretation.py:1914-1931 at the pin; reference fn harness/reference_fns.py first_annotation_interval; screened live 2026-07-12 (screen_pin_arms.py ann-interval, 2 fresh pin processes, message byte-stable)",
+  "surface_items": [
+    "fn:add_annotation_function",
+    "fn:reason",
+    "fn:add_rule",
+    "fn:load_graph",
+    "fn:add_fact",
+    "fn:get_time",
+    "type:Rule",
+    "type:Fact",
+    "dsl:rule-text",
+    "dsl:fact-text",
+    "setting:atom_trace",
+    "setting:verbose"
+  ],
+  "inputs": {
+    "settings": {
+      "verbose": false,
+      "atom_trace": true
+    },
+    "graph": {
+      "nodes": [
+        "A",
+        "B"
+      ],
+      "edges": []
+    },
+    "rules": [
+      {
+        "text": "combo(x) : first_annotation_interval <- p(x) : [0.125, 1]",
+        "name": "combo_rule"
+      }
+    ],
+    "facts": [
+      {
+        "text": "p(A) : [0.25, 1]",
+        "name": "f_p",
+        "start": 0,
+        "end": 0
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "register-interval-return",
+      "op": "add_annotation_function",
+      "args": {
+        "name": "first_annotation_interval"
+      }
+    },
+    {
+      "id": "run",
+      "op": "reason",
+      "args": {
+        "timesteps": 1
+      },
+      "probes": [
+        {
+          "id": "time-after-raise",
+          "kind": "get_time",
+          "allow_raise": true
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "probes": {}
+  }
+}
