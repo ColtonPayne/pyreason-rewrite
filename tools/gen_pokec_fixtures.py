@@ -52,7 +52,10 @@ TIMESTEPS = 8          # the paper's convergence point (Table 3)
 CUSTOMER_RATIO = 2308 / 1632803  # the paper's current-customer proportion
 
 # rung name -> node count (id-prefix cutoff); None = the whole population.
-RUNGS = {"10k": 10_000, "50k": 50_000, "200k": 200_000, "full": None}
+# 25k exists for the equivalence-at-scale anchor: the largest rung whose
+# oracle capture stays overnight-feasible (~6 h at the measured x^1.87).
+RUNGS = {"10k": 10_000, "25k": 25_000, "50k": 50_000,
+         "200k": 200_000, "full": None}
 
 # Fixed Slovak-stem -> pet-token map, applied to the lowercased pets text by
 # substring containment, negations first (order matters and is part of the
