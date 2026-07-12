@@ -15,11 +15,14 @@ lrag collection `pyreason-analysis`.
 
 ## Status
 
-**MVP scaffolding — campaign not yet started.** The federation glue is in place and
-verified: the preflight doctor (`tools/hive_preflight.py`) passes end-to-end on the
-authoring machine, the fast test tier is green, and the corpus link gate is green with
-this repo registered. Next: the operator fires the campaign charter; its Step 0 re-runs
-the preflight on the campaign machine and banks ledger session 0.
+**The authoritative state is always the newest `docs/ledger/session-<N>.md`** — read that,
+not this snapshot, to resume work. Snapshot as of 2026-07-12 (session 33): the rewrite is
+live and API-equivalent — all 52 `docs/surface.md` rows at `equivalent`, the Phase-4
+boundary sweep banked **116/116 PASS** oracle-vs-rewrite in one clean invocation
+(session 32), and the execution layer operator-signed as the pure-Python core
+([ADR 0004](docs/adr/0004-execution-layer-pure-python-core.md)); the AC-5 maintainability
+bars are closed 5/5. Performance record: `docs/perf/` (ladder baselines, profiles, the
+Pokec scaling replication).
 
 ## Quick start
 
@@ -27,7 +30,10 @@ the preflight on the campaign machine and banks ledger session 0.
 git config core.hooksPath scripts/hooks   # once per clone
 uv run python tools/hive_preflight.py     # Step 0 — must pass before campaign work
 uv run pytest -m "not e2e"                # fast tier (what the pre-commit gate runs)
-uv run pytest -m e2e                      # acceptance: preflight against the live substrate
+uv run pytest -m e2e                      # acceptance: needs the live substrate; the
+                                          # oracle-vs-oracle corpus test alone takes 20+ min
+                                          # (it reruns the full case corpus through the
+                                          # oracle twice) — a long quiet stretch is normal
 ```
 
 ## Layout

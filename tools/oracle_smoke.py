@@ -12,7 +12,8 @@ Run it in a bare subprocess of the oracle env (never the campaign .venv):
 
 The oracle env is rebuilt from scratch as: copy oracle/pyreason (minus .git) to a scratch
 dir, `SETUPTOOLS_SCM_PRETEND_VERSION=3.6.0 uv build --wheel`, then
-`uv venv oracle-env --python 3.12` and `uv pip install <wheel> numba==0.59.1
+`uv venv oracle-env --python 3.10` (the env of record is Python 3.10.20 — every banked
+oracle baseline and capture ran on it; see ADR 0004) and `uv pip install <wheel> numba==0.59.1
 numpy==1.26.4 networkx pyyaml pandas memory_profiler pytest`. The clone itself is never
 built in place or installed editable (its first import writes inside the package dir).
 
