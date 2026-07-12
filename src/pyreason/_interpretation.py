@@ -1486,6 +1486,32 @@ def _ground_rule(interp, rule, extended_ann_fn, t, interpretations_node,
     return applicable_rules_node, applicable_rules_edge
 
 
+def _coerce_annotation_pair(value):
+    """The pinned annotate() objmode block declares its output as
+    Tuple((float64, float64)) (interpretation.py:1918), so numba unboxes
+    every registrand return at the block's exit; this port reproduces that
+    coercion's observable arms at the same decision point, with the messages
+    screened byte-stable on the pinned engine (2026-07-12, 2 fresh processes
+    per arm): a value with no length — an Interval, any non-sequence — is
+    rejected the way the unbox rejects it (TypeError('bad argument type for
+    built-in operation')); a wrong-size sequence raises the pinned
+    size-mismatch ValueError; a size-2 value passes through unchanged (the
+    pinned float64 conversion is observation-invisible for the numeric
+    returns the reference-function contract produces — the compare layer
+    reduces ints and integral floats to one form). The unbox's element-level
+    conversion faults (e.g. a size-2 sequence of non-numbers) are NOT
+    modeled: no committed reference function returns one, and banking that
+    arm would need its own pin screen first."""
+    try:
+        n = len(value)
+    except TypeError:
+        raise TypeError("bad argument type for built-in operation") from None
+    if n != 2:
+        raise ValueError(
+            f"size mismatch for tuple, expected 2 element(s) but got {n}")
+    return value
+
+
 def annotate(annotation_functions, rule, annotations, qualified_nodes,
              qualified_edges, clause_labels, clause_variables, weights):
     """Resolve and invoke the rule's annotation function; without one, the
@@ -1496,7 +1522,10 @@ def annotate(annotation_functions, rule, annotations, qualified_nodes,
     and the last result wins; a name that matches NO registrand raises
     NameError("name 'annotation' is not defined") — the pinned objmode block
     only assigns its output variable inside the match loop, so a no-match
-    leaves it unbound, and this port raises the same observable.
+    leaves it unbound, and this port raises the same observable. The return
+    rides the pinned objmode Tuple((float64, float64)) coercion
+    (_coerce_annotation_pair) — the no-match NameError outranks it exactly
+    as the unassigned objmode variable raises before any unbox at the pin.
     """
     func_name = rule.get_annotation_function()
     if func_name == '':
@@ -1513,7 +1542,7 @@ def annotate(annotation_functions, rule, annotations, qualified_nodes,
                 annotation = func(annotations, weights)
     if annotation is _UNSET:
         raise NameError("name 'annotation' is not defined")
-    return annotation
+    return _coerce_annotation_pair(annotation)
 
 
 def check_consistent_node(interpretations, comp, na):
@@ -1805,6 +1834,21 @@ def _add_edge(interp, source, target, l, t, interpretations_node,
         else:
             interpretations_edge[edge] = World([])
     else:
+        if interp.fp_mode and edge not in interpretations_edge:
+            # DIV-0003 (direction pre-authorized by the operator's 2026-07-11
+            # adjudication of batch item B17): on the fp schedule the
+            # per-timestep world maps do not carry existing edges forward, so
+            # an edge inferred (or graph-present) at an earlier point has no
+            # world entry when an infer_edges rule re-derives it at timestep
+            # t — the pin crashes at this same lookup with numba's
+            # payload-less KeyError() (interpretation_fp.py:2245); the
+            # adjudicated shape is the same type at the same seam with an
+            # honest, stable message.
+            raise KeyError(
+                f"edge {edge} already exists but has no world at timestep "
+                f"{t}: the fp schedule's per-timestep world maps do not "
+                f"carry existing edges forward, so an inferred edge cannot "
+                f"be re-derived at a later timestep")
         if l not in interpretations_edge[edge].world and l.get_value() != '':
             new_edge = True
             interpretations_edge[edge].world[l] = interval.closed(0, 1)

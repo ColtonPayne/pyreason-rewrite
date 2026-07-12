@@ -1127,15 +1127,27 @@ def test_registry_ops_validate_names_against_the_committed_registry():
 
 def test_registry_module_is_stdlib_only_and_names_match():
     """proves: harness/reference_fns.py imports without an engine environment
-    (this fast tier has neither numba nor networkx) and every registry key is
-    its function's __name__ — the engine matches registrands by __name__, so
-    a key/name drift would make a case register one function while the rule
-    DSL names another."""
+    (this fast tier has neither numba nor networkx) and every non-shadow
+    registry key is its function's __name__ — the engine matches registrands
+    by __name__, so a key/name drift would make a case register one function
+    while the rule DSL names another. Shadow entries invert that on purpose
+    (they exist to register a SECOND callable under an existing engine-visible
+    name — the duplicate-name arms, batch B3): each shadow key must differ
+    from its function's __name__, which must equal its declared target's, and
+    the target must be a non-shadow registry entry."""
     from harness import reference_fns
 
     assert reference_fns.numba is None  # unbound outside resolve()
     for name, fn in reference_fns.REGISTRY.items():
-        assert name == fn.__name__
+        if name in reference_fns.SHADOWS:
+            target = reference_fns.SHADOWS[name]
+            assert name != fn.__name__
+            assert fn.__name__ == target
+            assert target in reference_fns.REGISTRY
+            assert target not in reference_fns.SHADOWS
+            assert fn is not reference_fns.REGISTRY[target]
+        else:
+            assert name == fn.__name__
     # the arity stubs the reject arms lean on measure as the pinned gate sees
     # them: co_argcount 3 and 0
     assert reference_fns.three_positional_stub.__code__.co_argcount == 3

@@ -446,6 +446,188 @@ def test_head_fn_ungrounded_var_raises_the_pinned_bare_keyerror(pr, monkeypatch)
     assert exc_info.value.args == ()  # bare — str() is '', matching the pin
 
 
+def test_annotation_fn_wrong_size_return_raises_pinned_size_mismatch(pr):
+    """proves: a 2-arg annotation function returning a 3-tuple raises
+    ValueError('size mismatch for tuple, expected 2 element(s) but got 3')
+    at reason time — the pinned objmode block coerces the registrand return
+    to Tuple((float64, float64)) at its exit (interpretation.py:1918;
+    message screened byte-stable on the pinned engine 2026-07-12, slice-2
+    review L3's annotation arm)."""
+    def triple(annotations, weights):
+        return 0.25, 0.75, 0.5
+
+    g = nx.DiGraph()
+    g.add_nodes_from(["A"])
+    pr.load_graph(g)
+    pr.add_annotation_function(triple)
+    pr.add_rule(Rule("combo(x) : triple <- p(x) : [0.125, 1]", "combo_rule"))
+    pr.add_fact(Fact("p(A) : [0.25, 1]", "fp", 0, 0))
+    with pytest.raises(ValueError) as exc_info:
+        pr.reason(timesteps=1)
+    assert str(exc_info.value) == \
+        "size mismatch for tuple, expected 2 element(s) but got 3"
+
+
+def test_annotation_fn_interval_return_raises_pinned_unbox_typeerror(pr):
+    """proves: a 2-arg annotation function returning the first qualifying
+    atom's bound OBJECT (an Interval, not a (lower, upper) pair) raises
+    TypeError('bad argument type for built-in operation') at reason time —
+    the same objmode Tuple((float64, float64)) coercion rejecting a
+    non-sequence (interpretation.py:1918; message screened byte-stable on
+    the pinned engine 2026-07-12, the board's Interval-return arm)."""
+    def bound_object(annotations, weights):
+        return annotations[0][0]
+
+    g = nx.DiGraph()
+    g.add_nodes_from(["A"])
+    pr.load_graph(g)
+    pr.add_annotation_function(bound_object)
+    pr.add_rule(Rule("combo(x) : bound_object <- p(x) : [0.125, 1]",
+                     "combo_rule"))
+    pr.add_fact(Fact("p(A) : [0.25, 1]", "fp", 0, 0))
+    with pytest.raises(TypeError) as exc_info:
+        pr.reason(timesteps=1)
+    assert str(exc_info.value) == "bad argument type for built-in operation"
+
+
+def test_head_fn_bare_string_return_raises_pinned_unbox_typeerror(pr):
+    """proves: a head function returning a bare grounding string instead of
+    a list of grounding strings raises TypeError("can't unbox a <class
+    'str'> as a <class 'numba.typed.typedlist.List'>") at reason time — the
+    pinned _call_head_function objmode block unboxes the registrand result
+    to types.ListType(types.unicode_type) (interpretation.py:2332; message
+    screened byte-stable on the pinned engine 2026-07-12, the head
+    return-shape arm)."""
+    def bare(fn_arg_values):
+        return fn_arg_values[0][0]
+
+    g = nx.DiGraph()
+    g.add_nodes_from(["A", "B"])
+    pr.load_graph(g)
+    pr.add_head_function(bare)
+    pr.add_rule(Rule("Processed(bare(X)) <- starter(X)", "head_rule"))
+    pr.add_fact(Fact("starter(A)", "fs", 0, 0))
+    with pytest.raises(TypeError) as exc_info:
+        pr.reason(timesteps=1)
+    assert str(exc_info.value) == ("can't unbox a <class 'str'> as a "
+                                   "<class 'numba.typed.typedlist.List'>")
+
+
+def test_duplicate_annotation_names_all_run_last_registration_wins(pr):
+    """proves: when two registered annotation functions share a __name__,
+    the match loop runs BOTH and the LAST registration's result becomes the
+    derived bound — the pinned no-break loop (interpretation.py:1919-1930,
+    batch item B3)."""
+    calls = []
+
+    def first(annotations, weights):
+        calls.append('first')
+        return 0.25, 1.0
+
+    def second(annotations, weights):
+        calls.append('second')
+        return 0.5, 0.75
+
+    first.__name__ = 'combo_dup'
+    second.__name__ = 'combo_dup'
+    g = nx.DiGraph()
+    g.add_nodes_from(["A"])
+    pr.load_graph(g)
+    pr.add_annotation_function(first)
+    pr.add_annotation_function(second)
+    pr.add_rule(Rule("combo(x) : combo_dup <- p(x) : [0.125, 1]",
+                     "combo_rule"))
+    pr.add_fact(Fact("p(A) : [0.25, 1]", "fp", 0, 0))
+    interp = pr.reason(timesteps=1)
+    node_frame, _ = pr.get_rule_trace(interp)
+    rule_rows = [list(r) for r in node_frame.itertuples(index=False, name=None)
+                 if r[8] == 'Rule' and r[2] == 'A']
+    assert rule_rows[0][5] == '[0.5,0.75]'  # the LAST registration's bound
+    assert calls[:2] == ['first', 'second']  # both ran — no break
+
+
+def test_duplicate_head_names_first_registration_wins(pr):
+    """proves: when two registered head functions share a __name__, the
+    resolver BREAKS on the first match, so the FIRST registration grounds
+    the head — the pinned asymmetry with the annotation side's last-wins
+    (interpretation.py:2334-2336, batch item B3's head twin)."""
+    def pick_last(fn_arg_values):
+        return [fn_arg_values[0][len(fn_arg_values[0]) - 1]]
+
+    def pick_first(fn_arg_values):
+        return [fn_arg_values[0][0]]
+
+    pick_last.__name__ = 'pick_dup'
+    pick_first.__name__ = 'pick_dup'
+    g = nx.DiGraph()
+    g.add_node("A", p=1)
+    g.add_node("B", p=1)
+    g.add_edge("A", "B", connected=1)
+    g.add_edge("B", "A", connected=1)  # X grounds to both A and B
+    pr.load_graph(g)
+    pr.add_head_function(pick_last)   # registered FIRST — must win
+    pr.add_head_function(pick_first)
+    pr.add_rule(Rule("Processed(pick_dup(X)) <- p(X), p(Y), connected(X, Y)",
+                     "head_rule"))
+    interp = pr.reason(timesteps=1)
+    frames = pr.filter_and_sort_nodes(interp, ['Processed'])
+    heads = [r[0] for r in frames[0].itertuples(index=False, name=None)]
+    assert heads == ['B']  # pick_last's grounding, not pick_first's
+
+
+def test_edge_rule_head_fns_ground_one_or_both_positions(pr):
+    """proves: a head function in an edge rule's head grounds that head
+    position through the same resolver as the node form — one position
+    (f(X), Y) and both positions (f(X), f(Y)) each derive the edge target on
+    the existing edge (interpretation.py:2273-2314; the default engine's
+    non-infer-edges path keeps the pair filtered to existing edges)."""
+    def pick_first(fn_arg_values):
+        return [fn_arg_values[0][0]]
+
+    g = nx.DiGraph()
+    g.add_node("A", p=1)
+    g.add_node("B", p=1)
+    g.add_edge("A", "B", connected=1)
+    pr.load_graph(g)
+    pr.add_head_function(pick_first)
+    pr.add_rule(Rule(
+        "LinkedOne(pick_first(X), Y) <- p(X), p(Y), connected(X, Y)", "r1"))
+    pr.add_rule(Rule(
+        "LinkedBoth(pick_first(X), pick_first(Y)) <- p(X), p(Y), connected(X, Y)",
+        "r2"))
+    interp = pr.reason(timesteps=1)
+    _, edge_frame = pr.get_rule_trace(interp)
+    derived = {(r[2], r[3]) for r in
+               edge_frame.itertuples(index=False, name=None) if r[8] == 'Rule'}
+    assert derived == {(('A', 'B'), 'LinkedOne'), (('A', 'B'), 'LinkedBoth')}
+
+
+def test_fp_infer_edges_rederivation_raises_the_adjudicated_stable_keyerror(pr):
+    """proves: on the fp schedule an infer_edges rule that re-derives an
+    edge it inferred at an earlier timestep raises builtins.KeyError at
+    _add_edge's existing-edge branch with the adjudicated honest, stable
+    message — the same seam and type where the pin dies with numba's
+    payload-less KeyError() (DIV-0003; direction pre-authorized by the
+    operator's 2026-07-11 adjudication of batch item B17; pin side screened
+    2/2 fresh processes 2026-07-12 and banked by
+    tests/test_div_0003_reproducer.py)."""
+    pyreason._state_obj.settings.fp_version = True
+    g = nx.DiGraph()
+    g.add_node("A", p=1)
+    g.add_node("B", q=1)
+    pr.load_graph(g)
+    pr.add_rule(Rule("Linked(X, Y) <- p(X), q(Y)", "r1", True))
+    pr.add_fact(Fact("p(A) : [1, 1]", "f1", 0, 2))
+    pr.add_fact(Fact("q(B) : [1, 1]", "f2", 0, 2))
+    with pytest.raises(KeyError) as exc_info:
+        pr.reason(timesteps=2)
+    assert exc_info.value.args == (
+        "edge ('A', 'B') already exists but has no world at timestep 1: "
+        "the fp schedule's per-timestep world maps do not carry existing "
+        "edges forward, so an inferred edge cannot be re-derived at a "
+        "later timestep",)
+
+
 # --- closed-world predicates ---
 
 def test_closed_world_predicate_reads_absence_as_false(pr):

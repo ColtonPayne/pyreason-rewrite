@@ -300,11 +300,28 @@ def refine_groundings(clause_variables, groundings, groundings_edges,
 def call_head_function(fn_name, fn_arg_values, head_functions):
     """Resolve a head function by __name__ and call it; a no-match returns
     the pre-seeded EMPTY grounding list — the pinned silent arm
-    (interpretation.py:2330-2338)."""
+    (interpretation.py:2330-2338). The break means the FIRST registration
+    with a matching __name__ wins — the pinned asymmetry with annotate()'s
+    no-break last-wins loop (interpretation.py:2334-2336).
+
+    Return contract: the pinned objmode block unboxes the registrand's
+    result to types.ListType(types.unicode_type) (interpretation.py:2332),
+    so a non-list return fails at reason time; the plain-arm reduction of
+    the pinned numba.typed.List is the builtin list (harness/reference_fns
+    _PLAIN_NUMBA), so list-ness is the same contract this engine's
+    registrands are held to, and the reject arm raises the pin's exact
+    message (screened byte-stable on the pinned engine 2026-07-12, 2 fresh
+    processes). The unbox's element-dtype fault (a list of non-strings) is
+    NOT modeled: no committed reference function returns one, and banking
+    that arm would need its own pin screen first."""
     func_result = []
     for func in head_functions:
         if hasattr(func, '__name__') and func.__name__ == fn_name:
             func_result = func(fn_arg_values)
+            if not isinstance(func_result, list):
+                raise TypeError(
+                    f"can't unbox a {type(func_result)} as a "
+                    f"<class 'numba.typed.typedlist.List'>")
             break
     return func_result
 
