@@ -81,18 +81,30 @@ def parse_graph_attributes(graph, static_facts):
     facts_edge = []
     specific_node_labels = {}
     specific_edge_labels = {}
+    # One canonical Label per distinct attribute string: the graph fact's
+    # label and the specific-labels key (the future world key) are the SAME
+    # object, so downstream dict lookups short-circuit on identity instead
+    # of paying value equality per lookup. Labels are equal-and-hash-equal
+    # by string value, so sharing objects changes no observable.
+    label_cache = {}
     for n in graph.nodes:
         for key, value in graph.nodes[n].items():
             label_str, lower_bnd, upper_bnd = _attribute_to_label_bound(key, value)
-            specific_node_labels.setdefault(Label(label_str), []).append(n)
-            facts_node.append(_GraphFact(n, Label(label_str),
+            lbl = label_cache.get(label_str)
+            if lbl is None:
+                lbl = label_cache[label_str] = Label(label_str)
+            specific_node_labels.setdefault(lbl, []).append(n)
+            facts_node.append(_GraphFact(n, lbl,
                                          interval.closed(lower_bnd, upper_bnd),
                                          static_facts))
     for e in graph.edges:
         for key, value in graph.edges[e].items():
             label_str, lower_bnd, upper_bnd = _attribute_to_label_bound(key, value)
-            specific_edge_labels.setdefault(Label(label_str), []).append((e[0], e[1]))
-            facts_edge.append(_GraphFact((e[0], e[1]), Label(label_str),
+            lbl = label_cache.get(label_str)
+            if lbl is None:
+                lbl = label_cache[label_str] = Label(label_str)
+            specific_edge_labels.setdefault(lbl, []).append((e[0], e[1]))
+            facts_edge.append(_GraphFact((e[0], e[1]), lbl,
                                          interval.closed(lower_bnd, upper_bnd),
                                          static_facts))
 
