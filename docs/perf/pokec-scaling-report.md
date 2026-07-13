@@ -148,16 +148,23 @@ lines.**
 
 ### The regression bisection (2026-07-13; revises session 33's single-cliff attribution)
 
-Every PyPI release bracketing the cliffs, identical 10k inputs, one box:
+Every PyPI release bracketing the cliffs, identical 10k inputs, one box — the full
+timeline from the paper's release to the pin:
 
-| release | reason (10k) | step | attribution |
-|---|---|---|---|
-| 1.2.4 (2023-03) | 13.4 s | — | neighborhood-scoped grounder (paper era) |
-| 2.3.0 (pre-PR-#43) | 11.1 s | — | last of the fast class; rows 7,648 (era semantics) |
-| 3.0.0 (2024-12) | 203.8 s | **18×** | PR #43: the global FOL grounder (session 33's candidate) |
-| 3.1.0 / 3.2.0 | 46.8 / 46.9 s | **4.4× recovered** | post-rework grounder optimization; rows now 8,006 (modern semantics) |
-| **3.3.0 (2026-02)** | **2,189 s** | **47× — the dominant cliff** | see below |
-| 3.6.0 (the pin) | 2,589–2,701 s | 1.2× drift | — |
+| Date | Release | reason (10k) | Step | What happened |
+|---|---|---|---|---|
+| 2023-03 | **1.2.4** (paper era) | **13.4 s** | baseline | Neighborhood-scoped grounder, O(E)/timestep — the engine the 42-min claim describes (full-scale verified at ~61 min above). Threshold checking semantically broken this whole era (BUG-138). |
+| →2024-06 | 2.3.0 | 11.1 s | ~1.2× faster | Last of the fast class; rows 7,648 (era semantics). |
+| 2024-12 | 3.0.0 | 203.8 s | **×18.4** | **PR #43**: general FOL grounder replaces the neighborhood grounder (session 33's candidate). Generality bought, O(E) lost. |
+| 2025-08 | 3.1.0 | 46.8 s | **÷4.4 recovered** | Post-rework grounder optimization; rows now 8,006 (modern semantics). |
+| 2025-11 | 3.2.0 | 46.9 s | flat | — |
+| 2026-02 | **3.3.0** | **2,189 s** | **×46.7 — the dominant cliff** | Decomposed below: ×9.4 forced to the BUG-138 fix, ×~4.9 residual. |
+| 2026-05 | 3.6.0 (**the pin**) | 2,589–2,701 s | ×1.19 drift | Where the campaign's oracle sits. |
+
+Product: ≈234× vs 2.3.0, ≈195× vs the paper-era baseline. Two of the steps bought real
+things — PR #43 bought the rule generality this campaign's corpus exercises; the
+BUG-138 fix bought correct threshold semantics (broken for the paper's entire era) —
+and no §4.2-shaped benchmark was in place to notice the compounding.
 
 **The dominant cliff decomposes, with the majority forced by a revert-run.** The 3.3.0
 window contains upstream commit `882f71d` "Fix BUG-138: Correct threshold checking by
