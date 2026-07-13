@@ -71,23 +71,32 @@ of the full graph) — the dense early-adopter subgraph at work, disclosed above
 
 | Rung | friend edges | rewrite | oracle (serial) | oracle (parallel_computing) | ratio |
 |------|-------------|---------|-----------------|------------------------------|-------|
-| 10k | 121,716 | **26.7 / 26.7** (265 MB) | **2701 / 2620** = 44–45 min (~880 MB) | 2677 (1.6 GB, **128% CPU**) | **~101×** |
-| 50k | 884,238 | **1093 / 1087** = 18.2 min (1.63 GB) | — (projected ~31 h) | — | — |
-| 200k | 4,009,047 | *running (n=2, ~5 h/repeat)* | — | — | — |
-| full | 30,622,564 | *projected ~9.5 days (interim)* | *projected years — not runnable* | no better (see below) | — |
+| 10k | 121,716 | **26.7–26.9 s** (265 MB) | bench n=2: **2589–2611 s**; captures 2620/2701 (~880 MB) | 2677 (1.6 GB, **128% CPU**) | **~97×** |
+| 25k | 406,355 | (equivalence run in flight) | (equivalence run in flight) | — | — |
+| 50k | 884,238 | **1087–1093 s** = 18.2 min (1.63 GB) | — (projected ~1.4 d) | — | — |
+| 200k | 4,009,047 | **25,557–25,679 s** = 7.1 h (n=2, spread 0.47%, 7.2 GB) | — (out of reach) | — | — |
+| full | 30,622,564 | **projected ~21 days — not run (operator decision)** | projected years — not runnable | no better (see below) | — |
 
-Oracle 10k numbers are the equivalence captures' timing echoes (a1/a2); the clean
-n=2 bench band is running and lands in v2. Rewrite bands are ≤0.3% of median — extremely
-tight.
+Rewrite bands are ≤0.5% of median at every rung — extremely tight.
 
 ### Scaling shape
 
-Two-point fit (10k→50k, rewrite): reason time × **40.8** for edges × 7.27 → exponent
-**~1.87 in edges** — decisively superlinear for both engines (the oracle's 10k time is
-101× the rewrite's on the identical case, so its curve can only sit higher). Mechanism:
-the relevance-active set explodes per timestep on dense subgraphs (see the equivalence
+Three-point fit (rewrite): 10k→50k gives exponent ~1.87 in friend edges; the
+density-matched 50k→200k step steepens it to **~2.09** (time ×23.5 for edges ×4.53),
+which is the **projection of record**: full-scale ≈ 25.6 ks × 7.64^2.09 ≈ **21 days per
+repeat** — decisively superlinear for both engines (the oracle's 10k time is ~97× the
+rewrite's on the identical case, so its curve can only sit higher). Mechanism: the
+relevance-active set explodes per timestep on dense subgraphs (see the equivalence
 counts). The paper's "sub-linear scaling" claim (§1, §4) fails directionally on this
-workload on both engines — including the engine we didn't write.
+workload on both modern engines — including the one we didn't write.
+
+### Parallel-repeat validation (the operator's contamination check)
+
+Rewrite 10k, n=7 sequential vs n=7 `--parallel 7` on the idle box: medians
+**26.806 s vs 26.796 s**, bands 26.681–26.904 vs 26.755–26.937 (spreads 0.223 s /
+0.183 s) — statistically indistinguishable, 7× wall-clock saved (29 s vs 3 m 20 s).
+The `--parallel` mode is validated as uncontaminated at this working-set size; reports
+stamp `parallel` either way.
 
 ### The paper-verification finding: the paper is vindicated — upstream regressed ~200×
 
@@ -124,7 +133,7 @@ engine that no longer ships.
 
 | | Paper (2023, 96 vCPU EC2) | Measured (1.2.4, sanders, one core) |
 |---|---|---|
-| reason | 42 min | **60.6 min** (3,633.7 s) |
+| reason | 42 min | **60.6–61.1 min** (3,633.7 / 3,664.0 s, n=2, spread 0.83%) |
 | setup (31M-edge graph load) | not separated | 16.4 min |
 | peak RSS | 58.36 GB | 185 GB |
 | scaling in edges (10k→200k→full) | "sub-linear" | **linear, x^0.98** |
