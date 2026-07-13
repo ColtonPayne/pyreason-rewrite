@@ -1,8 +1,8 @@
 <!-- doccode: pyreason-rewrite-docs-perf-pokec-scaling-report -->
 # Pokec scaling report — the paper's §4.2 experiment, oracle vs rewrite on lab compute
 
-**Status: INTERIM (v1)** — 2026-07-12. Screens through 50k banked; the 200k rewrite rung
-and the oracle 10k protocol band land tonight and finalize this report. Runs executed on
+**Status: FINAL** — 2026-07-12/13. Every run is complete and every number final; the
+closing verdict is the 25k equivalence anchor (ALL PASS, 123×). Runs executed on
 `sanders.syr.edu` under [the operator's lab-compute waiver](../ledger/lab-compute-waiver.md);
 everything installed there is in [the install log](../lab/sanders-install-log.md).
 
@@ -72,7 +72,7 @@ of the full graph) — the dense early-adopter subgraph at work, disclosed above
 | Rung | friend edges | rewrite | oracle (serial) | oracle (parallel_computing) | ratio |
 |------|-------------|---------|-----------------|------------------------------|-------|
 | 10k | 121,716 | **26.7–26.9 s** (265 MB) | bench n=2: **2589–2611 s**; captures 2620/2701 (~880 MB) | 2677 (1.6 GB, **128% CPU**) | **~97×** |
-| 25k | 406,355 | (equivalence run in flight) | (equivalence run in flight) | — | — |
+| 25k | 406,355 | **221.9 s** (equiv captures) | **27,320 s** = 7.6 h (equiv captures) | — | **123×** |
 | 50k | 884,238 | **1087–1093 s** = 18.2 min (1.63 GB) | — (projected ~1.4 d) | — | — |
 | 200k | 4,009,047 | **25,557–25,679 s** = 7.1 h (n=2, spread 0.47%, 7.2 GB) | — (out of reach) | — | — |
 | full | 30,622,564 | **projected ~21 days — not run (operator decision)** | projected years — not runnable | no better (see below) | — |
@@ -208,11 +208,17 @@ about *our* (denser, disclosed) reconstruction.
 - Oracle 10k clean protocol band: **reason median 2,600 s, spread 22 s (0.85%)** —
   banked above.
 
-## Pending (v3, tonight/tomorrow morning)
+## The equivalence-at-scale verdict (2026-07-13 — closes the thread)
 
-1. The 200k rewrite band (n=2) → density-matched full-scale projection of record.
-2. The paper-era full repeat (band).
-3. The overnight results: parallel validation + the 25k equivalence verdict.
+**`perf-pokec-25k`: ALL PASS oracle-vs-rewrite** (four captures, same-engine repeats
+clean, judged by the standard pure judge): at 406,355 friend edges the two engines
+produce row-identical relevance results (20,844 rows at t=8: 8,396 fully / 12,448
+partially relevant) with the oracle at 27,320 s and the rewrite at 221.9 s — **123×,
+widening with scale** (97× at 10k), as the fitted exponents predict. This is the
+campaign's largest proven-equivalent real-data case and the designated at-scale anchor
+(the largest rung the pinned oracle can reach overnight).
+
+**Nothing remains in flight; every number above is final.**
 
 ## Idea seeds
 

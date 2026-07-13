@@ -889,3 +889,28 @@ the operator's publication parameters, and the lab box's overnight results
 that confirms (or revises) which upstream commit broke the paper's scaling.
 
 **Resume prompt.** `/campaign`
+
+---
+
+## Session 35 — 2026-07-12/13 — the lab thread: Pokec at scale, the paper verified, the regression named to its lines
+
+**What happened.** The operator waived the no-lab-compute rule (banked,
+scoped to sanders, every install logged) and the paper's Pokec experiment
+ran at real scale for the first time in campaign history. The rewrite and
+the pinned oracle agree row-for-row on real data at 10k and 25k users —
+the 25k anchor is the campaign's largest proven-equivalent case, with the
+rewrite 123× faster. The paper's famous 42-minute claim verified in
+substance on the paper-era engine (61 minutes, full 1.6M-node graph) and
+is unreachable on the pinned engine — because upstream regressed ~195×
+in three steps, bisected across six PyPI releases and, for the dominant
+step, forced by a hunk-revert run to the fix of the operator's own
+BUG-138 catalogue entry: correct threshold semantics, paid for in the hot
+loop. The rewrite ships those corrected semantics at ~1.8× the speed of
+the last incorrect-fast release.
+
+**What we expect to learn next session.** The gated threads: publication
+parameters, the upstream-contribution fork (the efficient BUG-138 fix,
+the missing §4.2-shaped benchmark), and whether the neighborhood-grounding
+optimization thread gets scheduled.
+
+**Resume prompt.** `/campaign`
