@@ -142,8 +142,40 @@ engine that no longer ships.
 **Verification outcome: the paper's runtime claim is verified in substance on the
 paper-era engine** — same order, same shape, on one core versus their 96 vCPUs
 (consistent with the engine never really using more than one) — **and is not
-reproducible on the pinned engine, where the gap is an upstream algorithmic regression
-we can name, bound (202× at 10k), and date to the post-1.2.4 grounding rework.**
+reproducible on the pinned engine, where the gap is an upstream regression that the
+release bisection below decomposes and (for its dominant step) forces to specific
+lines.**
+
+### The regression bisection (2026-07-13; revises session 33's single-cliff attribution)
+
+Every PyPI release bracketing the cliffs, identical 10k inputs, one box:
+
+| release | reason (10k) | step | attribution |
+|---|---|---|---|
+| 1.2.4 (2023-03) | 13.4 s | — | neighborhood-scoped grounder (paper era) |
+| 2.3.0 (pre-PR-#43) | 11.1 s | — | last of the fast class; rows 7,648 (era semantics) |
+| 3.0.0 (2024-12) | 203.8 s | **18×** | PR #43: the global FOL grounder (session 33's candidate) |
+| 3.1.0 / 3.2.0 | 46.8 / 46.9 s | **4.4× recovered** | post-rework grounder optimization; rows now 8,006 (modern semantics) |
+| **3.3.0 (2026-02)** | **2,189 s** | **47× — the dominant cliff** | see below |
+| 3.6.0 (the pin) | 2,589–2,701 s | 1.2× drift | — |
+
+**The dominant cliff decomposes, with the majority forced by a revert-run.** The 3.3.0
+window contains upstream commit `882f71d` "Fix BUG-138: Correct threshold checking by
+filtering qualified groundings" — **BUG-138 is the operator's own clean-room catalogue
+entry** (BUG_LOG_2 §BUG-138, severity CRITICAL: `check_all_clause_satisfaction` passed
+the same grounding twice, defeating threshold checking). The fix is semantically right
+and re-derives per-clause qualified groundings on every satisfaction check — in the hot
+loop. Reverting exactly those two hunks in a scratch copy of 3.3.0 drops 2,189 s →
+232 s: **9.4× forced to the BUG-138 fix as implemented** (output rows identical on this
+workload either way — the threshold semantics don't bite here). The residual ~4.9×
+(232 s vs 3.2.0's 46.9 s) lies elsewhere in the 3.3.0 window and is left unattributed
+at hunk level (the interval float32→float64 commit was inspected and is implausible —
+rare code path). So the pinned engine's ~55× gap vs 3.2.0 ≈ a correctness fix paid at
+9.4× runtime, times an unattributed 4.9×, atop a net ~4× from the grounder generality
+trade — and the rewrite (pin-equivalent semantics, 26.7 s) delivers the **corrected**
+threshold semantics at ~1.8× the speed of the last **incorrect** fast release. An
+efficient implementation of the BUG-138 fix (filter once, reuse) looks bounded and
+upstream-contributable (post-window scope).
 
 **The result-count divergence is reconstruction density, bracketed by experiment.**
 Our rebuild reaches 1,158,131 relevance rows at t=8 (~71% of users) vs the paper's
