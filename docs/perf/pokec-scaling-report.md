@@ -25,10 +25,12 @@ fallback there.)
   every k-th sorted pet-owner; the paper's actual 2,308 identities are unpublished, so
   Table 3's exact counts are not reproducible by anyone — convergence shape and magnitude
   are the comparable claims.
-- **Rungs** are id-prefix induced subgraphs (10k/50k/200k/full). The 10k/50k rungs are
-  early-adopter-dense (12.2 / 17.7 friend edges per user vs the full graph's 18.8);
-  **the 200k rung (20.0/user) is nearly density-matched to full scale**, which is what
-  makes tonight's 200k point the trustworthy anchor for the full-scale projection.
+- **Rungs** are id-prefix induced subgraphs (10k/25k/50k/200k/full; 25k added as the
+  equivalence-at-scale anchor — the largest rung whose oracle capture is
+  overnight-feasible). The 10k/50k rungs are early-adopter-dense (12.2 / 17.7 friend
+  edges per user vs the full graph's 18.8); **the 200k rung (20.0 edges/user) is nearly
+  density-matched to full scale**, which is what makes the 200k band the trustworthy
+  anchor for the full-scale projection.
 - Rules are the paper's two relevance rules verbatim; `timesteps=8` (the paper's
   convergence point), explicitly bounded per the ladder's B16 constraint.
 
@@ -40,15 +42,16 @@ for equivalence (four captures, same-engine repeats, pure judge). Extensions mad
 this experiment, all committed and fast-tier-tested: a Linux RSS seam (GNU `time -v` /
 child-rusage fallback, `maxrss_source` recorded), a `/proc/cpuinfo` machine-identity
 path, and `--parallel N` (operator-requested concurrent repeats, stamped in the report so
-a contention-mode run can never masquerade as the banked sequential protocol). Protocol
-for the full-scale runs per the operator: **n=1 sequential reference + n=7 parallel** per
-engine. Machine: sanders (lcs-pashakar-02), 512-core x86_64, 1.5 TB RAM, Ubuntu 24.04,
+a contention-mode run can never masquerade as the banked sequential protocol; validated
+clean below, though the full-scale cross-engine runs it was built for were ultimately
+skipped by operator decision). Machine: sanders (lcs-pashakar-02), 512-core x86_64,
+1.5 TB RAM, Ubuntu 24.04,
 otherwise idle. Oracle env mirrors the laptop oracle-env exactly (Python 3.10.20, numba
 0.59.1, pyyaml 6.0.3 …); oracle numba cache build on sanders: 201 s, context only.
 
-## Results so far
+## Results
 
-### Equivalence — PASS at 10k on real data
+### Equivalence — PASS on real data (10k here; the 25k anchor in its own section below)
 
 `perf-pokec-10k` (10,000 users, 121,716 friend + 6,204 hasPet edges, 14 customers):
 **ALL PASS** oracle-vs-rewrite — identical digests, same-engine repeats clean, and the
@@ -114,8 +117,9 @@ the paper's publication; installed from PyPI into a logged scratch env) runs the
 identical 10k inputs — same graphml fixture, same 14 customer facts, the two rules
 mapped to its YAML `neigh_criteria` dialect — in **reason_s = 13.4 s** (1.1 GB RSS),
 with result magnitude agreeing (7,648 relevance rows at t=8 vs the modern engines' 8,006
-— era-semantics drift ~4.5%, no equivalence claimed). That is a **202× regression**
-pin-vs-paper-era on the paper's own workload, and 13.4 s at 122k edges scales
+— era-semantics drift ~4.5%, no equivalence claimed). That is a **~195–202× regression**
+pin-vs-paper-era on the paper's own workload (193–202× across the pin's band), and
+13.4 s at 122k edges scales
 (O(E)-shaped) straight into the neighborhood of the paper's full-graph 42 minutes.
 
 The mechanism is visible in the source history. **1.2.4 grounds rules
@@ -199,14 +203,15 @@ about *our* (denser, disclosed) reconstruction.
 ## Operator decisions of record (2026-07-12, approved in session)
 
 - **No full-scale rewrite run** — the fitted scaling law is the characterization; a
-  lone full-scale dot has no oracle to compare against and costs ~9.5 days.
+  lone full-scale dot has no oracle to compare against and costs weeks (the decision was
+  taken against the interim ~9.5-day projection; the final projection of record is ~21
+  days, which only strengthens it).
 - **Equivalence-at-scale anchor at the 25k rung** (largest overnight-feasible oracle
-  rung) — queued to run after the 200k band closes.
+  rung) — executed after the 200k band closed; verdict below.
 - **Parallel-mode validation** of `--parallel` at 10k (n=7 sequential vs n=7 parallel)
-  — queued in the same overnight batch.
-- The paper-era full-scale verification runs n=2 (repeat in flight) for a minimal band.
-- Oracle 10k clean protocol band: **reason median 2,600 s, spread 22 s (0.85%)** —
-  banked above.
+  — executed in the same overnight batch; result above.
+- **The paper-era full-scale verification at n=2** for a minimal band — executed;
+  table above.
 
 ## The equivalence-at-scale verdict (2026-07-13 — closes the thread)
 
@@ -228,12 +233,15 @@ campaign's largest proven-equivalent real-data case and the designated at-scale 
   collapsing the superlinear term while keeping the single core and zero dependencies.
   Post-campaign / Option-B+ material; equivalence to the pinned semantics would need the
   same case-by-case proof discipline as everything else.
-- Upstream-contribution triage: the 202× regression, dated and bounded, is first-class
-  material if the campaign ever reports upstream (post-window scope).
+- Upstream-contribution triage: the ~200× regression, dated, bisected, and (for its
+  dominant step) line-attributed, is first-class material if the campaign ever reports
+  upstream (post-window scope) — together with the observation that no §4.2-shaped
+  benchmark existed to catch the compounding.
 
 ## Artifacts
 
-On sanders: `~/pyreason-campaign/pyreason-rewrite/results-pokec-{smoke,screen}/`;
+On sanders: `~/pyreason-campaign/pyreason-rewrite/results-pokec-{smoke,screen,equiv-25k}/`
+plus the paper-era/bisection logs and variant artifacts under `~/pyreason-campaign/`;
 mirrored to the laptop at `results-pokec-sanders/` (gitignored, like all results dirs).
 Case generator: `tools/gen_pokec_fixtures.py`; cases `harness/cases/perf-pokec-*.json`;
 fixtures regenerate on-box from the SNAP files.
