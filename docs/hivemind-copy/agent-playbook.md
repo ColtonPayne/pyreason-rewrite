@@ -360,10 +360,10 @@ linked in Part III. Keep this doc honest: when the practice changes, change the 
 and when a review teaches a new lesson, that's Part II step 8, not an exception to it.*
 
 <!-- links:begin -->
-[ai-hivemind-CONTEXT]: ../../ai-hivemind/CONTEXT.md
-[ai-hivemind-docs-ai-coding-pitfalls]: ../../ai-hivemind/docs/ai-coding-pitfalls.md
-[ai-hivemind-docs-build-log-template]: ../../ai-hivemind/docs/build-log-template.md
-[ai-hivemind-docs-code-review-playbook]: ../../ai-hivemind/docs/code-review-playbook.md
-[ai-hivemind-docs-security-model]: ../../ai-hivemind/docs/security-model.md
-[idea-synthesis-docs-agent-playbook]: ../../ai-hivemind/idea-synthesis/docs/agent-playbook.md
+[ai-hivemind-CONTEXT]: ../../../ai-hivemind/CONTEXT.md
+[ai-hivemind-docs-ai-coding-pitfalls]: ../../../ai-hivemind/docs/ai-coding-pitfalls.md
+[ai-hivemind-docs-build-log-template]: ../../../ai-hivemind/docs/build-log-template.md
+[ai-hivemind-docs-code-review-playbook]: ../../../ai-hivemind/docs/code-review-playbook.md
+[ai-hivemind-docs-security-model]: ../../../ai-hivemind/docs/security-model.md
+[idea-synthesis-docs-agent-playbook]: ../../../ai-hivemind/idea-synthesis/docs/agent-playbook.md
 <!-- links:end -->

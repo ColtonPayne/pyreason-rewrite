@@ -579,9 +579,9 @@ machines, no new privilege boundary) — with the report committed under the cam
 `docs/reviews/`.
 
 <!-- links:begin -->
-[ai-hivemind-docs-ai-coding-pitfalls]: ../../ai-hivemind/docs/ai-coding-pitfalls.md
-[ai-hivemind-docs-security-model]: ../../ai-hivemind/docs/security-model.md
-[idea-synthesis-writeups-hivemind-portability]: ../../ai-hivemind/idea-synthesis/writeups/hivemind-portability.md
-[pyreason-rewrite-CLAUDE]: ../CLAUDE.md
-[pyreason-rewrite-docs-ledger-README]: ../docs/ledger/README.md
+[ai-hivemind-docs-ai-coding-pitfalls]: ../../../ai-hivemind/docs/ai-coding-pitfalls.md
+[ai-hivemind-docs-security-model]: ../../../ai-hivemind/docs/security-model.md
+[idea-synthesis-writeups-hivemind-portability]: ../../../ai-hivemind/idea-synthesis/writeups/hivemind-portability.md
+[pyreason-rewrite-CLAUDE]: ../../CLAUDE.md
+[pyreason-rewrite-docs-ledger-README]: ../ledger/README.md
 <!-- links:end -->

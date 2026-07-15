@@ -173,6 +173,6 @@ not just the pure helper.** The two judgment antidotes: **state the threat model
 severity**, and **trace one level up before trusting a fallback.**
 
 <!-- links:begin -->
-[ai-hivemind-docs-code-review-playbook]: ../../ai-hivemind/docs/code-review-playbook.md
-[ai-hivemind-docs-security-model]: ../../ai-hivemind/docs/security-model.md
+[ai-hivemind-docs-code-review-playbook]: ../../../ai-hivemind/docs/code-review-playbook.md
+[ai-hivemind-docs-security-model]: ../../../ai-hivemind/docs/security-model.md
 <!-- links:end -->

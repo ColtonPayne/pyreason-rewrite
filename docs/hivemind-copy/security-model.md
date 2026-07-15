@@ -69,7 +69,7 @@ any future repo that grows a second principal.
 | picoharness | the model under test, whose `run`-tool commands execute with operator privileges, confined by convention not containment | [`docs/security.md`][picoharness-docs-security] |
 
 <!-- links:begin -->
-[lab-reasoner-cluster-docs-security]: ../../ai-hivemind/lab-reasoner-cluster/docs/security.md
-[paper-tutor-docs-security]: ../../ai-hivemind/paper-tutor/docs/security.md
-[picoharness-docs-security]: ../../ai-hivemind/picoharness/docs/security.md
+[lab-reasoner-cluster-docs-security]: ../../../ai-hivemind/lab-reasoner-cluster/docs/security.md
+[paper-tutor-docs-security]: ../../../ai-hivemind/paper-tutor/docs/security.md
+[picoharness-docs-security]: ../../../ai-hivemind/picoharness/docs/security.md
 <!-- links:end -->

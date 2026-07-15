@@ -97,9 +97,9 @@ repos and resolution is **atomic** — render every affected repo and commit the
    customer.
 
 <!-- links:begin -->
-[ai-hivemind-docs-adr-0002-cross-repo-link-registry]: ../../ai-hivemind/docs/adr/0002-cross-repo-link-registry.md
-[ai-hivemind-docs-adr-0003-livedoc-marker-taxonomy]: ../../ai-hivemind/docs/adr/0003-livedoc-marker-taxonomy.md
-[ai-hivemind-docs-adr-0004-repo-outer-key-and-manifest]: ../../ai-hivemind/docs/adr/0004-repo-outer-key-and-manifest.md
-[hive-state-docs-build-log-03-cross-repo-link-registry]: ../../ai-hivemind/hive-state/docs/build-log/03-cross-repo-link-registry.md
-[idea-synthesis-writeups-multi-repo-commit-sweep]: ../../ai-hivemind/idea-synthesis/writeups/multi-repo-commit-sweep.md
+[ai-hivemind-docs-adr-0002-cross-repo-link-registry]: ../../../ai-hivemind/docs/adr/0002-cross-repo-link-registry.md
+[ai-hivemind-docs-adr-0003-livedoc-marker-taxonomy]: ../../../ai-hivemind/docs/adr/0003-livedoc-marker-taxonomy.md
+[ai-hivemind-docs-adr-0004-repo-outer-key-and-manifest]: ../../../ai-hivemind/docs/adr/0004-repo-outer-key-and-manifest.md
+[hive-state-docs-build-log-03-cross-repo-link-registry]: ../../../ai-hivemind/hive-state/docs/build-log/03-cross-repo-link-registry.md
+[idea-synthesis-writeups-multi-repo-commit-sweep]: ../../../ai-hivemind/idea-synthesis/writeups/multi-repo-commit-sweep.md
 <!-- links:end -->

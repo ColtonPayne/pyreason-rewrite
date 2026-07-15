@@ -47,13 +47,13 @@ uv run pytest -m e2e                      # acceptance: needs the live substrate
 - `tools/` — campaign tooling; `hive_preflight.py` is the federation preflight doctor.
 - `tests/` — fast-tier seam tests + the `e2e`-marked acceptance test.
 - `docs/ledger/` — session banking seam; newest `session-<N>.md` is the resume point.
-- `hivemind-copy/` — dated snapshots of the out-of-repo governing docs (charter,
+- `docs/hivemind-copy/` — dated snapshots of the out-of-repo governing docs (charter,
   playbook, pitfalls, link convention, threat model) for GitHub readability; the
   canonical copies live in the hivemind and govern.
 - `scripts/hooks/` — the committed pre-commit gate (fast tests + corpus link check).
 
 <!-- links:begin -->
 [pyreason-rewrite-CLAUDE]: CLAUDE.md
-[pyreason-rewrite-hivemind-copy-README]: hivemind-copy/README.md
-[pyreason-rewrite-hivemind-copy-charter]: hivemind-copy/charter.md
+[pyreason-rewrite-hivemind-copy-README]: docs/hivemind-copy/README.md
+[pyreason-rewrite-hivemind-copy-charter]: docs/hivemind-copy/charter.md
 <!-- links:end -->
