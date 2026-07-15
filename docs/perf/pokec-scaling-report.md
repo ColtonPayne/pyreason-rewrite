@@ -54,8 +54,24 @@ otherwise idle. Oracle env mirrors the laptop oracle-env exactly (Python 3.10.20
 ### Equivalence — PASS on real data (10k here; the 25k anchor in its own section below)
 
 `perf-pokec-10k` (10,000 users, 121,716 friend + 6,204 hasPet edges, 14 customers):
-**ALL PASS** oracle-vs-rewrite — identical digests, same-engine repeats clean, and the
-per-timestep relevance counts agree row-for-row:
+**ALL PASS** oracle-vs-rewrite.
+
+**What PASS means — the basis of the equivalence claim.** Four captures per case — the
+oracle twice, the rewrite twice — each a fresh process in its own engine environment
+with `PYTHONHASHSEED=0`. Every capture records the case's declared probe set at the
+public-API boundary: `nodes-relevance`, the complete per-node relevance table the
+public filter/sort accessor returns (every qualifying node with its `[l,u]` truth
+interval — 8,006 rows by t=8 on this rung, not a summary statistic), and `time`, the
+timestep probe. Probe outputs are serialized to canonical JSON and SHA-256-digested;
+the comparison policy is the case default — exact equality, no tolerance, row order
+contractual. The verdict is then mechanical, judged by the stdlib compare layer that
+imports neither engine: the same-engine pairs match (each engine reproduces itself
+bit-for-bit), and the cross-engine digests match — the oracle and the rewrite emit
+**byte-identical result tables**.
+
+The table below is therefore not two engines' outputs reconciled — it is a per-timestep
+summary of the single shared output both engines produced, shown so the convergence
+shape can be read against the paper's:
 
 | t | total | fully [1,1] | partially [0.6,1] |
 |---|-------|-------------|--------------------|
@@ -72,15 +88,19 @@ of the full graph) — the dense early-adopter subgraph at work, disclosed above
 
 ### Performance (reason window, seconds; RSS peak-of-process)
 
-| Rung | friend edges | rewrite | oracle (serial) | oracle (parallel_computing) | ratio |
-|------|-------------|---------|-----------------|------------------------------|-------|
-| 10k | 121,716 | **26.7–26.9 s** (265 MB) | bench n=2: **2589–2611 s**; captures 2620/2701 (~880 MB) | 2677 (1.6 GB, **128% CPU**) | **~97×** |
-| 25k | 406,355 | **221.9 s** (equiv captures) | **27,320 s** = 7.6 h (equiv captures) | — | **123×** |
-| 50k | 884,238 | **1087–1093 s** = 18.2 min (1.63 GB) | — (projected ~1.4 d) | — | — |
-| 200k | 4,009,047 | **25,557–25,679 s** = 7.1 h (n=2, spread 0.47%, 7.2 GB) | — (out of reach) | — | — |
-| full | 30,622,564 | **projected ~21 days — not run (operator decision)** | projected years — not runnable | no better (see below) | — |
+| Rung | friend edges | rewrite | oracle (serial) | oracle (parallel_computing) | paper-era 1.2.4 (context) | ratio |
+|------|-------------|---------|-----------------|------------------------------|---------------------------|-------|
+| 10k | 121,716 | **26.7–26.9 s** (265 MB) | bench n=2: **2589–2611 s**; captures 2620/2701 (~880 MB) | 2677 (1.6 GB, **128% CPU**) | **13.4 s** (1.1 GB) | **~97×** |
+| 25k | 406,355 | **221.9 s** (equiv captures) | **27,320 s** = 7.6 h (equiv captures) | — | — | **123×** |
+| 50k | 884,238 | **1087–1093 s** = 18.2 min (1.63 GB) | — (projected ~1.4 d) | — | — | — |
+| 200k | 4,009,047 | **25,557–25,679 s** = 7.1 h (n=2, spread 0.47%, 7.2 GB) | — (out of reach) | — | measured (enters the x^0.98 fit); value in the sanders artifacts, not banked here | — |
+| full | 30,622,564 | **projected ~21 days — not run (operator decision)** | projected years — not runnable | no better (see below) | **60.6–61.1 min** (n=2, 185 GB) | — |
 
-Rewrite bands are ≤0.5% of median at every rung — extremely tight.
+Rewrite bands are ≤0.5% of median at every rung — extremely tight. The 1.2.4 column is
+context, not a comparison bar: the paper-era engine's result rows drift ~4.5% from the
+modern semantics (no equivalence claim — the paper-verification finding below) and its
+threshold checking is broken era-wide (BUG-138); its banked points are 10k and full,
+and the ratio column stays rewrite-vs-pinned-oracle.
 
 ### Scaling shape
 
@@ -133,15 +153,17 @@ neighborhood grounder for first-order generality (arbitrary variable patterns,
 `infer_edges`) somewhere between 1.2.4 and today; the published performance describes an
 engine that no longer ships.
 
-**The full-scale verification run (1.2.4, complete Pokec, both rules, timesteps=8):**
+**The full-scale verification run (1.2.4, complete Pokec, both rules, timesteps=8),
+with the rewrite's full-scale column beside it for contrast (not run — operator
+decision; its cells are the banked projections, labeled as such):**
 
-| | Paper (2023, 96 vCPU EC2) | Measured (1.2.4, sanders, one core) |
-|---|---|---|
-| reason | 42 min | **60.6–61.1 min** (3,633.7 / 3,664.0 s, n=2, spread 0.83%) |
-| setup (31M-edge graph load) | not separated | 16.4 min |
-| peak RSS | 58.36 GB | 185 GB |
-| scaling in edges (10k→200k→full) | "sub-linear" | **linear, x^0.98** |
-| CPU | "supports CPU parallelism" | 100% of one core |
+| | Paper (2023, 96 vCPU EC2) | Measured (1.2.4, sanders, one core) | Rewrite (sanders, one core; not run) |
+|---|---|---|---|
+| reason | 42 min | **60.6–61.1 min** (3,633.7 / 3,664.0 s, n=2, spread 0.83%) | projection of record **≈ 21 days/repeat** (200k band × x^2.09) |
+| setup (31M-edge graph load) | not separated | 16.4 min | not run |
+| peak RSS | 58.36 GB | 185 GB | not run (largest measured: 7.2 GB at 200k) |
+| scaling in edges (10k→200k→full) | "sub-linear" | **linear, x^0.98** | **superlinear, x^2.09** (10k→50k→200k fit) |
+| CPU | "supports CPU parallelism" | 100% of one core | 100% of one core (single-core by design) |
 
 **Verification outcome: the paper's runtime claim is verified in substance on the
 paper-era engine** — same order, same shape, on one core versus their 96 vCPUs
