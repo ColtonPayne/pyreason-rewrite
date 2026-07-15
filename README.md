@@ -6,7 +6,11 @@ at, where the code breaks, and the common pain points; then rewrite it as an
 API-compatible sibling with an e2e differential harness proving equivalence against the
 pinned upstream **oracle** (`oracle/pyreason` at the commit in `oracle/PIN`) — every
 divergence an operator-adjudicated correctness bug with a failing test. The campaign runs
-charter-shaped in the Fable window; agent rules live in [CLAUDE.md][pyreason-rewrite-CLAUDE].
+charter-shaped in the Fable window; agent rules live in [CLAUDE.md][pyreason-rewrite-CLAUDE],
+and a dated snapshot of the governing charter (canonical copy in the hivemind planning
+repo) is committed at [hivemind-copy/charter.md][pyreason-rewrite-hivemind-copy-charter],
+beside snapshots of the other hivemind docs CLAUDE.md leans on
+([hivemind-copy/][pyreason-rewrite-hivemind-copy-README]).
 
 This repo is also the first **federated consumer** of the ai-hivemind substrate (the
 hivemind-portability MVP): it is registered in the umbrella `repos.toml`, its docs join the
@@ -43,8 +47,13 @@ uv run pytest -m e2e                      # acceptance: needs the live substrate
 - `tools/` — campaign tooling; `hive_preflight.py` is the federation preflight doctor.
 - `tests/` — fast-tier seam tests + the `e2e`-marked acceptance test.
 - `docs/ledger/` — session banking seam; newest `session-<N>.md` is the resume point.
+- `hivemind-copy/` — dated snapshots of the out-of-repo governing docs (charter,
+  playbook, pitfalls, link convention, threat model) for GitHub readability; the
+  canonical copies live in the hivemind and govern.
 - `scripts/hooks/` — the committed pre-commit gate (fast tests + corpus link check).
 
 <!-- links:begin -->
 [pyreason-rewrite-CLAUDE]: CLAUDE.md
+[pyreason-rewrite-hivemind-copy-README]: hivemind-copy/README.md
+[pyreason-rewrite-hivemind-copy-charter]: hivemind-copy/charter.md
 <!-- links:end -->
